@@ -1,9 +1,9 @@
 name: Docs deploy
 
 # Builds the docs site with check-docs.yml and deploys it to GitHub Pages. release.yml runs this on
-# a push that changes the docs, and a manual run deploys too. The calling job grants pages and
-# id-token write. Deployments from Actions ignore a CNAME file, so the custom domain is set in the
-# Pages settings.
+# a push to master that changes the docs. A manual run deploys too, but only from master. The
+# calling job grants pages and id-token write. Deployments from Actions ignore a CNAME file, so the
+# custom domain is set in the Pages settings.
 on:
   workflow_call:
   workflow_dispatch:
@@ -21,6 +21,8 @@ jobs:
   deploy:
     name: Deploy
     needs: build
+    # The site documents what master released, so a manual run on another branch builds it only.
+    if: github.ref == 'refs/heads/master'
     concurrency:
       group: pages
       cancel-in-progress: false
