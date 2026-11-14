@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Pure match logic: the state machine, roster rules, knife decision, trade/flash tracking, the
+    wire DTOs and the WebSocket client. Deliberately has NO reference to SwiftlyS2, so the
+    test project can exercise all of it without the game. Everything the game provides comes in
+    through IGameHost.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Ankor.Core</RootNamespace>
+    <AssemblyName>Ankor.Core</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

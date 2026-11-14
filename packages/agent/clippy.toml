@@ -1,0 +1,8 @@
+# Tests may crash on a failed expectation; that is how they fail.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-indexing-slicing-in-tests = true
+
+# A poisoned lock is taken as it is; `crate::sync::lock` does that in one place.
+disallowed-methods = [{ path = "std::sync::Mutex::lock", reason = "use crate::sync::lock, which takes a poisoned lock as it is" }]

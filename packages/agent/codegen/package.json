@@ -1,0 +1,13 @@
+{
+  "name": "ankorcs-rst-codegen",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node generate.mjs",
+    "corpus": "node corpus.mjs"
+  },
+  "devDependencies": {
+    "randexp": "^0.5.3",
+    "typescript": "5.9.3"
+  }
+}

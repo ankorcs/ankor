@@ -1,0 +1,36 @@
+# Dependency checks: `cargo deny check`.
+
+[graph]
+all-features = true
+
+[advisories]
+# Every known vulnerability fails the check; an unmaintained crate in the tree does too.
+unmaintained = "all"
+yanked = "deny"
+
+[licenses]
+# Licences compatible with shipping the agent under GPL-3.0.
+allow = [
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "CDLA-Permissive-2.0",
+  "GPL-3.0-only",
+  "ISC",
+  "MIT",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+]
+confidence-threshold = 0.9
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

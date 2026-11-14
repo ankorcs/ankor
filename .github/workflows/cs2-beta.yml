@@ -1,0 +1,156 @@
+name: CS2 beta
+
+# Every four hours, and when run by hand, builds the CS2 image from master on SwiftlyS2's newest
+# beta of the pinned major. It pushes it to ghcr.io/ankorcs/ankor-cs2 as `beta` and as
+# X.Y.Z-swiftlys2-A.B.C-beta.N, the image version and the SwiftlyS2 beta. Nothing is committed: the
+# beta goes in as build arguments. A run skips the build when `beta` already holds that commit on
+# that beta. Each run also deletes old versions of the package: untagged ones after 30 days, and
+# beta builds that `beta` left after 90.
+on:
+  schedule:
+    - cron: '17 */4 * * *'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: The branch or commit to build, such as a fix for a beta that breaks the plugin.
+        type: string
+        default: master
+      force:
+        description: Build even when `beta` already holds this commit on this beta.
+        type: boolean
+        default: false
+
+# Shared with release.yml and rebuild.yml, so the three never push images at the same time.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      builds: ${{ steps.plan.outputs.builds }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || 'master' }}
+
+      - id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FORCE: ${{ inputs.force || false }}
+        run: |
+          pinned="$(sed -n 's/^ARG SWIFTLY_VERSION=//p' packages/plugin/docker/Dockerfile)"
+          major="${pinned%%.*}"
+          # SwiftlyS2 tags its betas vX.Y.Z-beta.N; sort -V orders beta.10 after beta.9.
+          beta="$(gh api --paginate repos/swiftly-solution/swiftlys2/releases \
+            --jq '.[] | select(.draft == false and .prerelease == true) | .tag_name' |
+            sed -n "s/^v\(${major}\.[0-9]*\.[0-9]*-beta\.[0-9]*\)$/\1/p" | sort -V | tail -n 1)"
+
+          if [[ -z "$beta" ]]; then
+            echo "SwiftlyS2 has no ${major}.x beta" >&2
+            echo "builds=[]" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # NuGet can lag behind the GitHub release; the next scheduled run tries again.
+          if ! curl -fsSL https://api.nuget.org/v3-flatcontainer/swiftlys2.cs2/index.json |
+            jq -e --arg v "$beta" '.versions | index($v)' >/dev/null; then
+            echo "SwiftlyS2.CS2 ${beta} is not on NuGet yet" >&2
+            echo "builds=[]" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          revision="$(git rev-parse HEAD)"
+          repo="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/ankor-cs2"
+          # The labels of the current beta, read anonymously from the public package. Only a missing
+          # tag reads as nothing to compare; any other failure stops the run.
+          if config="$(skopeo inspect --config "docker://${repo}:beta" 2>err.txt)"; then
+            labels="$(jq -c '.config.Labels // {}' <<<"$config")"
+          elif grep -qi 'manifest unknown' err.txt; then
+            labels='{}'
+          else
+            cat err.txt >&2
+            exit 1
+          fi
+          if [[ "$FORCE" != true ]] &&
+            jq -e --arg r "$revision" --arg b "$beta" \
+              '.["org.opencontainers.image.revision"] == $r and .["ankor.swiftlys2.version"] == $b' <<<"$labels" >/dev/null; then
+            echo "${repo}:beta already holds ${revision} on SwiftlyS2 ${beta}" >&2
+            echo "builds=[]" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          sha="$(curl -fsSL "https://github.com/swiftly-solution/swiftlys2/releases/download/v${beta}/swiftlys2-linux-v${beta}-with-runtimes.zip" |
+            sha256sum | cut -d' ' -f1)"
+          version="$(scripts/nodes.sh version cs2)"
+          echo "Building the CS2 image ${version} at ${revision} on SwiftlyS2 ${beta}"
+          jq -nc --arg version "$version" --arg ref "$revision" --arg beta "$beta" --arg sha "$sha" \
+            '[{image: "cs2", version: $version, ref: $ref, latest: false,
+               swiftly_version: $beta, swiftly_sha256: $sha,
+               tags: ["beta", "\($version)-swiftlys2-\($beta)"]}]' |
+            sed 's/^/builds=/' >>"$GITHUB_OUTPUT"
+
+  build-image:
+    name: Build
+    needs: plan
+    if: needs.plan.outputs.builds != '[]'
+    uses: ./.github/workflows/image-build.yml
+    with:
+      builds: ${{ needs.plan.outputs.builds }}
+
+  publish-image:
+    name: Publish to GHCR
+    needs: [plan, build-image]
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/image-publish.yml
+    with:
+      builds: ${{ needs.plan.outputs.builds }}
+
+  # A rebuild of a release, or of the same beta, leaves the build it replaced untagged. GHCR records
+  # no time a tag left a version, so a version's age is the time it was pushed. Releases before
+  # 0.6.0 are image indexes, whose image and attestation are untagged versions of their own; every
+  # version a tagged index lists is kept. A beta build whose only tags are X.Y.Z-swiftlys2-… tags
+  # goes after 90 days; the one that holds `beta` stays.
+  prune:
+    name: Delete old images
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          versions="orgs/${owner}/packages/container/ankor-cs2/versions"
+          gh api --paginate "$versions" --jq '.[]' | jq -s . >versions.json
+
+          token="$(curl -fsSL -u "x:${GH_TOKEN}" "https://ghcr.io/token?scope=repository:${owner}/ankor-cs2:pull" | jq -r .token)"
+          : >listed.txt
+          for digest in $(jq -r '.[] | select((.metadata.container.tags | length) > 0) | .name' versions.json); do
+            curl -fsSL -H "Authorization: Bearer ${token}" \
+              -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.docker.distribution.manifest.v2+json' \
+              "https://ghcr.io/v2/${owner}/ankor-cs2/manifests/${digest}" | jq -r '.manifests[]?.digest' >>listed.txt
+          done
+
+          untagged="$(date -u -d '30 days ago' +%Y-%m-%dT%H:%M:%SZ)"
+          betas="$(date -u -d '90 days ago' +%Y-%m-%dT%H:%M:%SZ)"
+          jq -r --arg untagged "$untagged" --arg betas "$betas" --rawfile listed listed.txt '
+            ($listed | split("\n")) as $kept
+            | .[] | .metadata.container.tags as $tags
+            | select(
+                ($tags | length) == 0 and .created_at < $untagged and (.name | IN($kept[]) | not)
+                or ($tags | length) > 0 and all($tags[]; test("^[0-9]+\\.[0-9]+\\.[0-9]+-swiftlys2-")) and .created_at < $betas)
+            | "\(.id) \($tags | join(","))"' versions.json |
+            while read -r id tags; do
+              echo "Deleting version ${id}${tags:+ (${tags})}"
+              gh api --method DELETE "${versions}/${id}"
+            done

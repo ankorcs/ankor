@@ -1,0 +1,5 @@
+# arm64 Linux builds, such as the checks' container on Apple silicon, link with lld, which
+# docker/ci.Dockerfile installs. GNU ld took most of each build. x86_64 Linux links with rustc's
+# rust-lld by default.
+[target.aarch64-unknown-linux-gnu]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]

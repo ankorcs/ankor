@@ -1,0 +1,154 @@
+---
+import { EVENT_RELAY_PORT, PROTOCOL_HEADER } from '@ankorcs/protocol';
+import { MAX_FRAME_BYTES, PLUGIN_WS_PATH } from '@ankorcs/protocol/container';
+import Docs, { type Heading } from '../../layouts/Docs.astro';
+import Message from '../../components/reference/Message.astro';
+import { reference } from '../../reference/data.ts';
+import { inline, markdown } from '../../reference/schema.ts';
+import { directionText, sameDirection, supportDescription, type MessageView, type Party, type ReferencePage } from '../../reference/model.ts';
+import { sitePath } from '../../site.ts';
+
+export function getStaticPaths() {
+  return reference.pages.map((page) => ({ params: { page: page.slug }, props: { page } }));
+}
+
+interface Props {
+  page: ReferencePage;
+}
+
+const { page } = Astro.props;
+
+const channel = reference.document.channels[page.channel];
+
+/** A page carrying both directions splits by them, each alphabetical, so a pair is two anchors apart in the outline. */
+const DIRECTIONS = (channel?.['x-directions'] ?? []).map((direction) => ({
+  direction,
+  slug: `${direction.from}-to-${direction.to}`,
+  text: directionText(direction).charAt(0).toUpperCase() + directionText(direction).slice(1),
+  about: direction.about,
+}));
+const stray = DIRECTIONS.length === 0 ? undefined
+  : page.messages.find((message) => !DIRECTIONS.some(({ direction }) => message.direction !== null && sameDirection(message.direction, direction)));
+
+if (stray !== undefined) {
+  throw new Error(`${stray.name} on ${page.slug} goes in no direction its channel lists`);
+}
+
+const split = DIRECTIONS.length > 0 && DIRECTIONS.every(({ direction }) => page.messages.some((message) => message.direction !== null && sameDirection(message.direction, direction)));
+const groups: { slug: string | null; text: string; from?: Party; about?: string; messages: MessageView[] }[] = split
+  ? DIRECTIONS.map(({ direction, slug, text, about }) => ({
+    slug,
+    text,
+    from: direction.from,
+    about,
+    messages: page.messages.filter((message) => message.direction !== null && sameDirection(message.direction, direction))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+  }))
+  : [{ slug: null, text: '', messages: page.messages }];
+
+// A page with parts, such as the event upload with its gameplay events, heads its own messages too,
+// so they sit beside the parts in the outline instead of above them.
+if (page.parts.length > 0 && groups.length === 1 && groups[0]!.slug === null) {
+  groups[0] = { ...groups[0]!, slug: page.slug, text: page.title };
+}
+
+groups.push(...page.parts.map((part) => ({ slug: part.slug, text: part.title, about: part.description, messages: part.messages })));
+
+/** The agent socket's page opens with how a socket ends, ahead of the messages on it. */
+const closes = split ? channel?.['x-closes'] : undefined;
+
+/** A page whose messages carry the required badge says what it means, beside the badges. */
+const required = [...page.messages, ...page.parts.flatMap((part) => part.messages)].some((message) => message.support === 'required');
+
+/** The plugin socket's page opens with how a plugin connects. */
+const connecting = page.slug === 'plugin';
+
+/** Who sends a direction's messages, as the outline colours it. */
+function toneOf(from: Party | undefined): Heading['tone'] {
+  return from === 'agent' ? 'agent' : from === 'controller' ? 'controller' : undefined;
+}
+
+const headings: Heading[] = [
+  ...closes === undefined ? [] : [{ depth: 2, slug: 'closing', text: 'Closing the socket' }],
+  ...connecting ? [{ depth: 2, slug: 'connecting', text: 'Connecting' }] : [],
+  ...groups.flatMap((group) => [
+  ...group.slug === null ? [] : [{ depth: 2, slug: group.slug, text: group.text, tone: toneOf(group.from) }],
+  ...group.messages.map((message) => ({
+    depth: group.slug === null ? 2 : 3,
+    code: true,
+    slug: message.anchor,
+    text: message.name,
+    ...message.support === 'required' ? { tag: 'required', tagTitle: supportDescription(reference, 'required') } : {},
+  })),
+  ]),
+];
+---
+
+<Docs title={page.title} description={page.description} headings={headings}>
+  <p>{page.description}</p>
+  {required && <p set:html={inline('Messages marked **required** are the ones a controller must handle for a node to run games. The rest are optional.')} />}
+  {connecting && (
+    <>
+      <p>
+        The plugin in each game server streams its gameplay events and status to the node's agent, which
+        stores and uploads the events and acknowledges them, and relays console commands back to the game.
+        The socket listens only on the node's loopback, and the agent image and the CS2 image implement
+        its two ends, so a controller never talks to it. It is here for reference.
+      </p>
+      <h2 id="connecting">Connecting</h2>
+      <p>Each game server's plugin dials its agent on the node's loopback, at the URL its launch gives it in <code>ANKOR_WS_URL</code>. Its events carry the launch's <code>allocation_id</code>, which the launch gives it in <code>ANKOR_ALLOCATION_ID</code>; a plugin without one does nothing.</p>
+      <pre><code>{`ws://127.0.0.1:${EVENT_RELAY_PORT}${PLUGIN_WS_PATH}?slot_id=<slot id>&key=<relay key>`}</code></pre>
+      <ul>
+        <li><code>slot_id</code> is the slot the game runs in.</li>
+        <li>
+          <code>key</code> is the launch's relay key: 8 random bytes in hex, which the agent makes for each
+          launch. It is in that game's container only, so no game of another slot can connect as it. The
+          agent keeps it in a label of the container and reads it back when it adopts the game after a
+          restart.
+        </li>
+        <li>The dial sends <code>{PROTOCOL_HEADER}</code> with the plugin's <a href={sitePath('/protocol/versioning/')}>protocol version</a>.</li>
+      </ul>
+      <p>The agent refuses a dial it cannot accept with an HTTP status:</p>
+      <table>
+        <thead><tr><th>Status</th><th>When</th></tr></thead>
+        <tbody>
+          <tr><td><code>404</code></td><td>The slot is not on the node, or the path is wrong.</td></tr>
+          <tr><td><code>401</code></td><td>The key is not the launch's.</td></tr>
+          <tr><td><code>426</code></td><td><code>{PROTOCOL_HEADER}</code> is missing or has another version.</td></tr>
+        </tbody>
+      </table>
+      <ul>
+        <li>A slot has one plugin connection. A new one replaces the old.</li>
+        <li>A binary frame ends the socket, and a frame over {MAX_FRAME_BYTES / (1024 * 1024)} MiB closes it with <code>1009</code>.</li>
+      </ul>
+    </>
+  )}
+  {closes !== undefined && (
+    <>
+      <p set:html={inline('How to accept the socket, answer `hello` and which messages to send when is in the [protocol overview](/protocol/).')} />
+      <h2 id="closing">Closing the socket</h2>
+      {closes.description !== undefined && <Fragment set:html={markdown(closes.description)} />}
+      <table>
+        <thead><tr><th>Code</th><th>Reason</th><th>By</th><th>When</th><th>Then</th></tr></thead>
+        <tbody>
+          {closes.closes.map((close) => (
+            <tr>
+              <td><code>{close.code}</code></td>
+              <td>{close.reason === null ? 'none' : <Fragment set:html={inline(close.reason)} />}</td>
+              <td>{close.by}</td>
+              <td><Fragment set:html={inline(close.when)} /></td>
+              <td><Fragment set:html={inline(close.then)} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  )}
+  {groups.map((group) => (
+    <>
+      {group.slug !== null && <h2 id={group.slug}>{group.text}</h2>}
+      {group.about !== undefined && <Fragment set:html={markdown(group.about)} />}
+      {group.messages.map((message) => <Message message={message} reference={reference} nested={group.slug !== null} />)}
+    </>
+  ))}
+</Docs>

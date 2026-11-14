@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The plugin without the game engine: core's runtime, agent link and match, on the test engine,
+    as a game server process. The conformance suite runs it in place of CS2. Nothing here ships to
+    a game server.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Ankor.Headless</RootNamespace>
+    <AssemblyName>ankor-headless</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../testing/Ankor.Testing.csproj" />
+  </ItemGroup>
+</Project>

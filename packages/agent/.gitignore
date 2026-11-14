@@ -1,0 +1,7 @@
+# Cargo's build output and cargo-mutants' reports.
+/target/
+/mutants.out*/
+
+# The corpus, which scripts/check.sh writes from the protocol and does not commit.
+/crates/*/tests/*corpus.jsonl
+/crates/protocol/tests/corpus.stamp

@@ -1,0 +1,63 @@
+name: Rebuild
+
+# Every Monday, and when run by hand, rebuilds the newest release of each image from its tag, on
+# freshly pulled base images, and pushes it under the same tags. Only the newest release is
+# maintained, because a CS2 update can need a plugin or SwiftlyS2 fix that only the newest line
+# receives. Older releases keep their last build. A rebuild runs no checks, because it builds
+# released tags. Its image builds, which run the plugin's tests for the CS2 image, must all pass
+# before any image is pushed.
+on:
+  schedule:
+    - cron: '23 4 * * 1'
+  workflow_dispatch:
+
+# Shared with release.yml, so the two never push images at the same time.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    outputs:
+      builds: ${{ steps.plan.outputs.builds }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # The newest release of each image, which also carries `latest`.
+      - id: plan
+        run: |
+          for image in agent cs2; do
+            version="$(git tag --list "${image}-v*" --sort=-v:refname |
+              sed -n "s/^${image}-v\([0-9]*\.[0-9]*\.[0-9]*\)$/\1/p" | head -n 1)"
+            if [[ -n "$version" ]]; then
+              jq -nc --arg image "$image" --arg version "$version" \
+                '{image: $image, version: $version, ref: "\($image)-v\($version)", latest: true}'
+            fi
+          done | tee builds.jsonl
+          echo "builds=$(jq -sc . builds.jsonl)" >>"$GITHUB_OUTPUT"
+
+  build-image:
+    name: Build
+    needs: plan
+    if: needs.plan.outputs.builds != '[]'
+    uses: ./.github/workflows/image-build.yml
+    with:
+      builds: ${{ needs.plan.outputs.builds }}
+      fresh: true
+
+  publish-image:
+    name: Publish to GHCR
+    needs: [plan, build-image]
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/image-publish.yml
+    with:
+      builds: ${{ needs.plan.outputs.builds }}

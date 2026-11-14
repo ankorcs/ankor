@@ -1,0 +1,32 @@
+{
+  "name": "ankorcs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=26"
+  },
+  "workspaces": [
+    "packages/protocol",
+    "docs"
+  ],
+  "scripts": {
+    "build": "npm run build -w @ankorcs/protocol",
+    "typecheck": "tsc -p tsconfig.json && npm run typecheck --workspaces --if-present",
+    "lint": "eslint . && node scripts/md-links.mjs",
+    "test": "npm run test --workspaces --if-present",
+    "docs:dev": "npm run build -w @ankorcs/protocol && npm run dev -w @ankorcs/docs",
+    "docs:build": "npm run build -w @ankorcs/protocol && npm run build -w @ankorcs/docs",
+    "docs:preview": "npm run preview -w @ankorcs/docs",
+    "check": "scripts/release-line.sh && npm run build && npm run typecheck && npm run lint && npm test && npm run docs:build && dotnet test packages/plugin/tests && dotnet build packages/plugin/headless && scripts/plugin.sh contract"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "eslint": "^10.10.0",
+    "globals": "^17.12.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^4.1.11"
+  }
+}

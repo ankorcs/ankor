@@ -1,0 +1,33 @@
+<Project>
+
+  <!--
+    One place to change the target framework. SwiftlyS2 hosts .NET on the game server, so this must
+    match the runtime shipped in the "with-runtimes" SwiftlyS2 release that packages/plugin/docker/Dockerfile
+    installs.
+  -->
+  <PropertyGroup>
+    <AnkorTargetFramework>net10.0</AnkorTargetFramework>
+    <AnkorVersion>0.9.0</AnkorVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>$(AnkorTargetFramework)</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>NU1701</WarningsNotAsErrors>
+    <!-- Package advisories mostly land in SwiftlyS2's dependencies, which only a SwiftlyS2 release changes. -->
+    <NuGetAudit>false</NuGetAudit>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <!--
+      Do NOT set InvariantGlobalization: the image installs libicu instead, which is what the .NET
+      runtime the loader hosts expects.
+    -->
+    <Version>$(AnkorVersion)</Version>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <Deterministic>true</Deterministic>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>

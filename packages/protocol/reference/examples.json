@@ -1,0 +1,2179 @@
+{
+  "hello": [
+    {
+      "type": "hello",
+      "agent": {
+        "version": "0.1.0",
+        "image": "ghcr.io/ankorcs/ankor-agent:1.2.0",
+        "image_id": "sha256:2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae"
+      },
+      "host": {
+        "cpu_count": 8,
+        "os_name": "Debian GNU/Linux 13 (trixie)",
+        "kernel": "6.12.43+deb13-amd64"
+      },
+      "public_ip": "203.0.113.7",
+      "country": "FR",
+      "config": {
+        "slots": [
+          {
+            "id": "s1",
+            "port": 27015,
+            "tv_port": 27020,
+            "gslt_hint": "7E8F9A0B1C"
+          }
+        ],
+        "pinned_ip": null,
+        "controller": {
+          "host": "cs.example.com",
+          "tls": true,
+          "socket_path": "/ws/agent",
+          "events_path": "/api/node/events"
+        },
+        "auto_update": true,
+        "memory_mb": null,
+        "demo_upload": null
+      },
+      "slot_status": [
+        {
+          "slot_id": "s1",
+          "state": "idle",
+          "allocation_id": null,
+          "match_id": null,
+          "plugin_online": false,
+          "gslt_state": "ok",
+          "reserved": false,
+          "server_steam_id": null
+        }
+      ],
+      "cs2": {
+        "build_id": "20114612",
+        "latest_build_id": "20114612",
+        "image": "ghcr.io/ankorcs/ankor-cs2:1.2.0",
+        "image_id": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "update": null,
+        "image_update": null
+      },
+      "unavailable": null,
+      "demos": [
+        {
+          "slot_id": "s2",
+          "file_name": "20260928-183000_0199a0b4-5c00-7000-8000-00000000abc0_de_nuke.dem",
+          "size_bytes": 164626432,
+          "modified_at": 1759084200000,
+          "recording": false,
+          "uploading": false,
+          "upload_error": null
+        }
+      ],
+      "server_exits": [
+        {
+          "slot_id": "s1",
+          "allocation_id": "9c04e1d2-3a7b-4f6e-8d21-5e0b9c7a4f13",
+          "reason": "clean_exit",
+          "exit_code": 0,
+          "detail": null
+        }
+      ],
+      "event_backlog": {
+        "servers": [
+          {
+            "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e",
+            "pending": 212
+          }
+        ],
+        "server_count": 1,
+        "event_count": 212,
+        "reason": "HTTP 503"
+      },
+      "agent_update": {
+        "image": "ghcr.io/ankorcs/ankor-agent:1.4.0",
+        "step": null,
+        "outcome": "completed",
+        "detail": null
+      }
+    }
+  ],
+  "slot_status": [
+    {
+      "type": "slot_status",
+      "slot_id": "s1",
+      "state": "running",
+      "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e",
+      "match_id": "0199a0b4-5c00-7000-8000-00000000abc1",
+      "plugin_online": true,
+      "gslt_state": "ok",
+      "reserved": false,
+      "server_steam_id": "85568392936840254"
+    },
+    {
+      "type": "slot_status",
+      "slot_id": "s2",
+      "state": "idle",
+      "allocation_id": null,
+      "match_id": null,
+      "plugin_online": false,
+      "gslt_state": "ok",
+      "reserved": false,
+      "server_steam_id": null
+    }
+  ],
+  "server_exited": [
+    {
+      "type": "server_exited",
+      "slot_id": "s2",
+      "allocation_id": "9c04e1d2-3a7b-4f6e-8d21-5e0b9c7a4f13",
+      "reason": "clean_exit",
+      "exit_code": 0,
+      "detail": null
+    },
+    {
+      "type": "server_exited",
+      "slot_id": "s1",
+      "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e",
+      "reason": "crashed",
+      "exit_code": 139,
+      "detail": null
+    },
+    {
+      "type": "server_exited",
+      "slot_id": "s2",
+      "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e",
+      "reason": "config_rejected",
+      "exit_code": 0,
+      "detail": "roster.team1.players: 6 players, more than max_players allows"
+    }
+  ],
+  "shutdown": [
+    {
+      "type": "shutdown",
+      "signal": "SIGTERM"
+    }
+  ],
+  "cs2_update_progress": [
+    {
+      "type": "cs2_update_progress",
+      "update_id": "7c2e9a41-3b5d-4f68-9e0a-1d4c8b7f2a63",
+      "percent": 42.5,
+      "message": "downloading"
+    },
+    {
+      "type": "cs2_update_progress",
+      "update_id": "7c2e9a41-3b5d-4f68-9e0a-1d4c8b7f2a63",
+      "percent": 100,
+      "message": "install/update complete"
+    }
+  ],
+  "resource_batch": [
+    {
+      "type": "resource_batch",
+      "ticks": [
+        {
+          "at": 1700000014000,
+          "disk": {
+            "cap": 107374182400,
+            "used": 64424509440
+          },
+          "memory": {
+            "cap": 17179869184,
+            "used": 6442450944
+          },
+          "cpu": {
+            "max": 71,
+            "average": 38
+          }
+        }
+      ],
+      "reset": true
+    }
+  ],
+  "event_backlog": [
+    {
+      "type": "event_backlog",
+      "servers": [
+        {
+          "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e",
+          "pending": 212
+        }
+      ],
+      "server_count": 1,
+      "event_count": 212,
+      "reason": "HTTP 503"
+    }
+  ],
+  "phase_change": [
+    {
+      "type": "phase_change",
+      "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e",
+      "phase": "live"
+    }
+  ],
+  "score": [
+    {
+      "type": "score",
+      "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e",
+      "team1_score": 7,
+      "team2_score": 5
+    }
+  ],
+  "backup": [
+    {
+      "type": "backup",
+      "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e",
+      "backup": {
+        "type": "round_backup",
+        "timestamp": 1700001214000,
+        "tick": 180000,
+        "round": 14,
+        "team1_side": "t",
+        "team1_score": 7,
+        "team2_score": 6,
+        "rules": {
+          "max_rounds": 24,
+          "overtime": true,
+          "overtime_max_rounds": 6,
+          "friendly_fire": false
+        },
+        "file": "\"SaveFile\"\n{\n\t\"round\"\t\t\"13\"\n\t…\n}\n",
+        "roster": {
+          "team1": {
+            "name": "Blue",
+            "players": [
+              "76561198000000001",
+              "76561198000000002"
+            ]
+          },
+          "team2": {
+            "name": "Orange",
+            "players": [
+              "76561198000000011",
+              "76561198000000012"
+            ]
+          },
+          "spectators": []
+        }
+      }
+    }
+  ],
+  "reply": [
+    {
+      "type": "reply",
+      "reply_to": "r2",
+      "request": "stop_server",
+      "ok": true,
+      "data": {
+        "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e"
+      }
+    },
+    {
+      "type": "reply",
+      "reply_to": "r9",
+      "request": "stop_server",
+      "ok": false,
+      "error": {
+        "code": "unknown_allocation",
+        "detail": "unknown_allocation"
+      }
+    }
+  ],
+  "log_batch": [
+    {
+      "type": "log_batch",
+      "source": {
+        "kind": "server",
+        "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e"
+      },
+      "replay_id": null,
+      "reset": true,
+      "lines": [
+        {
+          "at": 1700000014000,
+          "level": null,
+          "line": "Host activate: Loading (de_mirage)"
+        }
+      ]
+    },
+    {
+      "type": "log_batch",
+      "source": {
+        "kind": "agent"
+      },
+      "replay_id": "0d6f1c52-3a7e-4b9d-8c21-5e4f7a9b2c13",
+      "reset": false,
+      "lines": [
+        {
+          "at": 1700000013000,
+          "level": "warn",
+          "line": "[agent:ws] reconnecting in 4000ms"
+        }
+      ]
+    }
+  ],
+  "log_index": [
+    {
+      "type": "log_index",
+      "sources": [
+        {
+          "source": {
+            "kind": "agent"
+          },
+          "line_count": 312,
+          "last_line_at": 1700000014000,
+          "ended": false
+        },
+        {
+          "source": {
+            "kind": "cs2_update",
+            "update_id": "7c2e9a41-3b5d-4f68-9e0a-1d4c8b7f2a63"
+          },
+          "line_count": 0,
+          "last_line_at": null,
+          "ended": false
+        },
+        {
+          "source": {
+            "kind": "server",
+            "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e"
+          },
+          "line_count": 1840,
+          "last_line_at": 1700000013000,
+          "ended": false
+        },
+        {
+          "source": {
+            "kind": "server",
+            "allocation_id": "9c04e1d2-3a7b-4f5e-8d6c-1b2a3c4d5e6f"
+          },
+          "line_count": 2000,
+          "last_line_at": 1699999400000,
+          "ended": true
+        }
+      ]
+    }
+  ],
+  "welcome": [
+    {
+      "type": "welcome"
+    }
+  ],
+  "hello_refused": [
+    {
+      "type": "hello_refused",
+      "reason": "invalid_hello",
+      "detail": "missing host.cpu_count"
+    }
+  ],
+  "watch_resources": [
+    {
+      "type": "watch_resources",
+      "replay": false
+    }
+  ],
+  "watch_logs": [
+    {
+      "type": "watch_logs",
+      "source": {
+        "kind": "server",
+        "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e"
+      },
+      "replay_id": "0d6f1c52-3a7e-4b9d-8c21-5e4f7a9b2c13"
+    },
+    {
+      "type": "watch_logs",
+      "source": {
+        "kind": "agent"
+      },
+      "replay_id": null
+    }
+  ],
+  "start_server": [
+    {
+      "type": "start_server",
+      "id": "r1",
+      "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e",
+      "launch": {
+        "map_name": "de_mirage",
+        "workshop_id": null,
+        "hostname": "Ankor | cs.example.com",
+        "steam_web_api_key": null,
+        "game_password": "hunter2",
+        "chat_tag": {
+          "text": "Ankor",
+          "color": "yellow"
+        },
+        "game_mode": "competitive",
+        "max_players": 2,
+        "gotv": {
+          "password": "hunter2",
+          "delay_seconds": 90
+        },
+        "idle_shutdown_seconds": null,
+        "exec": [],
+        "commands": [
+          "mp_halftime_duration 15",
+          "mp_team_timeout_max 2",
+          "mp_overtime_startmoney 12500"
+        ],
+        "match": {
+          "match_id": "0199a0b4-5c00-7000-8000-00000000abc1",
+          "send_statistics": true,
+          "roster": {
+            "team1": {
+              "name": "team_alpha",
+              "players": [
+                "76561198000000001"
+              ]
+            },
+            "team2": {
+              "name": "team_bravo",
+              "players": [
+                "76561198000000002"
+              ]
+            },
+            "spectators": []
+          },
+          "sides": "knife",
+          "knife_decision_seconds": 60,
+          "ready_mode": "manual",
+          "spectators_ready_up": false,
+          "allow_force_ready": false,
+          "ready_timeout_seconds": null,
+          "record_demo": true,
+          "rules": {
+            "max_rounds": 24,
+            "overtime": true,
+            "overtime_max_rounds": 6,
+            "friendly_fire": true
+          },
+          "restore": null
+        }
+      }
+    },
+    {
+      "type": "start_server",
+      "id": "r11",
+      "allocation_id": "3f8a2c61-9d4e-4b7a-a1c5-7e2d0b9f6a48",
+      "launch": {
+        "map_name": "de_inferno",
+        "workshop_id": null,
+        "hostname": "Ankor | cs.example.com",
+        "steam_web_api_key": null,
+        "game_password": "hunter2",
+        "chat_tag": {
+          "text": "Ankor",
+          "color": "yellow"
+        },
+        "game_mode": "wingman",
+        "max_players": 4,
+        "gotv": {
+          "password": "hunter2",
+          "delay_seconds": 90
+        },
+        "idle_shutdown_seconds": null,
+        "exec": [],
+        "commands": [],
+        "match": {
+          "match_id": "0199a0b4-5c00-7000-8000-00000000abc2",
+          "send_statistics": false,
+          "roster": {
+            "team1": {
+              "name": "team_alpha",
+              "players": [
+                "76561198000000001",
+                "76561198000000003"
+              ]
+            },
+            "team2": {
+              "name": "team_bravo",
+              "players": [
+                "76561198000000002",
+                "76561198000000004"
+              ]
+            },
+            "spectators": []
+          },
+          "sides": "team1_ct",
+          "knife_decision_seconds": 60,
+          "ready_mode": "auto",
+          "spectators_ready_up": false,
+          "allow_force_ready": false,
+          "ready_timeout_seconds": null,
+          "record_demo": true,
+          "rules": {
+            "max_rounds": 16,
+            "overtime": false,
+            "overtime_max_rounds": 6,
+            "friendly_fire": true
+          },
+          "restore": null
+        }
+      }
+    },
+    {
+      "type": "start_server",
+      "id": "r8",
+      "allocation_id": "c1d2e3f4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+      "launch": {
+        "map_name": "de_mirage",
+        "workshop_id": null,
+        "hostname": "Ankor | cs.example.com",
+        "steam_web_api_key": null,
+        "game_password": "hunter2",
+        "chat_tag": {
+          "text": "Ankor",
+          "color": "yellow"
+        },
+        "game_mode": "competitive",
+        "max_players": 2,
+        "gotv": {
+          "password": "hunter2",
+          "delay_seconds": 90
+        },
+        "idle_shutdown_seconds": null,
+        "exec": [],
+        "commands": [],
+        "match": {
+          "match_id": "0199a0b4-5c00-7000-8000-00000000abc1",
+          "send_statistics": true,
+          "roster": {
+            "team1": {
+              "name": "team_alpha",
+              "players": [
+                "76561198000000001"
+              ]
+            },
+            "team2": {
+              "name": "team_bravo",
+              "players": [
+                "76561198000000002"
+              ]
+            },
+            "spectators": []
+          },
+          "sides": "knife",
+          "knife_decision_seconds": 60,
+          "ready_mode": "manual",
+          "spectators_ready_up": false,
+          "allow_force_ready": false,
+          "ready_timeout_seconds": null,
+          "record_demo": true,
+          "rules": {
+            "max_rounds": 24,
+            "overtime": true,
+            "overtime_max_rounds": 6,
+            "friendly_fire": true
+          },
+          "restore": {
+            "team1_side": "t",
+            "rules": {
+              "max_rounds": 24,
+              "overtime": true,
+              "overtime_max_rounds": 6,
+              "friendly_fire": true
+            },
+            "file": "\"SaveFile\"\n{\n\t\"timestamp\"\t\t\"Tue Oct 20 20:14:00 2026\"\n\t\"round\"\t\t\"13\"\n}\n"
+          }
+        }
+      }
+    },
+    {
+      "type": "start_server",
+      "id": "r9",
+      "allocation_id": "9c04e1d2-3a7b-4f6e-8d21-5e0b9c7a4f13",
+      "launch": {
+        "workshop_id": "3070987642",
+        "map_name": null,
+        "hostname": "Retakes | cs.example.com",
+        "steam_web_api_key": "0123456789ABCDEF0123456789ABCDEF",
+        "game_password": "hunter2",
+        "chat_tag": {
+          "text": "Ankor",
+          "color": "yellow"
+        },
+        "game_mode": "competitive",
+        "max_players": 10,
+        "gotv": {
+          "password": null,
+          "delay_seconds": 0
+        },
+        "idle_shutdown_seconds": 180,
+        "exec": [
+          "node/retakes"
+        ],
+        "commands": [
+          "mp_roundtime 2"
+        ],
+        "match": null
+      }
+    },
+    {
+      "type": "start_server",
+      "id": "r3",
+      "allocation_id": "e7a3d9c1-6b2f-4e8a-9c5d-1f0b3a7e2d64",
+      "launch": {
+        "hostname": "Ankor",
+        "steam_web_api_key": null,
+        "game_password": null,
+        "chat_tag": {
+          "text": "Ankor",
+          "color": "yellow"
+        },
+        "game_mode": "competitive",
+        "max_players": 10,
+        "workshop_id": null,
+        "map_name": "de_dust2",
+        "gotv": {
+          "password": null,
+          "delay_seconds": 0
+        },
+        "idle_shutdown_seconds": null,
+        "exec": [],
+        "commands": [],
+        "match": null
+      }
+    }
+  ],
+  "stop_server": [
+    {
+      "type": "stop_server",
+      "id": "r2",
+      "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e"
+    }
+  ],
+  "get_server_status": [
+    {
+      "type": "get_server_status",
+      "id": "r5",
+      "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e"
+    }
+  ],
+  "console_command": [
+    {
+      "type": "console_command",
+      "id": "r7",
+      "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e",
+      "command": "mp_restartgame 1"
+    }
+  ],
+  "restore_round": [
+    {
+      "type": "restore_round",
+      "id": "r10",
+      "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e",
+      "round": 14
+    }
+  ],
+  "start_match": [
+    {
+      "type": "start_match",
+      "id": "r11",
+      "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e"
+    }
+  ],
+  "update_cs2": [
+    {
+      "type": "update_cs2",
+      "id": "r3",
+      "mode": "update"
+    }
+  ],
+  "check_cs2_build": [
+    {
+      "type": "check_cs2_build"
+    }
+  ],
+  "set_config": [
+    {
+      "type": "set_config",
+      "id": "r4",
+      "config": {
+        "slots": [
+          {
+            "id": "s1",
+            "port": 27015,
+            "tv_port": 27020
+          },
+          {
+            "id": "s2",
+            "port": 27016,
+            "tv_port": 27021,
+            "gslt": "Q4T8N2WX7C1RJ5KM9BH3ZD6LP0YF4SG2"
+          }
+        ],
+        "pinned_ip": null,
+        "controller": {
+          "host": "cs.example.com",
+          "tls": true,
+          "socket_path": "/ws/agent",
+          "events_path": "/api/node/events"
+        },
+        "auto_update": true,
+        "memory_mb": 6144,
+        "demo_upload": {
+          "url": "https://demos.example.com/upload",
+          "header": {
+            "name": "Authorization",
+            "value": "Bearer 9b2e"
+          },
+          "limit_mbit": 40
+        }
+      }
+    }
+  ],
+  "update_agent": [
+    {
+      "type": "update_agent",
+      "id": "r5",
+      "image": "ghcr.io/ankorcs/ankor-agent:1.2.0",
+      "pull": true
+    }
+  ],
+  "update_cs2_image": [
+    {
+      "type": "update_cs2_image",
+      "id": "r6",
+      "image": "ghcr.io/ankorcs/ankor-cs2:1.2.0",
+      "pull": true
+    }
+  ],
+  "reserve_slot": [
+    {
+      "type": "reserve_slot",
+      "id": "r9",
+      "slot_id": "s1"
+    }
+  ],
+  "delete_demo": [
+    {
+      "type": "delete_demo",
+      "id": "r8",
+      "slot_id": "s1",
+      "file_name": "20260928-201500_0199a0b4-5c00-7000-8000-00000000abc1_de_mirage.dem"
+    }
+  ],
+  "map_start": [
+    {
+      "type": "map_start",
+      "timestamp": 1700000014000,
+      "tick": 0,
+      "plugin_version": "1.2.0",
+      "framework_version": "1.1.4",
+      "server_version": "1.41.0.3",
+      "map_name": "de_mirage"
+    }
+  ],
+  "going_live": [
+    {
+      "type": "going_live",
+      "timestamp": 1700000014000,
+      "tick": 100000,
+      "team1_side": "ct",
+      "max_rounds": 24,
+      "overtime": true,
+      "overtime_max_rounds": 6,
+      "friendly_fire": false
+    }
+  ],
+  "match_restored": [
+    {
+      "type": "match_restored",
+      "timestamp": 1700001300000,
+      "tick": 190000,
+      "round": 14,
+      "team1_side": "t",
+      "team1_score": 7,
+      "team2_score": 6
+    }
+  ],
+  "round_backup": [
+    {
+      "type": "round_backup",
+      "timestamp": 1700001214000,
+      "tick": 180000,
+      "round": 14,
+      "team1_side": "t",
+      "team1_score": 7,
+      "team2_score": 6,
+      "rules": {
+        "max_rounds": 24,
+        "overtime": true,
+        "overtime_max_rounds": 6,
+        "friendly_fire": false
+      },
+      "file": "\"SaveFile\"\n{\n\t\"round\"\t\t\"13\"\n\t…\n}\n",
+      "roster": {
+        "team1": {
+          "name": "Blue",
+          "players": [
+            "76561198000000001",
+            "76561198000000002"
+          ]
+        },
+        "team2": {
+          "name": "Orange",
+          "players": [
+            "76561198000000011",
+            "76561198000000012"
+          ]
+        },
+        "spectators": []
+      }
+    }
+  ],
+  "map_end": [
+    {
+      "type": "map_end",
+      "timestamp": 1700003614000,
+      "tick": 460000,
+      "reason": "played",
+      "winner_team": 1,
+      "team1_score": 13,
+      "team2_score": 9,
+      "teams": null
+    },
+    {
+      "type": "map_end",
+      "timestamp": 1700000310000,
+      "tick": 19840,
+      "reason": "ready_timeout",
+      "winner_team": null,
+      "team1_score": 0,
+      "team2_score": 0,
+      "teams": {
+        "team1": { "connected": 5, "ready": true },
+        "team2": { "connected": 3, "ready": false },
+        "spectators": null
+      }
+    }
+  ],
+  "log": [
+    {
+      "type": "log",
+      "timestamp": 1700000015000,
+      "tick": 128,
+      "level": "warn",
+      "message": "force ready of team 1 by 76561198000000001 (alpha)"
+    }
+  ],
+  "player_connect": [
+    {
+      "type": "player_connect",
+      "timestamp": 1700000014000,
+      "tick": 64,
+      "player": {
+        "steam_id": "76561198000000001",
+        "name": "alpha",
+        "side": "spec",
+        "team": 1
+      },
+      "rejected": false
+    }
+  ],
+  "player_disconnect": [
+    {
+      "type": "player_disconnect",
+      "timestamp": 1700000900000,
+      "tick": 150000,
+      "player": {
+        "steam_id": "76561198000000002",
+        "name": "bravo",
+        "side": "t",
+        "team": 2
+      },
+      "reason": "Disconnect"
+    }
+  ],
+  "knife_start": [
+    {
+      "type": "knife_start",
+      "timestamp": 1700000030000,
+      "tick": 2048
+    }
+  ],
+  "knife_end": [
+    {
+      "type": "knife_end",
+      "timestamp": 1700000090000,
+      "tick": 6000,
+      "winner_team": 2,
+      "winner_side": "t",
+      "team1_alive": 0,
+      "team2_alive": 2,
+      "team1_health": 0,
+      "team2_health": 145
+    }
+  ],
+  "side_choice": [
+    {
+      "type": "side_choice",
+      "timestamp": 1700000100000,
+      "tick": 6600,
+      "team": 2,
+      "choice": "swap",
+      "team1_side": "t"
+    }
+  ],
+  "round_start": [
+    {
+      "type": "round_start",
+      "timestamp": 1700000200000,
+      "tick": 110000,
+      "round": 2,
+      "round_time": 0,
+      "team1_side": "ct",
+      "players": [
+        {
+          "player": {
+            "steam_id": "76561198000000001",
+            "name": "alpha",
+            "side": "ct",
+            "team": 1
+          },
+          "alive": true,
+          "equipment_value": 1000,
+          "cash": 2400,
+          "start_cash": 2400,
+          "cash_spent": 0
+        }
+      ],
+      "carryover": {
+        "from_round": 1,
+        "sampled_tick": 109500,
+        "players": [
+          {
+            "player": {
+              "steam_id": "76561198000000001",
+              "name": "alpha",
+              "side": "ct",
+              "team": 1
+            },
+            "alive": true,
+            "equipment_value": 1000,
+            "cash": 2400,
+            "start_cash": 800,
+            "cash_spent": 650,
+            "inventory": {
+              "items": [
+                {
+                  "weapon": 32,
+                  "quantity": 1,
+                  "unit_value": 200
+                }
+              ],
+              "armor": 100,
+              "helmet": false,
+              "defuse_kit": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "round_freeze_end": [
+    {
+      "type": "round_freeze_end",
+      "timestamp": 1700000215000,
+      "tick": 110960,
+      "round": 2,
+      "round_time": 0,
+      "team1_side": "ct",
+      "players": [
+        {
+          "player": {
+            "steam_id": "76561198000000001",
+            "name": "alpha",
+            "side": "ct",
+            "team": 1
+          },
+          "alive": true,
+          "equipment_value": 4100,
+          "cash": 0,
+          "start_cash": 2400,
+          "cash_spent": 2400
+        }
+      ]
+    }
+  ],
+  "round_buy_end": [
+    {
+      "type": "round_buy_end",
+      "timestamp": 1700000235000,
+      "tick": 112240,
+      "round": 2,
+      "round_time": 20,
+      "players": [
+        {
+          "player": {
+            "steam_id": "76561198000000001",
+            "name": "alpha",
+            "side": "ct",
+            "team": 1
+          },
+          "equipment_value": 4100,
+          "cash": 0,
+          "start_cash": 2400,
+          "cash_spent": 2400,
+          "sampled_tick": 111800
+        },
+        {
+          "player": {
+            "steam_id": "76561198000000002",
+            "name": "bravo",
+            "side": "t",
+            "team": 2
+          },
+          "equipment_value": 3700,
+          "cash": 300,
+          "start_cash": 3400,
+          "cash_spent": 3100,
+          "sampled_tick": 111900
+        }
+      ],
+      "team1_equipment_value": 4100,
+      "team2_equipment_value": 3700
+    }
+  ],
+  "round_end": [
+    {
+      "type": "round_end",
+      "timestamp": 1700000300000,
+      "tick": 116400,
+      "round": 2,
+      "round_time": 85.25,
+      "winner_side": "ct",
+      "winner_team": 1,
+      "reason": "cts_win",
+      "team1_score": 2,
+      "team2_score": 0,
+      "round_length": 70.25
+    }
+  ],
+  "round_complete": [
+    {
+      "type": "round_complete",
+      "timestamp": 1700000305000,
+      "tick": 116720,
+      "round": 2,
+      "round_time": 90.25
+    }
+  ],
+  "round_mvp": [
+    {
+      "type": "round_mvp",
+      "timestamp": 1700000300000,
+      "tick": 116400,
+      "round": 2,
+      "round_time": 85.25,
+      "player": {
+        "steam_id": "76561198000000001",
+        "name": "alpha",
+        "side": "ct",
+        "team": 1
+      },
+      "reason": 1
+    }
+  ],
+  "player_death": [
+    {
+      "type": "player_death",
+      "timestamp": 1700000260000,
+      "tick": 113900,
+      "round": 2,
+      "round_time": 45.5,
+      "victim": {
+        "steam_id": "76561198000000002",
+        "name": "bravo",
+        "side": "t",
+        "team": 2,
+        "position": {
+          "x": -1200.5,
+          "y": 350,
+          "z": -160,
+          "pitch": 2.5,
+          "yaw": 180
+        }
+      },
+      "attacker": {
+        "steam_id": "76561198000000001",
+        "name": "alpha",
+        "side": "ct",
+        "team": 1,
+        "position": {
+          "x": -400,
+          "y": 330.25,
+          "z": -160,
+          "pitch": 1,
+          "yaw": 178.5
+        }
+      },
+      "assister": null,
+      "weapon": {
+        "id": 16,
+        "fallback": null
+      },
+      "cause": "player",
+      "headshot": true,
+      "penetrated": 0,
+      "thru_smoke": false,
+      "no_scope": false,
+      "attacker_blind": false,
+      "attacker_in_air": false,
+      "flash_assist": false,
+      "friendly_fire": false,
+      "victim_blind_by": null,
+      "victim_blind_remaining": 0,
+      "victim_equipment_value": 3700,
+      "victim_grenades_held": [
+        {
+          "weapon": 43,
+          "quantity": 2,
+          "unit_value": 200
+        }
+      ]
+    }
+  ],
+  "player_hurt": [
+    {
+      "type": "player_hurt",
+      "timestamp": 1700000260000,
+      "tick": 113900,
+      "round": 2,
+      "round_time": 45.5,
+      "victim": {
+        "steam_id": "76561198000000002",
+        "name": "bravo",
+        "side": "t",
+        "team": 2,
+        "position": {
+          "x": -1200.5,
+          "y": 350,
+          "z": -160,
+          "pitch": 2.5,
+          "yaw": 180
+        }
+      },
+      "attacker": {
+        "steam_id": "76561198000000001",
+        "name": "alpha",
+        "side": "ct",
+        "team": 1,
+        "position": {
+          "x": -400,
+          "y": 330.25,
+          "z": -160,
+          "pitch": 1,
+          "yaw": 178.5
+        }
+      },
+      "weapon": {
+        "id": 16,
+        "fallback": null
+      },
+      "cause": "player",
+      "dmg_health": 100,
+      "dmg_armor": 0,
+      "health_before": 100,
+      "health_after": 0,
+      "hitgroup": 1,
+      "friendly_fire": false,
+      "projectile_impact": false,
+      "grenade_id": null
+    }
+  ],
+  "player_blind": [
+    {
+      "type": "player_blind",
+      "timestamp": 1700000250000,
+      "tick": 113260,
+      "round": 2,
+      "round_time": 36.1,
+      "victim": {
+        "steam_id": "76561198000000002",
+        "name": "bravo",
+        "side": "t",
+        "team": 2,
+        "position": {
+          "x": -1150,
+          "y": 345.5,
+          "z": -160,
+          "pitch": 0,
+          "yaw": -5
+        }
+      },
+      "attacker": {
+        "steam_id": "76561198000000001",
+        "name": "alpha",
+        "side": "ct",
+        "team": 1,
+        "position": {
+          "x": -380,
+          "y": 300,
+          "z": -160,
+          "pitch": -20,
+          "yaw": 175
+        }
+      },
+      "duration": 2.4,
+      "friendly_fire": false,
+      "grenade_id": 3
+    }
+  ],
+  "round_shots": [
+    {
+      "type": "round_shots",
+      "timestamp": 1700000300000,
+      "tick": 116400,
+      "round": 2,
+      "players": [
+        {
+          "player": {
+            "steam_id": "76561198000000001",
+            "name": "alpha",
+            "side": "ct",
+            "team": 1
+          },
+          "weapons": [
+            {
+              "weapon": {
+                "id": 16,
+                "fallback": null
+              },
+              "shots": 3,
+              "ticks": [
+                113880.25,
+                113888.5,
+                113896
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "grenade_throw": [
+    {
+      "type": "grenade_throw",
+      "timestamp": 1700000248400,
+      "tick": 113200,
+      "round": 2,
+      "round_time": 34.5,
+      "grenade_id": 3,
+      "player": {
+        "steam_id": "76561198000000001",
+        "name": "alpha",
+        "side": "ct",
+        "team": 1,
+        "position": {
+          "x": -380,
+          "y": 300,
+          "z": -160,
+          "pitch": -20,
+          "yaw": 175
+        }
+      },
+      "grenade": "flashbang"
+    }
+  ],
+  "grenade_detonate": [
+    {
+      "type": "grenade_detonate",
+      "timestamp": 1700000250000,
+      "tick": 113260,
+      "round": 2,
+      "round_time": 36.1,
+      "grenade_id": 3,
+      "player": {
+        "steam_id": "76561198000000001",
+        "name": "alpha",
+        "side": "ct",
+        "team": 1
+      },
+      "detonate_pos": {
+        "x": -900,
+        "y": 340,
+        "z": -60
+      }
+    }
+  ],
+  "grenade_end": [
+    {
+      "type": "grenade_end",
+      "timestamp": 1700000250000,
+      "tick": 113260,
+      "round": 2,
+      "grenade_id": 3,
+      "player": {
+        "steam_id": "76561198000000001",
+        "name": "alpha",
+        "side": "ct",
+        "team": 1
+      },
+      "end_round_time": 36.1,
+      "fire_end": null,
+      "extinguished_by": null
+    }
+  ],
+  "bomb_begin_plant": [
+    {
+      "type": "bomb_begin_plant",
+      "timestamp": 1700000270000,
+      "tick": 114540,
+      "round": 3,
+      "round_time": 55.5,
+      "player": {
+        "steam_id": "76561198000000002",
+        "name": "bravo",
+        "side": "t",
+        "team": 2,
+        "position": {
+          "x": -2100,
+          "y": 820,
+          "z": -125,
+          "pitch": 35,
+          "yaw": 90
+        }
+      },
+      "site": "a"
+    }
+  ],
+  "bomb_abort_plant": [
+    {
+      "type": "bomb_abort_plant",
+      "timestamp": 1700000271000,
+      "tick": 114604,
+      "round": 3,
+      "round_time": 56.5,
+      "player": {
+        "steam_id": "76561198000000002",
+        "name": "bravo",
+        "side": "t",
+        "team": 2,
+        "position": {
+          "x": -2100,
+          "y": 820,
+          "z": -125,
+          "pitch": 10,
+          "yaw": 40
+        }
+      },
+      "site": "a"
+    }
+  ],
+  "bomb_planted": [
+    {
+      "type": "bomb_planted",
+      "timestamp": 1700000276000,
+      "tick": 114924,
+      "round": 3,
+      "round_time": 61.5,
+      "player": {
+        "steam_id": "76561198000000002",
+        "name": "bravo",
+        "side": "t",
+        "team": 2,
+        "position": {
+          "x": -2100,
+          "y": 820,
+          "z": -125,
+          "pitch": 35,
+          "yaw": 90
+        }
+      },
+      "site": "a"
+    }
+  ],
+  "bomb_begin_defuse": [
+    {
+      "type": "bomb_begin_defuse",
+      "timestamp": 1700000290000,
+      "tick": 115820,
+      "round": 3,
+      "round_time": 75.5,
+      "player": {
+        "steam_id": "76561198000000001",
+        "name": "alpha",
+        "side": "ct",
+        "team": 1,
+        "position": {
+          "x": -2080,
+          "y": 860,
+          "z": -125,
+          "pitch": 40,
+          "yaw": -90
+        }
+      },
+      "has_kit": true
+    }
+  ],
+  "bomb_abort_defuse": [
+    {
+      "type": "bomb_abort_defuse",
+      "timestamp": 1700000291000,
+      "tick": 115884,
+      "round": 3,
+      "round_time": 76.5,
+      "player": {
+        "steam_id": "76561198000000001",
+        "name": "alpha",
+        "side": "ct",
+        "team": 1,
+        "position": {
+          "x": -2080,
+          "y": 860,
+          "z": -125,
+          "pitch": 40,
+          "yaw": -90
+        }
+      }
+    }
+  ],
+  "bomb_defused": [
+    {
+      "type": "bomb_defused",
+      "timestamp": 1700000296000,
+      "tick": 116204,
+      "round": 3,
+      "round_time": 81.5,
+      "player": {
+        "steam_id": "76561198000000001",
+        "name": "alpha",
+        "side": "ct",
+        "team": 1,
+        "position": {
+          "x": -2080,
+          "y": 860,
+          "z": -125,
+          "pitch": 40,
+          "yaw": -90
+        }
+      },
+      "time_remaining": 20,
+      "has_kit": true
+    }
+  ],
+  "bomb_exploded": [
+    {
+      "type": "bomb_exploded",
+      "timestamp": 1700000316000,
+      "tick": 117484,
+      "round": 4,
+      "round_time": 101.5
+    }
+  ],
+  "event_batch": [
+    {
+      "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e",
+      "frames": [
+        {
+          "seq": 0,
+          "event": {
+            "type": "map_start",
+            "timestamp": 1700000014000,
+            "tick": 0,
+            "plugin_version": "1.2.0",
+            "framework_version": "1.1.4",
+            "server_version": "1.41.0.3",
+            "map_name": "de_mirage"
+          }
+        }
+      ]
+    }
+  ],
+  "event_batch_receipt": [
+    {
+      "rejected": []
+    }
+  ],
+  "event_batch_rejection": [
+    {
+      "code": "event_integrity_error",
+      "detail": "seq 12 was already stored with different content"
+    }
+  ],
+  "start_server_reply": [
+    {
+      "type": "reply",
+      "reply_to": "r1",
+      "request": "start_server",
+      "ok": true,
+      "data": {
+        "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e",
+        "slot_id": "s1"
+      }
+    },
+    {
+      "type": "reply",
+      "reply_to": "r1",
+      "request": "start_server",
+      "ok": false,
+      "error": {
+        "code": "no_free_slot",
+        "detail": "no_free_slot"
+      }
+    },
+    {
+      "type": "reply",
+      "reply_to": "r1",
+      "request": "start_server",
+      "ok": false,
+      "error": {
+        "code": "allocation_in_use",
+        "detail": "allocation 5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e already holds a slot"
+      }
+    }
+  ],
+  "set_config_reply": [
+    {
+      "type": "reply",
+      "reply_to": "r4",
+      "request": "set_config",
+      "ok": true,
+      "data": {
+        "slots": [
+          {
+            "id": "s1",
+            "port": 27015,
+            "tv_port": 27020,
+            "gslt_hint": "7E8F9A0B1C"
+          },
+          {
+            "id": "s2",
+            "port": 27016,
+            "tv_port": 27021,
+            "gslt_hint": "6LP0YF4SG2"
+          }
+        ],
+        "pinned_ip": null,
+        "controller": {
+          "host": "cs.example.com",
+          "tls": true,
+          "socket_path": "/ws/agent",
+          "events_path": "/api/node/events"
+        },
+        "auto_update": true,
+        "memory_mb": 6144,
+        "demo_upload": {
+          "url": "https://demos.example.com/upload",
+          "header": {
+            "name": "Authorization",
+            "value_sha256": "e39ca46d71d4b93e08230ee35a7a64f6e188958014de50dfd8be910631edb679"
+          },
+          "limit_mbit": 40
+        }
+      }
+    },
+    {
+      "type": "reply",
+      "reply_to": "r4",
+      "request": "set_config",
+      "ok": false,
+      "error": {
+        "code": "slot_held",
+        "detail": "held slots would change: s1"
+      }
+    }
+  ],
+  "get_server_status_reply": [
+    {
+      "type": "reply",
+      "reply_to": "r5",
+      "request": "get_server_status",
+      "ok": true,
+      "data": {
+        "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e",
+        "map_name": "de_mirage",
+        "match": {
+          "match_id": "0199a0b4-5c00-7000-8000-00000000abc1",
+          "phase": "live",
+          "team1_side": "t",
+          "team2_side": "ct",
+          "team1_score": 7,
+          "team2_score": 6
+        },
+        "players": [
+          {
+            "steam_id": "76561198000000001",
+            "name": "alpha",
+            "side": "t"
+          }
+        ],
+        "config_error": null,
+        "ready": true,
+        "server_steam_id": "85568392936840254"
+      }
+    },
+    {
+      "type": "reply",
+      "reply_to": "r5",
+      "request": "get_server_status",
+      "ok": false,
+      "error": {
+        "code": "plugin_offline",
+        "detail": "plugin_offline"
+      }
+    }
+  ],
+  "stop_server_reply": [
+    {
+      "type": "reply",
+      "reply_to": "r2",
+      "request": "stop_server",
+      "ok": true,
+      "data": {
+        "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e"
+      }
+    },
+    {
+      "type": "reply",
+      "reply_to": "r2",
+      "request": "stop_server",
+      "ok": false,
+      "error": {
+        "code": "unknown_allocation",
+        "detail": "unknown_allocation"
+      }
+    }
+  ],
+  "console_command_reply": [
+    {
+      "type": "reply",
+      "reply_to": "r7",
+      "request": "console_command",
+      "ok": true,
+      "data": {
+        "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e"
+      }
+    },
+    {
+      "type": "reply",
+      "reply_to": "r7",
+      "request": "console_command",
+      "ok": false,
+      "error": {
+        "code": "plugin_offline",
+        "detail": "plugin_offline"
+      }
+    }
+  ],
+  "restore_round_reply": [
+    {
+      "type": "reply",
+      "reply_to": "r10",
+      "request": "restore_round",
+      "ok": true,
+      "data": {
+        "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e",
+        "round": 14
+      }
+    },
+    {
+      "type": "reply",
+      "reply_to": "r10",
+      "request": "restore_round",
+      "ok": false,
+      "error": {
+        "code": "no_backup",
+        "detail": "no backup of round 14: ankor_round13.txt is not on the node"
+      }
+    }
+  ],
+  "start_match_reply": [
+    {
+      "type": "reply",
+      "reply_to": "r11",
+      "request": "start_match",
+      "ok": true,
+      "data": {
+        "allocation_id": "5b1e2c7a-8d4f-4c3b-9a6e-2f1d0c9b8a7e"
+      }
+    },
+    {
+      "type": "reply",
+      "reply_to": "r11",
+      "request": "start_match",
+      "ok": false,
+      "error": {
+        "code": "plugin_offline",
+        "detail": "plugin_offline"
+      }
+    }
+  ],
+  "update_cs2_reply": [
+    {
+      "type": "reply",
+      "reply_to": "r3",
+      "request": "update_cs2",
+      "ok": true,
+      "data": {
+        "update_id": "7c2e9a41-3b5d-4f68-9e0a-1d4c8b7f2a63"
+      }
+    },
+    {
+      "type": "reply",
+      "reply_to": "r3",
+      "request": "update_cs2",
+      "ok": false,
+      "error": {
+        "code": "slots_held",
+        "detail": "slots_held"
+      }
+    }
+  ],
+  "reserve_slot_reply": [
+    {
+      "type": "reply",
+      "reply_to": "r9",
+      "request": "reserve_slot",
+      "ok": true,
+      "data": {
+        "slot_id": "s1"
+      }
+    },
+    {
+      "type": "reply",
+      "reply_to": "r9",
+      "request": "reserve_slot",
+      "ok": false,
+      "error": {
+        "code": "slot_held",
+        "detail": "slot s1 holds a server"
+      }
+    }
+  ],
+  "delete_demo_reply": [
+    {
+      "type": "reply",
+      "reply_to": "r8",
+      "request": "delete_demo",
+      "ok": true,
+      "data": {
+        "slot_id": "s1",
+        "file_name": "20260928-201500_0199a0b4-5c00-7000-8000-00000000abc1_de_mirage.dem"
+      }
+    },
+    {
+      "type": "reply",
+      "reply_to": "r8",
+      "request": "delete_demo",
+      "ok": false,
+      "error": {
+        "code": "demo_uploading",
+        "detail": "20261008-201500_0199a0b4-5c00-7a6e-8d4f-2f1d0c9b8a7e_de_mirage.dem is uploading"
+      }
+    }
+  ],
+  "update_agent_reply": [
+    {
+      "type": "reply",
+      "reply_to": "r5",
+      "request": "update_agent",
+      "ok": true,
+      "data": {
+        "image": "ghcr.io/ankorcs/ankor-agent:1.2.0",
+        "step": "pulling"
+      }
+    },
+    {
+      "type": "reply",
+      "reply_to": "r5",
+      "request": "update_agent",
+      "ok": true,
+      "data": {
+        "image": "ghcr.io/ankorcs/ankor-agent:1.2.0",
+        "step": "unchanged"
+      }
+    },
+    {
+      "type": "reply",
+      "reply_to": "r5",
+      "request": "update_agent",
+      "ok": false,
+      "error": {
+        "code": "maintenance_running",
+        "detail": "maintenance_running"
+      }
+    }
+  ],
+  "update_cs2_image_reply": [
+    {
+      "type": "reply",
+      "reply_to": "r6",
+      "request": "update_cs2_image",
+      "ok": true,
+      "data": {
+        "image": "ghcr.io/ankorcs/ankor-cs2:1.2.0",
+        "step": "pulling"
+      }
+    },
+    {
+      "type": "reply",
+      "reply_to": "r6",
+      "request": "update_cs2_image",
+      "ok": false,
+      "error": {
+        "code": "maintenance_running",
+        "detail": "maintenance_running"
+      }
+    }
+  ],
+  "node_status": [
+    {
+      "type": "node_status",
+      "cs2": {
+        "build_id": "20114612",
+        "latest_build_id": "20114670",
+        "image": "ghcr.io/ankorcs/ankor-cs2:1.2.0",
+        "image_id": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "update": null,
+        "image_update": {
+          "image": "ghcr.io/ankorcs/ankor-cs2:1.2.0",
+          "step": null,
+          "outcome": "completed",
+          "detail": null
+        }
+      },
+      "unavailable": null,
+      "agent_update": null
+    },
+    {
+      "type": "node_status",
+      "cs2": {
+        "build_id": "20114612",
+        "latest_build_id": "20114670",
+        "image": "ghcr.io/ankorcs/ankor-cs2:1.2.0",
+        "image_id": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "update": {
+          "id": "7c2e9a41-3b5d-4f68-9e0a-1d4c8b7f2a63",
+          "mode": "update",
+          "automatic": true,
+          "outcome": null,
+          "detail": null
+        },
+        "image_update": null
+      },
+      "unavailable": {
+        "code": "maintenance",
+        "operation": "cs2_update",
+        "detail": "CS2 update"
+      },
+      "agent_update": null
+    },
+    {
+      "type": "node_status",
+      "cs2": {
+        "build_id": "20114670",
+        "latest_build_id": "20114670",
+        "image": "ghcr.io/ankorcs/ankor-cs2:1.2.0",
+        "image_id": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "update": {
+          "id": "7c2e9a41-3b5d-4f68-9e0a-1d4c8b7f2a63",
+          "mode": "update",
+          "automatic": true,
+          "outcome": "completed",
+          "detail": null
+        },
+        "image_update": null
+      },
+      "unavailable": {
+        "code": "event_storage",
+        "operation": null,
+        "detail": "event spool schema mismatch: /srv/ankor/events/streams.sqlite is at version 3, newer than this agent's 2. Update the agent, or delete /srv/ankor/events on the host and restart it to start a new spool, which deletes every event not yet delivered to the controller"
+      },
+      "agent_update": null
+    },
+    {
+      "type": "node_status",
+      "cs2": {
+        "build_id": "20114612",
+        "latest_build_id": "20114670",
+        "image": "ghcr.io/ankorcs/ankor-cs2:1.2.0",
+        "image_id": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "update": null,
+        "image_update": {
+          "image": "ghcr.io/ankorcs/ankor-cs2:1.3.0",
+          "step": "pulling",
+          "outcome": null,
+          "detail": null
+        }
+      },
+      "unavailable": {
+        "code": "maintenance",
+        "operation": "cs2_image_update",
+        "detail": "CS2 image update"
+      },
+      "agent_update": null
+    },
+    {
+      "type": "node_status",
+      "cs2": {
+        "build_id": "20114612",
+        "latest_build_id": "20114670",
+        "image": "ghcr.io/ankorcs/ankor-cs2:1.2.0",
+        "image_id": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "update": null,
+        "image_update": null
+      },
+      "unavailable": {
+        "code": "maintenance",
+        "operation": "agent_update",
+        "detail": "agent update"
+      },
+      "agent_update": {
+        "image": "ghcr.io/ankorcs/ankor-agent:1.5.0",
+        "step": "pulling",
+        "outcome": null,
+        "detail": null
+      }
+    }
+  ],
+  "demo": [
+    {
+      "type": "demo",
+      "slot_id": "s1",
+      "file_name": "20261008-201500_0199a0b4-5c00-7a6e-8d4f-2f1d0c9b8a7e_de_mirage.dem",
+      "size_bytes": 52428800,
+      "modified_at": 1759954500000,
+      "recording": true,
+      "uploading": false,
+      "upload_error": null
+    },
+    {
+      "type": "demo",
+      "slot_id": "s1",
+      "file_name": "20260928-201500_0199a0b4-5c00-7000-8000-00000000abc1_de_mirage.dem",
+      "size_bytes": 181403648,
+      "modified_at": 1759090500000,
+      "recording": false,
+      "uploading": true,
+      "upload_error": null
+    },
+    {
+      "type": "demo",
+      "slot_id": "s2",
+      "file_name": "20260928-183000_0199a0b4-5c00-7000-8000-00000000abc0_de_nuke.dem",
+      "size_bytes": 164626432,
+      "modified_at": 1759084200000,
+      "recording": false,
+      "uploading": false,
+      "upload_error": "HTTP 503; retrying in 30 s"
+    }
+  ],
+  "demo_removed": [
+    {
+      "type": "demo_removed",
+      "slot_id": "s1",
+      "file_name": "20260928-201500_0199a0b4-5c00-7000-8000-00000000abc1_de_mirage.dem",
+      "reason": "uploaded"
+    }
+  ],
+  "demo_progress": [
+    {
+      "type": "demo_progress",
+      "slot_id": "s1",
+      "file_name": "20260928-201500_0199a0b4-5c00-7000-8000-00000000abc1_de_mirage.dem",
+      "sent_bytes": 45350912,
+      "bytes_per_second": 12500000
+    }
+  ],
+  "plugin_event": [
+    {
+      "type": "event",
+      "seq": 128,
+      "event": {
+        "type": "round_start",
+        "timestamp": 1700000200000,
+        "tick": 110000,
+        "round": 2,
+        "round_time": 0,
+        "team1_side": "ct",
+        "players": [
+          {
+            "player": {
+              "steam_id": "76561198000000001",
+              "name": "alpha",
+              "side": "ct",
+              "team": 1
+            },
+            "alive": true,
+            "equipment_value": 1000,
+            "cash": 2400,
+            "start_cash": 2400,
+            "cash_spent": 0
+          }
+        ],
+        "carryover": {
+          "from_round": 1,
+          "sampled_tick": 109500,
+          "players": [
+            {
+              "player": {
+                "steam_id": "76561198000000001",
+                "name": "alpha",
+                "side": "ct",
+                "team": 1
+              },
+              "alive": true,
+              "equipment_value": 1000,
+              "cash": 2400,
+              "start_cash": 800,
+              "cash_spent": 650,
+              "inventory": {
+                "items": [
+                  {
+                    "weapon": 32,
+                    "quantity": 1,
+                    "unit_value": 200
+                  }
+                ],
+                "armor": 100,
+                "helmet": false,
+                "defuse_kit": false
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "plugin_server_status": [
+    {
+      "type": "server_status",
+      "request_id": "s1",
+      "map_name": "de_mirage",
+      "match": null,
+      "players": [
+        {
+          "steam_id": "76561198000000001",
+          "name": "alpha",
+          "side": "t"
+        }
+      ],
+      "config_error": null,
+      "ready": true,
+      "server_steam_id": "85568392936840254"
+    },
+    {
+      "type": "server_status",
+      "request_id": null,
+      "map_name": "de_mirage",
+      "match": {
+        "match_id": "0199a0b4-5c00-7000-8000-00000000abc1",
+        "phase": "warmup",
+        "team1_side": "ct",
+        "team2_side": "t",
+        "team1_score": 0,
+        "team2_score": 0
+      },
+      "players": [
+        {
+          "steam_id": "76561198000000001",
+          "name": "alpha",
+          "side": "t"
+        }
+      ],
+      "config_error": null,
+      "ready": true,
+      "server_steam_id": "85568392936840254"
+    }
+  ],
+  "plugin_quitting": [
+    {
+      "type": "quitting"
+    }
+  ],
+  "plugin_phase_change": [
+    {
+      "type": "phase_change",
+      "phase": "knife"
+    }
+  ],
+  "plugin_score": [
+    {
+      "type": "score",
+      "team1_score": 7,
+      "team2_score": 5
+    }
+  ],
+  "plugin_backup": [
+    {
+      "type": "backup",
+      "backup": {
+        "type": "round_backup",
+        "timestamp": 1700001214000,
+        "tick": 180000,
+        "round": 14,
+        "team1_side": "t",
+        "team1_score": 7,
+        "team2_score": 6,
+        "rules": {
+          "max_rounds": 24,
+          "overtime": true,
+          "overtime_max_rounds": 6,
+          "friendly_fire": false
+        },
+        "file": "\"SaveFile\"\n{\n\t\"round\"\t\t\"13\"\n\t…\n}\n",
+        "roster": {
+          "team1": {
+            "name": "Blue",
+            "players": [
+              "76561198000000001",
+              "76561198000000002"
+            ]
+          },
+          "team2": {
+            "name": "Orange",
+            "players": [
+              "76561198000000011",
+              "76561198000000012"
+            ]
+          },
+          "spectators": []
+        }
+      }
+    }
+  ],
+  "plugin_exec": [
+    {
+      "type": "exec",
+      "command": "mp_pause_match",
+      "request_id": "c81d4e2a-6f3b-4a97-8e5d-2b9f0a7c3e61"
+    }
+  ],
+  "plugin_restore_round": [
+    {
+      "type": "restore_round",
+      "round": 14,
+      "request_id": "9a3e6c1f-2d7b-4e85-b0c4-6f1a8d2e3b57"
+    }
+  ],
+  "plugin_start_match": [
+    {
+      "type": "start_match",
+      "request_id": "4f0c9d2e-7b1a-4c6e-9f3d-8a2b5e1c7d90"
+    }
+  ],
+  "plugin_command_result": [
+    {
+      "type": "command_result",
+      "request_id": "4f0c9d2e-7b1a-4c6e-9f3d-8a2b5e1c7d90",
+      "error": null
+    },
+    {
+      "type": "command_result",
+      "request_id": "4f0c9d2e-7b1a-4c6e-9f3d-8a2b5e1c7d90",
+      "error": "team_empty"
+    }
+  ],
+  "plugin_get_server_status": [
+    {
+      "type": "get_server_status",
+      "request_id": "s1"
+    }
+  ],
+  "plugin_ack": [
+    {
+      "type": "ack",
+      "to_seq": 128
+    }
+  ]
+}

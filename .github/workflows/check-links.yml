@@ -1,0 +1,20 @@
+name: Links
+
+# Every relative link in the repository's Markdown files names a file that exists, and an anchor
+# that its Markdown file has. The docs site checks its built pages in check-docs.yml as well. ci.yml runs
+# this on every pull request, and release.yml on every push, where a broken link stops every
+# release.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check Markdown links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/toolchain
+      - run: docker compose run --rm toolchain node scripts/md-links.mjs

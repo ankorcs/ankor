@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tests reference core and diagnostics, never the plugin assembly, so nothing here needs
+    SwiftlyS2 or a running game server. FakeGameHost stands in for IGameHost.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Ankor.Tests</RootNamespace>
+    <AssemblyName>Ankor.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="../core/Ankor.Core.csproj" />
+    <ProjectReference Include="../testing/Ankor.Testing.csproj" />
+    <ProjectReference Include="../diagnostics/Ankor.Diagnostics.csproj" />
+  </ItemGroup>
+
+</Project>

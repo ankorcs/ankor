@@ -1,0 +1,37 @@
+name: Toolchain
+description: >-
+  Builds the toolchain image that compose.yaml runs, with its layer cache, keeps the npm cache and
+  NuGet packages between runs, and installs node_modules, so a check runs as it does on a
+  workstation.
+runs:
+  using: composite
+  steps:
+    - uses: docker/setup-buildx-action@v4
+
+    # The image copies nothing from the repository, so the context is only its folder.
+    - uses: docker/build-push-action@v7
+      with:
+        context: scripts
+        file: scripts/toolchain.Dockerfile
+        tags: ankorcs-toolchain
+        load: true
+        cache-from: type=gha,scope=toolchain-image
+        cache-to: type=gha,scope=toolchain-image,mode=max
+
+    - uses: actions/cache@v6
+      with:
+        path: |
+          ${{ runner.temp }}/npm-cache
+          ${{ runner.temp }}/nuget-packages
+        key: toolchain-${{ hashFiles('package-lock.json', 'packages/plugin/**/*.csproj', 'packages/plugin/.config/dotnet-tools.json') }}
+        restore-keys: toolchain-
+
+    - shell: bash
+      run: |
+        {
+          echo "NPM_CACHE=${RUNNER_TEMP}/npm-cache"
+          echo "NUGET_PACKAGES=${RUNNER_TEMP}/nuget-packages"
+        } >>"$GITHUB_ENV"
+
+    - shell: bash
+      run: docker compose run --rm toolchain npm ci --no-audit --no-fund

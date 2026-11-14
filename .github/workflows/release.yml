@@ -1,0 +1,188 @@
+name: Release
+
+# A push to master runs the Markdown link check, and the checks of each part it changes, as
+# scripts/ci-changes.sh lists the parts, and of each package it is about to publish. Beside the
+# checks, it builds each image whose version has no git tag yet. Once every check and build has
+# passed, it publishes those images to GHCR, and @ankorcs/protocol when npm lacks its version.
+# A docs change deploys the docs site once the docs build, whatever the release does.
+on:
+  push:
+    branches: [master]
+
+# Shared with rebuild.yml, so the two never push images at the same time.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    # Each step prints `name=value` lines into $GITHUB_OUTPUT, which become its outputs. These lines
+    # pass them on to the jobs below as needs.plan.outputs.<name>. protocol, agent, cs2 and docs are
+    # the parts that ci-changes.sh prints, not the workflows of the same name.
+    outputs:
+      # The parts that the push changed.
+      protocol: ${{ steps.changes.outputs.protocol }}
+      agent: ${{ steps.changes.outputs.agent }}
+      cs2: ${{ steps.changes.outputs.cs2 }}
+      docs: ${{ steps.changes.outputs.docs }}
+
+      # The images whose version has no git tag yet, and their builds.
+      publish-agent: ${{ steps.images.outputs.agent }}
+      publish-cs2: ${{ steps.images.outputs.cs2 }}
+      builds: ${{ steps.images.outputs.builds }}
+
+      # Whether npm lacks this version of @ankorcs/protocol.
+      publish-npm: ${{ steps.npm.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - run: scripts/release-line.sh
+
+      - id: changes
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: scripts/ci-changes.sh "$BEFORE" "$GITHUB_SHA" | tee -a "$GITHUB_OUTPUT"
+
+      # Each image whose version has no git tag yet.
+      - id: images
+        run: |
+          : >builds.jsonl
+          for image in agent cs2; do
+            version="$(scripts/nodes.sh version "$image")"
+            if git rev-parse -q --verify "refs/tags/${image}-v${version}" >/dev/null; then
+              echo "${image} ${version} is already released"
+              echo "${image}=false" >>"$GITHUB_OUTPUT"
+            else
+              echo "${image} ${version} is new"
+              jq -nc --arg image "$image" --arg version "$version" \
+                '{image: $image, version: $version, ref: env.GITHUB_SHA, latest: true}' >>builds.jsonl
+              echo "${image}=true" >>"$GITHUB_OUTPUT"
+            fi
+          done
+          echo "builds=$(jq -sc . builds.jsonl)" >>"$GITHUB_OUTPUT"
+
+      # Whether npm lacks this version of @ankorcs/protocol.
+      - id: npm
+        run: |
+          name="$(jq -r .name packages/protocol/package.json)"
+          version="$(jq -r .version packages/protocol/package.json)"
+          publish=false
+          # npm answers a version the package lacks with E404; any other failure fails the job.
+          if found="$(npm view "${name}@${version}" version 2>&1)"; then
+            echo "${name} ${version} is already published"
+          elif [[ "$found" == *E404* ]]; then
+            echo "${name} ${version} is new"
+            publish=true
+          else
+            echo "$found" >&2
+            exit 1
+          fi
+          echo "publish=${publish}" >>"$GITHUB_OUTPUT"
+
+  # A renamed file can break a link from Markdown that the push leaves alone, so this always runs.
+  links:
+    name: Links
+    uses: ./.github/workflows/check-links.yml
+
+  protocol:
+    name: Protocol
+    needs: plan
+    if: needs.plan.outputs.protocol == 'true' || needs.plan.outputs.publish-npm == 'true'
+    uses: ./.github/workflows/check-protocol.yml
+
+  # The agent builds from @ankorcs/protocol, so it waits for the protocol's checks and stops when
+  # they fail. A push that leaves the protocol alone skips them, and the agent runs without them.
+  # When the agent's image is about to publish, build-image builds it instead of check-agent.yml.
+  agent:
+    name: Agent
+    needs: [plan, protocol]
+    if: >-
+      !cancelled() && needs.plan.result == 'success' && needs.protocol.result != 'failure' &&
+      (needs.plan.outputs.agent == 'true' || needs.plan.outputs.publish-agent == 'true')
+    uses: ./.github/workflows/check-agent.yml
+    with:
+      image: ${{ needs.plan.outputs.publish-agent != 'true' }}
+
+  # The plugin copies the contract by hand. Its contract check builds the protocol itself, so it
+  # does not wait for the protocol's checks. When the CS2 image is about to publish, build-image
+  # builds it, with the plugin's tests, instead of check-cs2.yml.
+  cs2:
+    name: CS2 image
+    needs: plan
+    if: needs.plan.outputs.cs2 == 'true' || needs.plan.outputs.publish-cs2 == 'true'
+    uses: ./.github/workflows/check-cs2.yml
+    with:
+      image: ${{ needs.plan.outputs.publish-cs2 != 'true' }}
+
+  docs:
+    name: Docs
+    needs: plan
+    if: needs.plan.outputs.docs == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/deploy-docs.yml
+
+  build-image:
+    name: Build
+    needs: plan
+    if: needs.plan.outputs.builds != '[]'
+    uses: ./.github/workflows/image-build.yml
+    with:
+      builds: ${{ needs.plan.outputs.builds }}
+
+  # Nothing publishes until every check and image build has passed or had nothing to do. A failed
+  # or cancelled one stops every release of the run, to GHCR and to npm.
+  checks:
+    name: All checks
+    needs: [plan, links, protocol, agent, cs2, build-image]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
+
+  # A skipped check further up the chain would skip these too, so they run on the gate's result.
+  publish-image:
+    name: Publish to GHCR
+    needs: [plan, checks]
+    if: ${{ !cancelled() && needs.checks.result == 'success' && needs.plan.outputs.builds != '[]' }}
+    permissions:
+      contents: write
+      packages: write
+    uses: ./.github/workflows/image-publish.yml
+    with:
+      builds: ${{ needs.plan.outputs.builds }}
+      tag: true
+
+  publish-npm:
+    name: Publish to npm
+    needs: [plan, checks]
+    if: ${{ !cancelled() && needs.checks.result == 'success' && needs.plan.outputs.publish-npm == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/toolchain
+      # The build writes dist/ with absolute guide links and checks it, as packages/protocol's
+      # README describes.
+      - run: docker compose run --rm toolchain npm run build
+      # The published README and CHANGELOG link to the docs site and to this commit on GitHub.
+      - run: docker compose run --rm toolchain node scripts/npm-readme.mjs --commit "$GITHUB_SHA"
+      # Publishing packs and uploads what the toolchain built. It runs outside the container, which
+      # does not see the job's OIDC token that trusted publishing signs in with.
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+      - run: npm publish -w @ankorcs/protocol

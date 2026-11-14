@@ -1,0 +1,27 @@
+{
+  "name": "@ankorcs/docs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --force",
+    "build": "astro build --force && pagefind --site dist && node tools/check-links.ts",
+    "preview": "astro preview",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "@ankorcs/protocol": "*",
+    "@astrojs/markdown-satteri": "^0.4.2",
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^7.3.5",
+    "pagefind": "^1.5.2",
+    "satteri": "^0.10.5",
+    "shiki": "^4.5.0",
+    "tailwindcss": "^4.3.3",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10"
+  }
+}

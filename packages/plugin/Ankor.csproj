@@ -1,0 +1,91 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The SwiftlyS2 plugin. Only this project references the framework; all decision logic lives in
+    core/Ankor.Core.csproj behind IGameHost.
+
+    Build output goes to build/Ankor/ because SwiftlyS2 loads a plugin from a folder whose name
+    matches the DLL exactly (PluginManager.GetPluginEntrypointPath: `<dir>/<dirname>.dll`):
+      game/csgo/addons/swiftlys2/plugins/Ankor/Ankor.dll
+    There is no plugin manifest file — the metadata is the [PluginMetadata] attribute, read out of
+    the assembly by reflection, and its Id must match this AssemblyName.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Ankor</RootNamespace>
+    <AssemblyName>Ankor</AssemblyName>
+    <IsPackable>false</IsPackable>
+
+    <!--
+      Emits a complete .deps.json and lays the output out as a standalone component, which is what
+      SwiftlyS2's McMaster.NETCore.Plugins loader reads (PluginManager.AnalyzeDependencies).
+    -->
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <OutDir>$(MSBuildProjectDirectory)/build/$(AssemblyName)/</OutDir>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <!-- core/, diagnostics/ and tests/ are separate projects; keep them out of this project's default glob. -->
+  <ItemGroup>
+    <Compile Remove="core/**" />
+    <Compile Remove="diagnostics/**" />
+    <Compile Remove="testing/**" />
+    <Compile Remove="replay/**" />
+    <Compile Remove="headless/**" />
+    <Compile Remove="tests/**" />
+    <Compile Remove="build/**" />
+    <Compile Remove="examples/**" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <SwiftlyVersion Condition="'$(SwiftlyVersion)' == ''">1.5.2</SwiftlyVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Pinned to the release packages/plugin/docker installs: the game server loads SwiftlyS2.CS2.dll out of
+      addons/swiftlys2/bin/managed/, so the assembly this compiles against must be the one that
+      will be there. SwiftlyVersion above is that release; bump it and SWIFTLY_VERSION in
+      packages/plugin/docker/Dockerfile together. The image build passes its own SWIFTLY_VERSION.
+
+      ExcludeAssets="runtime;native" PrivateAssets="all" because the host provides the assembly and
+      everything under it: shipping a second copy in the plugin folder gives two SwiftlyS2.CS2
+      identities and the load fails, and `native` keeps the four RIDs of SQLite.Interop that
+      SwiftlyS2's transitive System.Data.SQLite.Core would otherwise drop into the overlay.
+    -->
+    <PackageReference Include="SwiftlyS2.CS2" Version="$(SwiftlyVersion)"
+                      ExcludeAssets="runtime;native" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!--
+    [PluginMetadata] needs the version as a constant, so it is generated from AnkorVersion in
+    Directory.Build.props, the version the cs2 image is tagged with.
+  -->
+  <Target Name="AnkorVersionSource" BeforeTargets="BeforeCompile">
+    <PropertyGroup>
+      <AnkorVersionFile>$(IntermediateOutputPath)AnkorVersion.g.cs</AnkorVersionFile>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(AnkorVersionFile)" Overwrite="true" WriteOnlyWhenDifferent="true"
+                      Lines="namespace Ankor%3B internal static class AnkorVersion { public const string Value = &quot;$(AnkorVersion)&quot;%3B }" />
+    <ItemGroup>
+      <Compile Include="$(AnkorVersionFile)" />
+      <FileWrites Include="$(AnkorVersionFile)" />
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="core/Ankor.Core.csproj" />
+    <ProjectReference Include="diagnostics/Ankor.Diagnostics.csproj" />
+  </ItemGroup>
+
+  <!--
+    Every player-facing string. SwiftlyS2's translation service reads resources/translations/*.jsonc
+    from the plugin's own directory, so the file has to sit next to the DLL in the build output;
+    the Dockerfile then copies that whole folder into the overlay. en.jsonc is mandatory: the
+    framework refuses to build a localizer without an English file.
+  -->
+  <ItemGroup>
+    <None Update="resources/translations/*.jsonc" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="configs/config.jsonc" TargetPath="templates/config.jsonc" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

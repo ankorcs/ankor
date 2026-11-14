@@ -1,0 +1,57 @@
+---
+import Docs from '../../layouts/Docs.astro';
+import Expand from '../../components/reference/Expand.astro';
+import SchemaTree from '../../components/reference/SchemaTree.astro';
+import { reference } from '../../reference/data.ts';
+import { schemaAnchor, type JsonSchema } from '../../reference/model.ts';
+import { detailRules, enumValues, escapeHtml, listsValues, markdown, typeLabel, variants } from '../../reference/schema.ts';
+
+const schemas = reference.document.components.schemas;
+const structured = reference.types.filter((name) => schemas[name]?.properties !== undefined || variants(schemas[name]!) !== undefined);
+const values = reference.types.filter((name) => !structured.includes(name));
+
+/** A value type's description, its long rules, and its enum values one per line. */
+function describeValue(schema: JsonSchema): string {
+  const list = listsValues(schema)
+    ? `<ul>${enumValues(schema).map((entry) => `<li><code>${escapeHtml(entry.value)}</code>${entry.description === undefined ? '' : `: ${markdown(entry.description).replace(/^<p>|<\/p>$/g, '')}`}</li>`).join('')}</ul>`
+    : '';
+
+  return markdown(schema.description) + detailRules(schema).map((rule) => `<p>${rule}</p>`).join('') + list;
+}
+const headings = [
+  { depth: 2, slug: 'values', text: 'Values' },
+  { depth: 2, slug: 'types', text: 'Types' },
+  ...structured.map((name) => ({ depth: 3, slug: schemaAnchor(name), text: name, code: true })),
+];
+---
+
+<Docs title={'Types & Values'} description={'Shared types and values the messages refer to.'} headings={headings}>
+  <h2 id="values">Values</h2>
+  <table>
+    <thead><tr><th>Type</th><th>JSON</th><th>Description</th></tr></thead>
+    <tbody>
+      {values.map((name) => (
+        <tr id={schemaAnchor(name)}>
+          <td><code>{name}</code></td>
+          <td set:html={typeLabel({ ...schemas[name]!, description: undefined }, reference.hrefs)} />
+          <td set:html={describeValue(schemas[name]!)} />
+        </tr>
+      ))}
+    </tbody>
+  </table>
+  <h2 id="types">Types</h2>
+  {structured.map((name) => (
+    <section>
+      <h3 id={schemaAnchor(name)}><code>{name}</code></h3>
+      <p class="tools"><Expand /></p>
+      <Fragment set:html={markdown(schemas[name]!.description)} />
+      <div class="not-prose tree-root"><SchemaTree schema={schemas[name]!} reference={reference} seen={[name]} /></div>
+    </section>
+  ))}
+</Docs>
+
+<style>
+  .tools {
+    display: flex;
+  }
+</style>

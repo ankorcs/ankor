@@ -1,0 +1,28 @@
+# What every package shares. Each package's own build output and tool caches are in its
+# .gitignore.
+
+# OS and editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Worktrees that coding agents create for isolated work.
+/.claude/worktrees/
+
+# Node, in every workspace
+node_modules/
+npm-debug.log*
+.eslintcache
+*.tsbuildinfo
+.cache/
+*.local
+
+# The node config, which holds a node token. The repository's .npmrc shares its name or pattern and
+# is kept.
+agent.yml
+!.npmrc
+
+# Reports that scripts/plugin.sh writes at the root.
+/coverage/

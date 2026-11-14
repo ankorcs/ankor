@@ -1,0 +1,228 @@
+{
+  "controller": [
+    {
+      "agent": {
+        "agent": {
+          "image": "ghcr.io/ankorcs/ankor-agent:0",
+          "image_id": "<agent-image-id>",
+          "version": "<agent-version>"
+        },
+        "agent_update": null,
+        "config": {
+          "auto_update": true,
+          "controller": {
+            "events_path": "/api/node/events",
+            "host": "controller.conformance.test",
+            "socket_path": "/ws/agent",
+            "tls": false
+          },
+          "demo_upload": null,
+          "memory_mb": null,
+          "pinned_ip": null,
+          "slots": [
+            {
+              "gslt_hint": "0000000001",
+              "id": "s1",
+              "port": 27015,
+              "tv_port": 27020
+            }
+          ]
+        },
+        "country": "DK",
+        "cs2": {
+          "build_id": "20260101",
+          "image": "ghcr.io/ankorcs/ankor-cs2:1",
+          "image_id": "sha256:<image-1>",
+          "image_update": null,
+          "latest_build_id": null,
+          "update": null
+        },
+        "demos": [],
+        "event_backlog": {
+          "event_count": 0,
+          "reason": null,
+          "server_count": 0,
+          "servers": []
+        },
+        "host": {
+          "cpu_count": "<cpu-count>",
+          "kernel": "<kernel>",
+          "os_name": "Alpine Linux v3.24"
+        },
+        "public_ip": "203.0.113.10",
+        "server_exits": [],
+        "slot_status": [
+          {
+            "allocation_id": null,
+            "gslt_state": "unchecked",
+            "match_id": null,
+            "plugin_online": false,
+            "reserved": true,
+            "server_steam_id": null,
+            "slot_id": "s1",
+            "state": "idle"
+          }
+        ],
+        "type": "hello",
+        "unavailable": null
+      }
+    },
+    {
+      "connect": {
+        "authorized": true,
+        "protocol": "0.9"
+      }
+    },
+    {
+      "after_step": "the agent said hello; let Steam's build and token answers through"
+    },
+    {
+      "agent_closed": {
+        "code": 1000,
+        "reason": ""
+      }
+    },
+    {
+      "controller": {
+        "detail": "this node's hello does not match the contract",
+        "reason": "invalid_hello",
+        "type": "hello_refused"
+      }
+    },
+    {
+      "after_step": "the agent said hello; let Steam's build and token answers through"
+    }
+  ],
+  "docker": [
+    {
+      "action": "create",
+      "allocation": null,
+      "exit_code": null,
+      "image": "sha256:<image-1>",
+      "name": "ankor-overlay-<id>",
+      "role": "overlay",
+      "signal": null,
+      "slot": null
+    },
+    {
+      "action": "destroy",
+      "allocation": null,
+      "exit_code": null,
+      "image": "sha256:<image-1>",
+      "name": "ankor-overlay-<id>",
+      "role": "overlay",
+      "signal": null,
+      "slot": null
+    }
+  ],
+  "steam": [
+    {
+      "logoff": true
+    },
+    {
+      "logon": {
+        "answered": 1,
+        "app": 730,
+        "token_hint": "0000000001"
+      }
+    }
+  ],
+  "stubs": [
+    {
+      "authorization": "Bearer conformance-registry-token",
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/v2/ankorcs/ankor-agent/tags/list?n=1000"
+    },
+    {
+      "authorization": "Bearer conformance-registry-token",
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/v2/ankorcs/ankor-cs2/tags/list?n=1000"
+    },
+    {
+      "authorization": "Bearer conformance-registry-token",
+      "host": "ghcr.io",
+      "method": "HEAD",
+      "path": "/v2/ankorcs/ankor-agent/manifests/0.9"
+    },
+    {
+      "authorization": "Bearer conformance-registry-token",
+      "host": "ghcr.io",
+      "method": "HEAD",
+      "path": "/v2/ankorcs/ankor-cs2/manifests/1"
+    },
+    {
+      "authorization": null,
+      "host": "api.steamcmd.net",
+      "method": "GET",
+      "path": "/v1/info/730"
+    },
+    {
+      "authorization": null,
+      "host": "api.steampowered.com",
+      "method": "GET",
+      "path": "/ISteamDirectory/GetCMListForConnect/v1/?cellid=0&cmtype=websockets"
+    },
+    {
+      "authorization": null,
+      "host": "cm.conformance.test",
+      "method": "GET",
+      "path": "/cmsocket/"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/token?service=ghcr.io&scope=repository%3Aankorcs%2Fankor-agent%3Apull"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/token?service=ghcr.io&scope=repository%3Aankorcs%2Fankor-agent%3Apull"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/token?service=ghcr.io&scope=repository%3Aankorcs%2Fankor-cs2%3Apull"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/token?service=ghcr.io&scope=repository%3Aankorcs%2Fankor-cs2%3Apull"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/v2/ankorcs/ankor-agent/tags/list?n=1000"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/v2/ankorcs/ankor-cs2/tags/list?n=1000"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "HEAD",
+      "path": "/v2/ankorcs/ankor-agent/manifests/0.9"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "HEAD",
+      "path": "/v2/ankorcs/ankor-cs2/manifests/1"
+    },
+    {
+      "authorization": null,
+      "host": "ipinfo.io",
+      "method": "GET",
+      "path": "/json"
+    }
+  ]
+}

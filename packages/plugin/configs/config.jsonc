@@ -1,0 +1,13 @@
+// Ankor plugin configuration, read by SwiftlyS2 from
+// addons/swiftlys2/configs/plugins/Ankor/config.jsonc. This copy ships in the image as the
+// default; the agent renders the launch's chat_tag over it on every launch.
+{
+  "Chat": {
+    // Text inside the brackets in front of every chat line the plugin prints. Max 24 characters.
+    "Tag": "Ankor",
+    // Colour of that tag, one of SwiftlyS2's chat colour names: white, darkred, lightpurple, green,
+    // olive, lime, red, gray, lightyellow, yellow, silver, bluegrey, lightblue, blue, darkblue,
+    // purple, magenta, lightred, gold, orange.
+    "TagColor": "blue"
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "name": "@ankorcs/protocol",
+  "version": "0.9.0",
+  "description": "The wire protocol between Ankor game-host agents and the controller that runs them: zod schemas, constants, types, an agent.yml renderer and a session that pairs requests with their typed replies on any WebSocket server; the interface between the agent and its game containers; and node-setup.sh, which installs a game node.",
+  "keywords": ["ankor", "cs2", "counter", "strike"],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ankorcs/ankor.git",
+    "directory": "packages/protocol"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./helpers": {
+      "types": "./dist/helpers.d.ts",
+      "import": "./dist/helpers.js"
+    },
+    "./agent-yml": {
+      "types": "./dist/agent-yml.d.ts",
+      "import": "./dist/agent-yml.js"
+    },
+    "./session": {
+      "types": "./dist/session.d.ts",
+      "import": "./dist/session.js"
+    },
+    "./container": {
+      "types": "./dist/container.d.ts",
+      "import": "./dist/container.js"
+    },
+    "./node-setup.sh": "./node-setup.sh",
+    "./asyncapi.yaml": "./dist/asyncapi.yaml",
+    "./agent-yml.schema.json": "./dist/agent-yml.schema.json"
+  },
+  "files": [
+    "dist",
+    "node-setup.sh",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node reference/generate.ts && node reference/dist-links.ts && tsc -p tsconfig.dist.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "yaml": "^2.9.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@asyncapi/parser": "^3.6.3",
+    "@types/node": "^26.5.0",
+    "typescript": "^5.9.3"
+  }
+}

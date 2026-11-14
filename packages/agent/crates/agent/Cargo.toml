@@ -1,0 +1,60 @@
+[package]
+name = "ankor-agent"
+version = "0.9.1"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+ankor-protocol = { version = "0.9.0", path = "../protocol" }
+async-trait = "0.1.92"
+base64 = "0.23.1"
+bytes = "1.12.1"
+fancy-regex = "0.20.0"
+flate2 = "1.1.10"
+form_urlencoded = "1.2.2"
+futures-util = "0.3.34"
+hex = "0.4.3"
+http-body-util = "0.1.5"
+httparse = "1.10.1"
+hyper = { version = "1.12.0", features = ["client", "http1"] }
+hyper-util = { version = "0.1.21", features = ["tokio"] }
+indexmap = "2.14.2"
+jiff = "0.2.39"
+nix = { version = "0.31.3", features = ["user", "fs", "net"] }
+percent-encoding = "2.3.2"
+rand = "0.10.3"
+regex = "1.13.1"
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider", "json", "http2", "stream"] }
+rusqlite = { version = "0.42.0", features = ["bundled"] }
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-platform-verifier = "0.7.1"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.154", features = ["preserve_order"] }
+sha2 = "0.11.1"
+socket2 = { version = "0.6.5", features = ["all"] }
+tar = "0.4.46"
+tempfile = "3.27.0"
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["full"] }
+tokio-rustls = { version = "0.26.6", default-features = false, features = ["ring"] }
+tokio-tungstenite = { version = "0.30", features = ["rustls-tls-native-roots"] }
+tokio-util = { version = "0.7.20", features = ["io", "io-util", "rt"] }
+url = "2.5.8"
+yaml-edit = "0.3.6"
+yaml_serde = "0.10.7"
+
+[lints]
+workspace = true
+
+[features]
+# The test doubles in `testing`, for this crate's integration tests.
+testing = []
+
+[dev-dependencies]
+ankor-fake-plugin = { path = "../fake-plugin" }
+ankor-agent = { path = ".", features = ["testing"] }
+axum = "0.8.9"
+tempfile = "3.27.0"
+tokio = { version = "1.54.1", features = ["full", "test-util"] }

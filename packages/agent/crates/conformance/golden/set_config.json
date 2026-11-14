@@ -1,0 +1,1142 @@
+{
+  "controller": [
+    {
+      "agent": {
+        "agent": {
+          "image": "ghcr.io/ankorcs/ankor-agent:0",
+          "image_id": "<agent-image-id>",
+          "version": "<agent-version>"
+        },
+        "agent_update": null,
+        "config": {
+          "auto_update": true,
+          "controller": {
+            "events_path": "/api/node/events",
+            "host": "controller.conformance.test",
+            "socket_path": "/ws/agent",
+            "tls": false
+          },
+          "demo_upload": null,
+          "memory_mb": null,
+          "pinned_ip": null,
+          "slots": [
+            {
+              "gslt_hint": "0000000001",
+              "id": "s1",
+              "port": 27015,
+              "tv_port": 27020
+            }
+          ]
+        },
+        "country": "DK",
+        "cs2": {
+          "build_id": "20260101",
+          "image": "ghcr.io/ankorcs/ankor-cs2:1",
+          "image_id": "sha256:<image-1>",
+          "image_update": null,
+          "latest_build_id": null,
+          "update": null
+        },
+        "demos": [],
+        "event_backlog": {
+          "event_count": 0,
+          "reason": null,
+          "server_count": 0,
+          "servers": []
+        },
+        "host": {
+          "cpu_count": "<cpu-count>",
+          "kernel": "<kernel>",
+          "os_name": "Alpine Linux v3.24"
+        },
+        "public_ip": "203.0.113.10",
+        "server_exits": [],
+        "slot_status": [
+          {
+            "allocation_id": null,
+            "gslt_state": "unchecked",
+            "match_id": null,
+            "plugin_online": false,
+            "reserved": true,
+            "server_steam_id": null,
+            "slot_id": "s1",
+            "state": "idle"
+          }
+        ],
+        "type": "hello",
+        "unavailable": null
+      }
+    },
+    {
+      "connect": {
+        "authorized": true,
+        "protocol": "0.9"
+      }
+    },
+    {
+      "controller": {
+        "type": "welcome"
+      }
+    },
+    {
+      "after_step": "the agent said hello; let Steam's build and token answers through"
+    },
+    {
+      "agent": {
+        "agent_update": null,
+        "cs2": {
+          "build_id": "20260101",
+          "image": "ghcr.io/ankorcs/ankor-cs2:1",
+          "image_id": "sha256:<image-1>",
+          "image_update": null,
+          "latest_build_id": "20260101",
+          "update": null
+        },
+        "type": "node_status",
+        "unavailable": null
+      }
+    },
+    {
+      "after_step": "the agent said hello; let Steam's build and token answers through"
+    },
+    {
+      "agent": {
+        "allocation_id": null,
+        "gslt_state": "ok",
+        "match_id": null,
+        "plugin_online": false,
+        "reserved": false,
+        "server_steam_id": null,
+        "slot_id": "s1",
+        "state": "idle",
+        "type": "slot_status"
+      }
+    },
+    {
+      "after_step": "the agent said hello; let Steam's build and token answers through"
+    },
+    {
+      "agent": {
+        "allocation_id": null,
+        "gslt_state": "ok",
+        "match_id": null,
+        "plugin_online": false,
+        "reserved": false,
+        "server_steam_id": null,
+        "slot_id": "s2",
+        "state": "idle",
+        "type": "slot_status"
+      }
+    },
+    {
+      "agent": {
+        "allocation_id": null,
+        "gslt_state": "unchecked",
+        "match_id": null,
+        "plugin_online": false,
+        "reserved": false,
+        "server_steam_id": null,
+        "slot_id": "s2",
+        "state": "idle",
+        "type": "slot_status"
+      }
+    },
+    {
+      "agent": {
+        "allocation_id": null,
+        "gslt_state": "unchecked",
+        "match_id": null,
+        "plugin_online": false,
+        "reserved": true,
+        "server_steam_id": null,
+        "slot_id": "s2",
+        "state": "idle",
+        "type": "slot_status"
+      }
+    },
+    {
+      "agent": {
+        "data": {
+          "auto_update": true,
+          "controller": {
+            "events_path": "/api/node/events",
+            "host": "controller.conformance.test",
+            "socket_path": "/ws/agent",
+            "tls": false
+          },
+          "demo_upload": null,
+          "memory_mb": null,
+          "pinned_ip": "198.51.100.7",
+          "slots": [
+            {
+              "gslt_hint": "0000000001",
+              "id": "s1",
+              "port": 27015,
+              "tv_port": 27020
+            },
+            {
+              "gslt_hint": "0000000002",
+              "id": "s2",
+              "port": 27025,
+              "tv_port": 27030
+            }
+          ]
+        },
+        "ok": true,
+        "reply_to": "req-1",
+        "request": "set_config",
+        "type": "reply"
+      }
+    },
+    {
+      "controller": {
+        "config": {
+          "pinned_ip": "198.51.100.7",
+          "slots": [
+            {
+              "id": "s1",
+              "port": 27015,
+              "tv_port": 27020
+            },
+            {
+              "gslt": "GOODTOKEN000000000000000000000002",
+              "id": "s2",
+              "port": 27025,
+              "tv_port": 27030
+            }
+          ]
+        },
+        "id": "req-1",
+        "type": "set_config"
+      }
+    },
+    {
+      "after_step": "controller → set_config"
+    },
+    {
+      "agent": {
+        "allocation_id": null,
+        "gslt_state": "ok",
+        "match_id": null,
+        "plugin_online": false,
+        "reserved": false,
+        "server_steam_id": null,
+        "slot_id": "s1",
+        "state": "idle",
+        "type": "slot_status"
+      }
+    },
+    {
+      "agent": {
+        "allocation_id": null,
+        "gslt_state": "unchecked",
+        "match_id": null,
+        "plugin_online": false,
+        "reserved": false,
+        "server_steam_id": null,
+        "slot_id": "s1",
+        "state": "idle",
+        "type": "slot_status"
+      }
+    },
+    {
+      "agent": {
+        "allocation_id": null,
+        "gslt_state": "unchecked",
+        "match_id": null,
+        "plugin_online": false,
+        "reserved": true,
+        "server_steam_id": null,
+        "slot_id": "s1",
+        "state": "idle",
+        "type": "slot_status"
+      }
+    },
+    {
+      "agent": {
+        "data": {
+          "auto_update": true,
+          "controller": {
+            "events_path": "/api/node/events",
+            "host": "controller.conformance.test",
+            "socket_path": "/ws/agent",
+            "tls": false
+          },
+          "demo_upload": null,
+          "memory_mb": null,
+          "pinned_ip": "198.51.100.7",
+          "slots": [
+            {
+              "gslt_hint": "0000000003",
+              "id": "s1",
+              "port": 27015,
+              "tv_port": 27020
+            },
+            {
+              "gslt_hint": "0000000002",
+              "id": "s2",
+              "port": 27025,
+              "tv_port": 27030
+            }
+          ]
+        },
+        "ok": true,
+        "reply_to": "req-2",
+        "request": "set_config",
+        "type": "reply"
+      }
+    },
+    {
+      "controller": {
+        "config": {
+          "slots": [
+            {
+              "gslt": "GOODTOKEN000000000000000000000003",
+              "id": "s1",
+              "port": 27015,
+              "tv_port": 27020
+            },
+            {
+              "id": "s2",
+              "port": 27025,
+              "tv_port": 27030
+            }
+          ]
+        },
+        "id": "req-2",
+        "type": "set_config"
+      }
+    },
+    {
+      "after_step": "controller → set_config"
+    },
+    {
+      "agent": {
+        "data": {
+          "auto_update": false,
+          "controller": {
+            "events_path": "/api/node/events",
+            "host": "controller.conformance.test",
+            "socket_path": "/ws/agent",
+            "tls": false
+          },
+          "demo_upload": {
+            "header": null,
+            "limit_mbit": 50,
+            "url": "http://controller.conformance.test/demos/upload"
+          },
+          "memory_mb": null,
+          "pinned_ip": null,
+          "slots": [
+            {
+              "gslt_hint": "0000000003",
+              "id": "s1",
+              "port": 27015,
+              "tv_port": 27020
+            },
+            {
+              "gslt_hint": "0000000002",
+              "id": "s2",
+              "port": 27025,
+              "tv_port": 27030
+            }
+          ]
+        },
+        "ok": true,
+        "reply_to": "req-3",
+        "request": "set_config",
+        "type": "reply"
+      }
+    },
+    {
+      "controller": {
+        "config": {
+          "auto_update": false,
+          "demo_upload": {
+            "header": null,
+            "limit_mbit": 50,
+            "url": "http://controller.conformance.test/demos/upload"
+          },
+          "pinned_ip": null
+        },
+        "id": "req-3",
+        "type": "set_config"
+      }
+    },
+    {
+      "after_step": "controller → set_config"
+    },
+    {
+      "agent": {
+        "error": {
+          "code": "invalid_request",
+          "detail": "config.slots.1.port: port 27015 is used by more than one slot"
+        },
+        "ok": false,
+        "reply_to": "req-4",
+        "request": "set_config",
+        "type": "reply"
+      }
+    },
+    {
+      "controller": {
+        "config": {
+          "slots": [
+            {
+              "id": "s1",
+              "port": 27015,
+              "tv_port": 27020
+            },
+            {
+              "id": "s2",
+              "port": 27015,
+              "tv_port": 27030
+            }
+          ]
+        },
+        "id": "req-4",
+        "type": "set_config"
+      }
+    },
+    {
+      "after_step": "controller → set_config"
+    },
+    {
+      "agent": {
+        "signal": "SIGTERM",
+        "type": "shutdown"
+      }
+    },
+    {
+      "agent_closed": {
+        "code": 1000,
+        "reason": "SIGTERM"
+      }
+    },
+    {
+      "after_step": "stop the agent"
+    }
+  ],
+  "docker": [
+    {
+      "action": "create",
+      "allocation": null,
+      "exit_code": null,
+      "image": "sha256:<image-1>",
+      "name": "ankor-overlay-<id>",
+      "role": "overlay",
+      "signal": null,
+      "slot": null
+    },
+    {
+      "action": "destroy",
+      "allocation": null,
+      "exit_code": null,
+      "image": "sha256:<image-1>",
+      "name": "ankor-overlay-<id>",
+      "role": "overlay",
+      "signal": null,
+      "slot": null
+    }
+  ],
+  "snapshot/slot_added/containers": [
+    []
+  ],
+  "snapshot/slot_added/files": [
+    {
+      "agent.yml": {
+        "content": "# agent.yml for an Ankor node.\ntoken: conformance0node0token0000000000000000000000000000000000000000001\ncontroller:\n  host: controller.conformance.test\n  tls: false\ncs2_image: ghcr.io/ankorcs/ankor-cs2:1\nagent_image: ghcr.io/ankorcs/ankor-agent:0\nslots:\n  - id: s1\n    port: 27015\n    tv_port: 27020\n    gslt: GOODTOKEN000000000000000000000001\n  - id: s2\n    port: 27025\n    tv_port: 27030\n    gslt: GOODTOKEN000000000000000000000002\npinned_ip: 198.51.100.7\n",
+        "mode": "600",
+        "owner": "1000:1000",
+        "size": 458,
+        "type": "regular file"
+      },
+      "cfg": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "events": {
+        "mode": "700",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "events/streams.sqlite": {
+        "mode": "600",
+        "owner": "1000:1000",
+        "type": "regular file"
+      },
+      "events/streams.sqlite-shm": {
+        "mode": "600",
+        "owner": "1000:1000",
+        "type": "regular file"
+      },
+      "events/streams.sqlite-wal": {
+        "mode": "600",
+        "owner": "1000:1000",
+        "type": "regular file"
+      },
+      "overlay": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/.complete": {
+        "content": "sha256:<image-1>\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 72,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/addons": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/configs": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/configs/core.jsonc": {
+        "content": "{ \"core\": true }\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 17,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/configs/plugins": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/configs/plugins/Ankor": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/configs/plugins/Ankor/config.jsonc": {
+        "content": "{ \"Chat\": { \"Tag\": \"Ankor\", \"TagColor\": \"Green\" } }\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 52,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/data": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/dumps": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/logs": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/plugins": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/plugins/Ankor": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/plugins/Ankor/Ankor.dll": {
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 12,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/cfg": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/cfg/ankor": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/cfg/ankor/base.cfg": {
+        "content": "echo base\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 10,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/cfg/ankor/knife.cfg": {
+        "content": "echo knife\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 11,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/cfg/ankor/warmup.cfg": {
+        "content": "echo warmup\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 12,
+        "type": "regular file"
+      },
+      "slots": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "swiftlys2": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "swiftlys2/configs": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "swiftlys2/configs/plugins": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "swiftlys2/plugins": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      }
+    }
+  ],
+  "snapshot/token_changed/containers": [
+    []
+  ],
+  "snapshot/token_changed/files": [
+    {
+      "agent.yml": {
+        "content": "# agent.yml for an Ankor node.\ntoken: conformance0node0token0000000000000000000000000000000000000000001\ncontroller:\n  host: controller.conformance.test\n  tls: false\ncs2_image: ghcr.io/ankorcs/ankor-cs2:1\nagent_image: ghcr.io/ankorcs/ankor-agent:0\nslots:\n  - id: s1\n    port: 27015\n    tv_port: 27020\n    gslt: GOODTOKEN000000000000000000000003\n  - id: s2\n    port: 27025\n    tv_port: 27030\n    gslt: GOODTOKEN000000000000000000000002\npinned_ip: 198.51.100.7\n",
+        "mode": "600",
+        "owner": "1000:1000",
+        "size": 458,
+        "type": "regular file"
+      },
+      "cfg": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "events": {
+        "mode": "700",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "events/streams.sqlite": {
+        "mode": "600",
+        "owner": "1000:1000",
+        "type": "regular file"
+      },
+      "events/streams.sqlite-shm": {
+        "mode": "600",
+        "owner": "1000:1000",
+        "type": "regular file"
+      },
+      "events/streams.sqlite-wal": {
+        "mode": "600",
+        "owner": "1000:1000",
+        "type": "regular file"
+      },
+      "overlay": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/.complete": {
+        "content": "sha256:<image-1>\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 72,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/addons": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/configs": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/configs/core.jsonc": {
+        "content": "{ \"core\": true }\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 17,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/configs/plugins": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/configs/plugins/Ankor": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/configs/plugins/Ankor/config.jsonc": {
+        "content": "{ \"Chat\": { \"Tag\": \"Ankor\", \"TagColor\": \"Green\" } }\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 52,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/data": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/dumps": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/logs": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/plugins": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/plugins/Ankor": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/plugins/Ankor/Ankor.dll": {
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 12,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/cfg": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/cfg/ankor": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/cfg/ankor/base.cfg": {
+        "content": "echo base\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 10,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/cfg/ankor/knife.cfg": {
+        "content": "echo knife\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 11,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/cfg/ankor/warmup.cfg": {
+        "content": "echo warmup\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 12,
+        "type": "regular file"
+      },
+      "slots": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "swiftlys2": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "swiftlys2/configs": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "swiftlys2/configs/plugins": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "swiftlys2/plugins": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      }
+    }
+  ],
+  "snapshot/unpinned/containers": [
+    []
+  ],
+  "snapshot/unpinned/files": [
+    {
+      "agent.yml": {
+        "content": "# agent.yml for an Ankor node.\ntoken: conformance0node0token0000000000000000000000000000000000000000001\ncontroller:\n  host: controller.conformance.test\n  tls: false\ncs2_image: ghcr.io/ankorcs/ankor-cs2:1\nagent_image: ghcr.io/ankorcs/ankor-agent:0\nslots:\n  - id: s1\n    port: 27015\n    tv_port: 27020\n    gslt: GOODTOKEN000000000000000000000003\n  - id: s2\n    port: 27025\n    tv_port: 27030\n    gslt: GOODTOKEN000000000000000000000002\nauto_update: false\ndemo_upload:\n  url: http://controller.conformance.test/demos/upload\n  limit_mbit: 50\n",
+        "mode": "600",
+        "owner": "1000:1000",
+        "size": 538,
+        "type": "regular file"
+      },
+      "cfg": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "events": {
+        "mode": "700",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "events/streams.sqlite": {
+        "mode": "600",
+        "owner": "1000:1000",
+        "type": "regular file"
+      },
+      "events/streams.sqlite-shm": {
+        "mode": "600",
+        "owner": "1000:1000",
+        "type": "regular file"
+      },
+      "events/streams.sqlite-wal": {
+        "mode": "600",
+        "owner": "1000:1000",
+        "type": "regular file"
+      },
+      "overlay": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/.complete": {
+        "content": "sha256:<image-1>\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 72,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/addons": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/configs": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/configs/core.jsonc": {
+        "content": "{ \"core\": true }\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 17,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/configs/plugins": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/configs/plugins/Ankor": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/configs/plugins/Ankor/config.jsonc": {
+        "content": "{ \"Chat\": { \"Tag\": \"Ankor\", \"TagColor\": \"Green\" } }\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 52,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/data": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/dumps": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/logs": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/plugins": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/plugins/Ankor": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/addons/swiftlys2/plugins/Ankor/Ankor.dll": {
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 12,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/cfg": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/cfg/ankor": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "overlay/sha256_<image-1>/cfg/ankor/base.cfg": {
+        "content": "echo base\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 10,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/cfg/ankor/knife.cfg": {
+        "content": "echo knife\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 11,
+        "type": "regular file"
+      },
+      "overlay/sha256_<image-1>/cfg/ankor/warmup.cfg": {
+        "content": "echo warmup\n",
+        "mode": "644",
+        "owner": "1000:1000",
+        "size": 12,
+        "type": "regular file"
+      },
+      "slots": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "swiftlys2": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "swiftlys2/configs": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "swiftlys2/configs/plugins": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      },
+      "swiftlys2/plugins": {
+        "mode": "755",
+        "owner": "1000:1000",
+        "type": "directory"
+      }
+    }
+  ],
+  "steam": [
+    {
+      "logoff": true
+    },
+    {
+      "logoff": true
+    },
+    {
+      "logoff": true
+    },
+    {
+      "logon": {
+        "answered": 1,
+        "app": 730,
+        "token_hint": "0000000001"
+      }
+    },
+    {
+      "logon": {
+        "answered": 1,
+        "app": 730,
+        "token_hint": "0000000002"
+      }
+    },
+    {
+      "logon": {
+        "answered": 1,
+        "app": 730,
+        "token_hint": "0000000003"
+      }
+    }
+  ],
+  "stubs": [
+    {
+      "authorization": "Bearer conformance-registry-token",
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/v2/ankorcs/ankor-agent/tags/list?n=1000"
+    },
+    {
+      "authorization": "Bearer conformance-registry-token",
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/v2/ankorcs/ankor-cs2/tags/list?n=1000"
+    },
+    {
+      "authorization": "Bearer conformance-registry-token",
+      "host": "ghcr.io",
+      "method": "HEAD",
+      "path": "/v2/ankorcs/ankor-agent/manifests/0.9"
+    },
+    {
+      "authorization": "Bearer conformance-registry-token",
+      "host": "ghcr.io",
+      "method": "HEAD",
+      "path": "/v2/ankorcs/ankor-cs2/manifests/1"
+    },
+    {
+      "authorization": null,
+      "host": "api.steamcmd.net",
+      "method": "GET",
+      "path": "/v1/info/730"
+    },
+    {
+      "authorization": null,
+      "host": "api.steampowered.com",
+      "method": "GET",
+      "path": "/ISteamDirectory/GetCMListForConnect/v1/?cellid=0&cmtype=websockets"
+    },
+    {
+      "authorization": null,
+      "host": "api.steampowered.com",
+      "method": "GET",
+      "path": "/ISteamDirectory/GetCMListForConnect/v1/?cellid=0&cmtype=websockets"
+    },
+    {
+      "authorization": null,
+      "host": "api.steampowered.com",
+      "method": "GET",
+      "path": "/ISteamDirectory/GetCMListForConnect/v1/?cellid=0&cmtype=websockets"
+    },
+    {
+      "authorization": null,
+      "host": "cm.conformance.test",
+      "method": "GET",
+      "path": "/cmsocket/"
+    },
+    {
+      "authorization": null,
+      "host": "cm.conformance.test",
+      "method": "GET",
+      "path": "/cmsocket/"
+    },
+    {
+      "authorization": null,
+      "host": "cm.conformance.test",
+      "method": "GET",
+      "path": "/cmsocket/"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/token?service=ghcr.io&scope=repository%3Aankorcs%2Fankor-agent%3Apull"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/token?service=ghcr.io&scope=repository%3Aankorcs%2Fankor-agent%3Apull"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/token?service=ghcr.io&scope=repository%3Aankorcs%2Fankor-cs2%3Apull"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/token?service=ghcr.io&scope=repository%3Aankorcs%2Fankor-cs2%3Apull"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/v2/ankorcs/ankor-agent/tags/list?n=1000"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/v2/ankorcs/ankor-cs2/tags/list?n=1000"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "HEAD",
+      "path": "/v2/ankorcs/ankor-agent/manifests/0.9"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "HEAD",
+      "path": "/v2/ankorcs/ankor-cs2/manifests/1"
+    },
+    {
+      "authorization": null,
+      "host": "ipinfo.io",
+      "method": "GET",
+      "path": "/json"
+    }
+  ]
+}

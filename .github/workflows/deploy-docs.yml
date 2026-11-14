@@ -1,0 +1,36 @@
+name: Docs deploy
+
+# Builds the docs site with check-docs.yml and deploys it to GitHub Pages. release.yml runs this on
+# a push that changes the docs, and a manual run deploys too. The calling job grants pages and
+# id-token write. Deployments from Actions ignore a CNAME file, so the custom domain is set in the
+# Pages settings.
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    uses: ./.github/workflows/check-docs.yml
+    with:
+      pages: true
+
+  deploy:
+    name: Deploy
+    needs: build
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

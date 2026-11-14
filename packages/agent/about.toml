@@ -1,0 +1,22 @@
+# cargo-about's config for THIRD-PARTY-LICENSES.txt, the notices of the crates the agent's binary
+# bundles, which its image ships. scripts/check.sh fails when the file is out of date.
+# The accepted licences match deny.toml's.
+accepted = [
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "CDLA-Permissive-2.0",
+  "GPL-3.0-only",
+  "ISC",
+  "MIT",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+]
+# The image's target. Test and build dependencies do not reach the binary.
+targets = ["x86_64-unknown-linux-musl"]
+ignore-dev-dependencies = true
+ignore-build-dependencies = true
+# The workspace's own crates, which are not published, are the agent itself.
+private = { ignore = true }

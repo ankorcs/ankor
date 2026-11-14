@@ -1,0 +1,133 @@
+name: SwiftlyS2 bump
+
+# Minor and patch releases are automated; a major SwiftlyS2 release can break the plugin.
+on:
+  schedule:
+    - cron: '41 */4 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: swiftlys2
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  bump:
+    name: Bump
+    runs-on: ubuntu-latest
+    env:
+      DOCKERFILE: packages/plugin/docker/Dockerfile
+      CSPROJ: packages/plugin/Ankor.csproj
+      PROPS: packages/plugin/Directory.Build.props
+    steps:
+      # Pushes made with GITHUB_TOKEN don't trigger other workflows, so the job acts as a GitHub App
+      # with Contents and Pull requests write, and Actions, Checks and Commit statuses read.
+      - id: app
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.BUMP_APP_ID }}
+          private-key: ${{ secrets.BUMP_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app.outputs.token }}
+
+      - id: release
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          current="$(sed -n 's/^ARG SWIFTLY_VERSION=//p' "$DOCKERFILE")"
+          major="${current%%.*}"
+          version="$(gh api --paginate repos/swiftly-solution/swiftlys2/releases \
+            --jq '.[] | select(.draft == false and .prerelease == false) | .tag_name' |
+            sed -n "s/^v\(${major}\.[0-9]*\.[0-9]*\)$/\1/p" | sort -V | tail -n 1)"
+
+          if [[ -z "$version" || "$(printf '%s\n' "$current" "$version" | sort -V | tail -n 1)" == "$current" ]]; then
+            echo "SwiftlyS2 ${current} is the newest ${major}.x release" >&2
+            exit 0
+          fi
+
+          # An earlier run opened this bump. When its pull request is still open, the merge step
+          # below merges it once its checks pass, so a bump whose checks finished after that run
+          # ended still merges.
+          branch="swiftlys2/v${version}"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            if [[ "$(gh pr view "$branch" --json state --jq .state)" != OPEN ]]; then
+              echo "${branch} has no open pull request" >&2
+              exit 0
+            fi
+            echo "${branch} is already open; merging it once its checks pass" >&2
+            echo "branch=${branch}" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # NuGet can lag behind the GitHub release, so look every 5 minutes for half an hour. After
+          # that, the next scheduled run tries again.
+          for attempt in $(seq 7); do
+            curl -fsSL https://api.nuget.org/v3-flatcontainer/swiftlys2.cs2/index.json |
+              jq -e --arg v "$version" '.versions | index($v)' >/dev/null && break
+            if (( attempt == 7 )); then
+              echo "SwiftlyS2.CS2 ${version} is not on NuGet yet" >&2
+              exit 0
+            fi
+            echo "SwiftlyS2.CS2 ${version} is not on NuGet yet; looking again in 5 minutes" >&2
+            sleep 300
+          done
+
+          {
+            echo "current=${current}"
+            echo "version=${version}"
+            echo "branch=${branch}"
+          } >>"$GITHUB_OUTPUT"
+
+      - if: steps.release.outputs.version
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          APP_SLUG: ${{ steps.app.outputs.app-slug }}
+          CURRENT: ${{ steps.release.outputs.current }}
+          VERSION: ${{ steps.release.outputs.version }}
+          BRANCH: ${{ steps.release.outputs.branch }}
+        run: |
+          sha="$(curl -fsSL "https://github.com/swiftly-solution/swiftlys2/releases/download/v${VERSION}/swiftlys2-linux-v${VERSION}-with-runtimes.zip" |
+            sha256sum | cut -d' ' -f1)"
+          sed -i "s/^ARG SWIFTLY_VERSION=.*/ARG SWIFTLY_VERSION=${VERSION}/; s/^ARG SWIFTLY_SHA256=.*/ARG SWIFTLY_SHA256=${sha}/" "$DOCKERFILE"
+          sed -i "s:>${CURRENT}</SwiftlyVersion>:>${VERSION}</SwiftlyVersion>:" "$CSPROJ"
+          grep -q ">${VERSION}</SwiftlyVersion>" "$CSPROJ"
+
+          # An untagged version isn't released yet, so this change can still go out under it.
+          ankor="$(sed -n 's:.*<AnkorVersion>\(.*\)</AnkorVersion>.*:\1:p' "$PROPS")"
+          if git rev-parse -q --verify "refs/tags/cs2-v${ankor}" >/dev/null; then
+            next="${ankor%.*}.$(( ${ankor##*.} + 1 ))"
+            sed -i "s:<AnkorVersion>${ankor}</AnkorVersion>:<AnkorVersion>${next}</AnkorVersion>:" "$PROPS"
+            ankor="$next"
+          fi
+
+          bot="${APP_SLUG}[bot]"
+          git config user.name "$bot"
+          git config user.email "$(gh api "users/${bot}" --jq .id)+${bot}@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git commit -am "The CS2 image ${ankor} moves SwiftlyS2 from ${CURRENT} to ${VERSION}"
+          git push origin "$BRANCH"
+
+          gh pr create --base master --head "$BRANCH" \
+            --title "SwiftlyS2 ${VERSION}" \
+            --body "Update SwiftlyS2 from ${CURRENT} to [${VERSION}](https://github.com/swiftly-solution/swiftlys2/releases/tag/v${VERSION}) and release the CS2 image as ${ankor} once merged."
+
+      - if: steps.release.outputs.branch
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          BRANCH: ${{ steps.release.outputs.branch }}
+        run: |
+          # No auto-merge in this repository, so wait for the checks here.
+          # gh pr checks exits 8 while checks are pending, so count them through gh pr view, which
+          # fails the step on a real error instead of waiting out the loop.
+          for _ in $(seq 60); do
+            count="$(gh pr view "$BRANCH" --json statusCheckRollup --jq '.statusCheckRollup | length')"
+            (( count > 0 )) && break
+            sleep 10
+          done
+          gh pr checks "$BRANCH" --watch --fail-fast --interval 30
+          gh pr merge "$BRANCH" --squash --delete-branch

@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/core/">
+    <Project Path="core/Ankor.Core.csproj" />
+  </Folder>
+  <Folder Name="/diagnostics/">
+    <Project Path="diagnostics/Ankor.Diagnostics.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ankor.Tests.csproj" />
+  </Folder>
+  <Project Path="testing/Ankor.Testing.csproj" />
+  <Project Path="replay/Ankor.Replay.csproj" />
+  <Project Path="headless/Ankor.Headless.csproj" />
+  <Project Path="Ankor.csproj" />
+</Solution>

@@ -1,0 +1,32 @@
+name: Docs
+
+# The docs site and its protocol reference, which is generated from packages/protocol. ci.yml runs
+# this when a pull request touches them, as scripts/ci-changes.sh lists the paths. deploy-docs.yml
+# runs it with `pages` and deploys the artifact. The deploy job lives there, because GitHub checks
+# a called workflow's job permissions against every caller, even for a job that its `if` skips.
+on:
+  workflow_call:
+    inputs:
+      pages:
+        description: Upload the built site as the Pages artifact that deploy-docs.yml deploys.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/toolchain
+      - run: docker compose run --rm toolchain npm run build -w @ankorcs/protocol
+      - run: docker compose run --rm toolchain npm run typecheck -w @ankorcs/docs
+      - run: docker compose run --rm toolchain npx eslint docs
+      - run: docker compose run --rm toolchain npm run build -w @ankorcs/docs
+      - if: inputs.pages
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs/dist

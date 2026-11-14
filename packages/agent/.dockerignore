@@ -1,0 +1,14 @@
+# Build context of docker/Dockerfile: the workspace's manifests and its crates, without the corpora
+# the tests write. crates/conformance/docker/fake-cs2.Dockerfile copies nothing from it.
+*
+!Cargo.toml
+!Cargo.lock
+!rustfmt.toml
+!clippy.toml
+!crates
+!LICENSE
+!LICENSE-APACHE
+!THIRD-PARTY-LICENSES.txt
+crates/*/tests/*corpus.jsonl
+crates/protocol/tests/corpus.stamp
+**/.DS_Store

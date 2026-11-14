@@ -1,0 +1,873 @@
+@import 'tailwindcss';
+
+/*
+ * The palette ankor.sh's browser app uses (@theme). The docs ship with the node packages, so they
+ * carry their own copy.
+ */
+@theme {
+  /* The menu's band; the page is `bg-925`, and panels on it `bg-900`. */
+  --color-bg-950: #0e1014;
+  --color-bg-925: #15181e;
+  --color-bg-900: #1c1f27;
+  --color-bg-800: #252933;
+  --color-bg-700: #2d323d;
+  --color-bg-600: #363c49;
+
+  --color-line-800: #2c313b;
+  --color-line-700: #3c4351;
+  --color-line-500: #5d6575;
+
+  --color-text-100: #f2f4f7;
+  --color-text-300: #d3d8df;
+  --color-text-500: #a6adb9;
+  --color-text-700: #7c8492;
+
+  --color-accent-200: #c8d1f2;
+  --color-accent-300: #a5b5f7;
+  --color-accent-400: #5e78e6;
+  --color-accent-500: #4a65e0;
+  --color-accent-600: #2c42b5;
+  --color-accent-ink: #eef1ff;
+
+  --color-success: #5fbf6a;
+  --color-danger: #e4553f;
+  --color-info: #5b9cf6;
+  --color-warning: #f2b31b;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Barlow Condensed", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    scrollbar-color: var(--color-line-500) var(--color-bg-900);
+    scroll-padding-top: 5rem;
+    @apply bg-bg-925 text-text-100;
+  }
+
+  body {
+    @apply bg-bg-925 font-sans text-[0.9375rem] leading-relaxed text-text-100 antialiased 2xl:text-base;
+  }
+
+  /*
+   * From `lg`, the menu sits in a darker band from the window's left edge to its own right edge:
+   * the centred 110rem layout's margin plus the menu's 16rem.
+   */
+  @media (min-width: 64rem) {
+    body {
+      background: linear-gradient(to right, var(--color-bg-950) calc((100% - min(100%, 110rem)) / 2 + 16rem), var(--color-bg-925) 0);
+    }
+  }
+
+  code {
+    @apply font-mono;
+  }
+
+  /* JetBrains Mono joins `===` and `=>` into ligatures; code reads as the characters it is typed with. */
+  code, pre, kbd, samp {
+    font-variant-ligatures: none;
+  }
+
+  /* The code theme in astro.config.ts, in the colours of PhpStorm's Islands Dark, which the palette
+     has none of: plain text for names, orange keywords, green strings, teal numbers, purple
+     properties and blue functions. */
+  :root {
+    --astro-code-foreground: #bcbec4;
+    --astro-code-background: var(--color-bg-900);
+    --astro-code-token-keyword: #cf8e6d;
+    --astro-code-token-string: #6aab73;
+    --astro-code-token-string-expression: #6aab73;
+    --astro-code-token-constant: #c77dbb;
+    --astro-code-token-number: #2aacb8;
+    --astro-code-token-property: #c77dbb;
+    --astro-code-token-function: #56a8f5;
+    --astro-code-token-parameter: #bcbec4;
+    --astro-code-token-type-parameter: #16baac;
+    --astro-code-token-punctuation: #bcbec4;
+    --astro-code-token-comment: #7a7e85;
+    --astro-code-token-doc-comment: #5f826b;
+    --astro-code-token-regexp: #42c3d4;
+    --astro-code-token-link: #56a8f5;
+  }
+}
+
+/* Display-face capitals for headings and labels; `caps-wide` spaces small labels further. */
+@utility caps {
+  @apply font-display font-semibold uppercase;
+  letter-spacing: var(--caps-tracking, 0.08em);
+}
+
+@utility caps-wide {
+  @apply caps;
+  --caps-tracking: 0.12em;
+}
+
+/* A panel on the page: code blocks, cards, callouts and notes. */
+@utility surface {
+  @apply rounded-md border border-line-800 bg-bg-900;
+}
+
+/* Markdown and reference text: the client's type scale, with room to read. */
+@layer components {
+  .prose {
+    @apply leading-[1.7] text-text-300;
+  }
+
+  .prose > * + * {
+    @apply mt-5;
+  }
+
+  /* Running text keeps a readable measure; tables, code, figures and diagrams take the full width. */
+  .prose > :is(p, ul, ol) {
+    @apply max-w-[90ch];
+  }
+
+  .prose > p:has(> img:only-child) {
+    @apply max-w-none;
+  }
+
+  /* Every element rule below skips `.not-prose` and adds no specificity beyond `.prose`. */
+  .prose :where(*):not(:where(.not-prose, .not-prose *)) {
+    /* A double tap selects the heading (see the layout's script) instead of zooming the page. */
+    &:where(h1, h2, h3, h4) {
+      @apply caps text-text-100;
+      touch-action: manipulation;
+    }
+
+    &:where(h1) {
+      @apply text-4xl;
+    }
+
+    /* A rule that fades out to the right, so sections part without boxing the page in, led by an accent tick. */
+    &:where(h2) {
+      @apply mt-14 pt-8 text-3xl;
+      background:
+        linear-gradient(var(--color-accent-500), var(--color-accent-500)) top left / 2.5rem 2px no-repeat,
+        linear-gradient(to right, var(--color-line-700), transparent 80%) top / 100% 1px no-repeat;
+    }
+
+    /* Accent-coloured and set in behind a bar, so a subsection does not pass for a section at a glance. */
+    &:where(h3) {
+      @apply mt-12 border-l-2 border-accent-500 pl-3 text-xl text-accent-300;
+    }
+
+    &:where(h4) {
+      @apply mt-10 text-lg;
+    }
+
+    /* A message or type name keeps its spelling. */
+    &:where(h1, h2, h3, h4) code {
+      @apply bg-transparent p-0 font-mono text-[0.85em] normal-case tracking-normal text-text-100 ring-0;
+    }
+
+    &:where(a) {
+      @apply text-accent-300 underline decoration-accent-300/50 underline-offset-3 hover:decoration-accent-300;
+    }
+
+    /* A glossary term: a dotted underline in the text's colour, so it does not pass for a link. */
+    &:where(.term) {
+      @apply cursor-help underline decoration-text-500 decoration-dotted underline-offset-4 hover:decoration-text-100 focus-visible:decoration-text-100 focus-visible:outline-none;
+    }
+
+    &:where(strong) {
+      @apply font-semibold text-text-100;
+    }
+
+    /* At the brightness of the text around it, tinted, so a sentence full of names still reads as one. */
+    &:where(:not(pre) > code) {
+      @apply rounded-sm bg-accent-500/10 px-1 py-0.5 text-[0.85em] text-accent-200 ring-1 ring-accent-500/20 ring-inset;
+    }
+
+    &:where(ul) {
+      @apply list-disc pl-5 marker:text-text-700;
+    }
+
+    &:where(ol) {
+      @apply list-decimal pl-5 marker:text-text-500;
+    }
+
+    &:where(li + li, li > ul, li > ol) {
+      @apply mt-2.5;
+    }
+
+    /* A list item with paragraphs and code spaces its blocks like the page does. */
+    &:where(li > :is(p, pre, div, ul, ol) + :is(p, pre, div, ul, ol)) {
+      @apply mt-5;
+    }
+
+    &:where(pre) {
+      @apply surface overflow-x-auto p-4 text-[0.875rem] leading-[1.6];
+    }
+
+    &:where(pre code) {
+      @apply bg-transparent p-0 text-text-100;
+    }
+
+    &:where(table) {
+      @apply w-full border-separate border-spacing-0 overflow-hidden rounded-md border border-line-800 bg-bg-900 text-[0.9375rem];
+    }
+
+    &:where(thead) {
+      @apply bg-bg-800;
+    }
+
+    &:where(tbody tr:last-child td) {
+      @apply border-b-0;
+    }
+
+    /* Alternate rows, so a wide row can be followed across. */
+    &:where(tbody tr:nth-child(even) td) {
+      @apply bg-bg-800/50;
+    }
+
+    &:where(tbody tr:hover td) {
+      @apply bg-bg-800;
+    }
+
+    &:where(img) {
+      @apply h-auto w-full;
+    }
+
+    &:where(th) {
+      @apply caps border-b border-line-700 px-3 py-2 text-left text-[0.78rem] text-text-300;
+    }
+
+    &:where(td) {
+      @apply border-b border-line-800 px-3 py-2 align-top;
+    }
+  }
+
+  /* Steps: numbered badges on a rail; nested lists keep plain numbers. */
+  .prose > ol {
+    @apply list-none pl-0;
+    counter-reset: step;
+  }
+
+  .prose > ol > li {
+    @apply relative pb-2 pl-11;
+    counter-increment: step;
+  }
+
+  .prose > ol > li:has(> pre) {
+    @apply pb-10;
+  }
+
+  .prose > ol > li::before {
+    @apply absolute left-0 top-0 flex size-7 items-center justify-center rounded-full border border-line-700 bg-bg-800 font-display text-sm font-bold text-accent-300;
+    content: counter(step);
+  }
+
+  .prose > ol > li:not(:last-child)::after {
+    @apply absolute bottom-0 left-[0.8125rem] top-8 w-px bg-line-800;
+    content: '';
+  }
+
+  /* Columns hug their contents instead of sharing the page's width. */
+  .prose table {
+    @apply w-auto;
+  }
+
+  /* Troubleshooting: the symptom column is wide enough to read a log line on one or two lines. */
+  .prose .symptoms td:first-child {
+    @apply min-w-72;
+  }
+
+  /* A table with tree columns, such as files and folders or agent.yml keys, indented by guides. */
+  .prose .tree-table {
+    @apply overflow-x-auto;
+  }
+
+  /* Room around each cell, so the tree columns and the access badge sit a little apart. */
+  .prose .tree-table :is(th, td) {
+    @apply px-4;
+  }
+
+  .prose .tree-table td {
+    @apply py-1.5 align-middle;
+  }
+
+  .prose .tree-table td:has(.branch) {
+    @apply font-mono text-[0.8125rem] whitespace-pre text-text-100;
+  }
+
+  .prose .tree-table .branch {
+    @apply text-text-700;
+  }
+
+  .prose .tree-table .tip {
+    @apply cursor-help underline decoration-line-500 decoration-dotted underline-offset-4;
+  }
+
+  .prose .tree-table code {
+    @apply whitespace-nowrap bg-transparent p-0 text-[0.8125rem];
+  }
+
+  .prose .tree-table :is(.yours, .required, .optional, .read-write, .read-only) {
+    @apply whitespace-nowrap text-xs font-semibold;
+  }
+
+  .prose .tree-table :is(.yours, .required) {
+    @apply text-accent-300;
+  }
+
+  .prose .tree-table .read-write {
+    @apply text-success;
+  }
+
+  .prose .tree-table :is(.optional, .read-only) {
+    @apply text-text-500;
+  }
+}
+
+/* A small pill with a tooltip, such as `required` on a message. */
+@layer components {
+  .tag {
+    @apply cursor-help rounded-sm px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.06em] text-accent-ink;
+    background: color-mix(in srgb, var(--color-accent-600) 70%, transparent);
+  }
+}
+
+/* The page's own header, heading anchors, copy buttons and the overview's route cards. */
+@layer components {
+  .prose .page-head {
+    @apply relative isolate pb-2;
+  }
+
+  /* A faint glow behind the title; the page itself stays flat. */
+  .prose .page-head::before {
+    @apply pointer-events-none absolute -left-24 -top-24 -z-10 h-72 w-[36rem] max-w-[100vw];
+    content: '';
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--color-accent-500) 16%, transparent), transparent);
+  }
+
+  /* Led by a short rule, as the landing page's eyebrows are. */
+  .prose .page-eyebrow {
+    @apply caps-wide mb-3 flex items-center gap-2 text-xs text-accent-300;
+  }
+
+  .prose .page-eyebrow::before {
+    @apply h-px w-6 bg-accent-500;
+    content: '';
+  }
+
+  .prose .page-head h1 {
+    @apply m-0 text-[2.5rem] font-bold leading-[0.95] tracking-[0.02em] sm:text-[3.5rem];
+  }
+
+  /* The page's opening paragraph reads as its lead. */
+  .prose > .page-head + p {
+    @apply mt-6 text-[1.0625rem] leading-relaxed text-text-300;
+  }
+
+  .prose .heading-link {
+    @apply text-inherit no-underline;
+  }
+
+  .prose .heading-mark {
+    @apply ml-2 font-sans text-[0.8em] font-normal normal-case tracking-normal text-accent-300 opacity-0 transition-opacity;
+  }
+
+  .prose .heading-link:is(:hover, :focus-visible) .heading-mark {
+    @apply opacity-100;
+  }
+
+  .prose .code-block {
+    @apply relative;
+  }
+
+  .prose .copy-code {
+    @apply absolute right-2 top-2 rounded-sm border border-line-700 bg-bg-800 px-2 py-0.5 text-xs text-text-300 opacity-0 transition-opacity hover:text-text-100 focus-visible:opacity-100;
+  }
+
+  .prose .code-block:hover .copy-code {
+    @apply opacity-100;
+  }
+
+  .prose h2#get-started + ul {
+    @apply grid list-none gap-3 pl-0 sm:grid-cols-2;
+  }
+
+  .prose h2#get-started + ul > li {
+    @apply surface m-0 px-4 py-3 transition-colors hover:border-line-500 hover:bg-bg-800;
+  }
+}
+
+/*
+ * Diagrams, built from a few blocks so every one shares sizes and colours: cards for things, dashed
+ * places for where they run, links with an arrow from the side that sends or opens, sequence lanes
+ * for an exchange between two sides, and chips for numbered items. Colours follow the message
+ * cards: blue from the agent, green from the controller, grey otherwise and dashed for anything
+ * implied.
+ */
+@layer components {
+  /* Who sent a message, shared by diagrams, message cards and the outline, as `--sender-c`. */
+  :root {
+    --sender-agent: var(--color-accent-300);
+    --sender-controller: var(--color-success);
+    --sender-refused: var(--color-warning);
+  }
+
+  .from-agent { --sender-c: var(--sender-agent); }
+  .from-controller { --sender-c: var(--sender-controller); }
+  .refused { --sender-c: var(--sender-refused); }
+
+  .diagram {
+    --diagram-quiet: var(--color-text-500);
+    @apply mx-0 my-8 text-sm leading-snug text-text-300;
+  }
+
+  .diagram p {
+    @apply m-0;
+  }
+
+  /* Code reads as code in a card as it does in prose: monospace on the same tinted chip. */
+  .diagram code {
+    @apply rounded-sm bg-accent-500/10 px-1 py-px text-[0.85em] text-accent-200 ring-1 ring-accent-500/20 ring-inset;
+  }
+
+  .diagram-card {
+    @apply relative rounded-md border border-line-700 bg-bg-900 px-4 py-3;
+  }
+
+  .diagram-name {
+    @apply caps text-base text-text-100;
+  }
+
+  .diagram .diagram-name code {
+    @apply normal-case tracking-normal;
+  }
+
+  .diagram .diagram-sub {
+    @apply mt-0.5 text-xs text-accent-300;
+  }
+
+  .diagram-sub code {
+    @apply whitespace-nowrap;
+  }
+
+  .diagram-text {
+    @apply mt-1.5;
+  }
+
+  .diagram-fields {
+    @apply m-0 mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-xs;
+  }
+
+  .diagram-fields dt {
+    @apply text-text-500;
+  }
+
+  .diagram-fields dd {
+    @apply m-0 break-all font-mono text-text-300;
+  }
+
+  .diagram-place {
+    @apply relative rounded-lg border border-dashed border-line-500 px-4 pb-4 pt-6;
+  }
+
+  .diagram-place-label {
+    @apply caps-wide absolute -top-2.5 left-3 bg-bg-925 px-2 text-xs text-text-500;
+  }
+
+  .diagram-place-label small {
+    @apply ml-2 font-sans text-xs font-normal normal-case tracking-normal text-text-700;
+  }
+
+  /* Links and sequence messages: coloured by sender, solid unless implied. */
+  .diagram-link,
+  .diagram-msg {
+    --link-c: var(--sender-c, var(--color-line-500));
+    --link-stroke: var(--link-c);
+  }
+
+  /* A vertical link, its arrow pointing up at the side it opens to. */
+  .diagram-link {
+    @apply relative flex min-h-14 items-center justify-center py-2;
+  }
+
+  .diagram .quiet { --sender-c: var(--diagram-quiet); }
+
+  .diagram-msg.implied {
+    --link-stroke: repeating-linear-gradient(var(--link-run), var(--link-c) 0 6px, transparent 6px 10px);
+  }
+
+  .diagram-link::before {
+    @apply absolute inset-y-0 left-1/2 w-px;
+    content: '';
+    background: var(--link-stroke);
+  }
+
+  .diagram-link::after,
+  .diagram-arrow::after {
+    @apply absolute top-0 size-[9px];
+    content: '';
+    background: var(--link-c);
+  }
+
+  .diagram-link::after {
+    @apply left-1/2 -translate-x-1/2;
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  }
+
+  /* A step in a flow, its arrow pointing down at what comes next. */
+  .diagram-link.down::after {
+    @apply top-auto bottom-0;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+  }
+
+  .diagram-link > span {
+    @apply relative z-10 bg-bg-925 px-2 py-1 text-center text-xs leading-tight text-text-300;
+  }
+
+  .diagram-link small,
+  .diagram-msg small {
+    @apply block text-xs text-text-500;
+  }
+
+  /* A sequence: two sides with lifelines, messages between them and notes on what follows. */
+  .diagram-seq {
+    --actor: 6.5rem;
+  }
+
+  @media (min-width: 40rem) {
+    .diagram-seq {
+      --actor: 10rem;
+    }
+  }
+
+  .diagram-seq-head {
+    @apply flex justify-between gap-4;
+  }
+
+  .diagram-seq-head .diagram-card {
+    @apply w-[var(--actor)] px-2 py-2 text-center;
+  }
+
+  .diagram-seq-body {
+    @apply relative py-3;
+    padding-inline: calc(var(--actor) / 2);
+  }
+
+  .diagram-seq-body::before,
+  .diagram-seq-body::after {
+    @apply absolute inset-y-0 w-px bg-line-800;
+    content: '';
+  }
+
+  .diagram-seq-body::before { left: calc(var(--actor) / 2); }
+  .diagram-seq-body::after { right: calc(var(--actor) / 2); }
+
+  .diagram-msg {
+    --link-run: to right;
+    @apply px-3 py-2 text-center;
+  }
+
+  .diagram-msg-label {
+    @apply text-text-100;
+  }
+
+  .diagram-msg-label > code {
+    @apply font-semibold;
+  }
+
+  .diagram .diagram-msg small code {
+    @apply text-[0.6875rem];
+  }
+
+  .diagram-arrow {
+    @apply relative -mx-3 mt-1.5 block h-[9px];
+  }
+
+  .diagram-arrow::before {
+    @apply absolute inset-x-0 top-1/2 h-px;
+    content: '';
+    background: var(--link-stroke);
+  }
+
+  .diagram-msg.right .diagram-arrow::after { @apply right-0; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+  .diagram-msg.left .diagram-arrow::after { @apply left-0; clip-path: polygon(0 50%, 100% 0, 100% 100%); }
+
+  .diagram-note {
+    @apply surface relative z-10 mx-3 my-2 px-3 py-2 text-xs leading-relaxed;
+  }
+
+  .diagram-note code {
+    @apply text-xs;
+  }
+
+  /*
+   * A sequence between three sides, their lifelines at a sixth, a half and five sixths of the width.
+   * Every message and note takes its own row, so the diagram reads top to bottom in time; a message
+   * spans from one side's lifeline to another's with `between-1-2`, `between-2-3` or `between-1-3`.
+   */
+  .diagram-seq.three .diagram-seq-head {
+    @apply grid grid-cols-3 justify-items-center;
+  }
+
+  /* Wide enough for a container name such as `ankor-self-update-<id>`; narrow screens wrap it. */
+  @media (min-width: 40rem) {
+    .diagram-seq.three {
+      --actor: 12.5rem;
+    }
+  }
+
+  @media (max-width: 39.99rem) {
+    .diagram-seq.three .diagram-sub code {
+      @apply whitespace-normal break-all;
+    }
+  }
+
+  .diagram-seq.three .diagram-seq-body {
+    @apply px-0;
+    background:
+      linear-gradient(var(--color-line-800), var(--color-line-800)) calc(100% / 6) 0 / 1px 100% no-repeat,
+      linear-gradient(var(--color-line-800), var(--color-line-800)) 50% 0 / 1px 100% no-repeat,
+      linear-gradient(var(--color-line-800), var(--color-line-800)) calc(500% / 6) 0 / 1px 100% no-repeat;
+  }
+
+  .diagram-seq.three .diagram-seq-body::before,
+  .diagram-seq.three .diagram-seq-body::after {
+    content: none;
+  }
+
+  .diagram-seq.three .between-1-2 { margin-inline: calc(100% / 6) 50%; }
+  .diagram-seq.three .between-2-3 { margin-inline: 50% calc(100% / 6); }
+  .diagram-seq.three .between-1-3 { margin-inline: calc(100% / 6); }
+
+  /* Chips: numbered items, grouped as they travel. */
+  .diagram-head {
+    @apply flex flex-wrap items-baseline gap-x-3 gap-y-1;
+  }
+
+  .diagram-head small {
+    @apply text-xs text-text-500;
+  }
+
+  .diagram-groups {
+    @apply mt-3 flex flex-wrap gap-3;
+  }
+
+  .diagram-groups + .diagram-head {
+    @apply mt-8;
+  }
+
+  .diagram-group {
+    @apply relative rounded-md border border-dashed border-line-700 px-2 pb-2 pt-6;
+  }
+
+  .diagram-group-label {
+    @apply absolute left-2 top-1.5 text-xs text-text-300;
+  }
+
+  .diagram-group.waiting .diagram-group-label {
+    @apply text-text-500;
+  }
+
+  /* Steps or files in order, inside a card. */
+  .diagram-list {
+    @apply m-0 mt-1.5 list-decimal space-y-1 pl-5 marker:text-text-500;
+  }
+
+  .diagram-chips {
+    @apply flex flex-wrap gap-1.5;
+  }
+
+  .diagram-chip {
+    @apply flex min-w-[5.5rem] flex-col items-center rounded-sm border border-line-700 bg-bg-900 px-2 py-1;
+  }
+
+  .diagram-chip b {
+    @apply font-display text-base font-semibold text-text-100;
+  }
+
+  .diagram-chip span {
+    @apply font-mono text-xs text-text-300;
+  }
+
+  .diagram-chip.waiting {
+    @apply border-dashed bg-transparent;
+  }
+
+  .diagram-chip.waiting b {
+    @apply text-text-500;
+  }
+
+  /* How it works: a node holding its agent, CS2 and two slots. */
+  .diagram-row {
+    @apply grid gap-4 md:grid-cols-2;
+  }
+
+  .diagram-place > .diagram-row + .diagram-row {
+    @apply mt-7;
+  }
+}
+
+/* How it works: one card per part, each with its icon, its heading kept for the outline. */
+@layer components {
+  /* One column, in reading order, so the outline beside it follows the cards. */
+  .prose .parts {
+    @apply grid max-w-[90ch] gap-3;
+  }
+
+  .prose .parts-title {
+    @apply caps-wide mt-4 text-sm text-text-500;
+  }
+
+  .prose .part {
+    @apply surface relative py-4 pl-16 pr-5;
+  }
+
+  .prose .part > * + * {
+    @apply mt-2;
+  }
+
+  /* The card's icon leads its title, so the title stays in line with its text. */
+  .prose .part > h3 {
+    @apply m-0 border-0 pl-0 text-lg;
+  }
+
+  .prose .part-icon {
+    @apply absolute left-4 top-4 grid size-9 place-items-center rounded-md border border-line-700 bg-bg-800 text-accent-300;
+  }
+
+  .prose .part-icon svg {
+    @apply size-5;
+  }
+}
+
+/* Message cards in the guides: one payload each, coloured by direction, titled with the message's type. */
+@layer components {
+  .message-cards {
+    @apply grid gap-4 md:grid-cols-2;
+  }
+
+  .message-card {
+    @apply surface flex min-w-0 flex-col overflow-hidden;
+    border-left-width: 3px;
+    border-left-color: var(--sender-c, var(--color-line-800));
+  }
+
+
+  .message-card-head {
+    @apply m-0 flex items-center justify-between gap-3 border-b border-line-800 px-4 py-2;
+  }
+
+  .message-card-head code {
+    @apply bg-transparent p-0 text-sm;
+  }
+
+  .message-card:is(.from-agent, .from-controller, .refused) .message-card-head code {
+    color: var(--sender-c);
+  }
+
+  .message-card-direction {
+    @apply caps text-xs text-text-500;
+  }
+
+  .message-card pre {
+    @apply m-0 flex-1 rounded-none border-0;
+  }
+
+  .message-card .code-block {
+    @apply flex flex-1 flex-col;
+  }
+}
+
+/* Side-by-side choices with pros and cons, the pros/cons labels used on their own, and callouts. */
+@layer components {
+  .prose .choices {
+    @apply grid gap-4 md:grid-cols-2;
+  }
+
+  .prose .choice {
+    @apply surface relative px-5 py-4;
+  }
+
+  /* An accent tick on the card's top edge, as on the landing page's layers. */
+  .prose .choice::before {
+    @apply absolute -top-px left-4 h-0.5 w-6 bg-accent-500;
+    content: '';
+  }
+
+  .prose .callout {
+    @apply surface mt-6 max-w-[90ch] px-5 py-4;
+    border-left: 2px solid var(--color-accent-500);
+    background-image: linear-gradient(to right, color-mix(in srgb, var(--color-accent-500) 8%, transparent), transparent 60%);
+  }
+
+  .prose .callout > * + * {
+    @apply mt-2;
+  }
+
+  .prose .callout-label {
+    @apply caps-wide text-xs text-accent-300;
+  }
+
+  /* A callout about something that breaks when done. */
+  .prose .callout.warning {
+    border-left-color: var(--color-warning);
+    background-image: linear-gradient(to right, color-mix(in srgb, var(--color-warning) 8%, transparent), transparent 60%);
+  }
+
+  .prose .callout.warning .callout-label {
+    color: var(--color-warning);
+  }
+
+  /* An aside to the steps, such as the helper that does a step in TypeScript: quieter than a callout. */
+  .prose .hint {
+    @apply mt-4 max-w-[90ch] border-l-2 border-text-700 pl-4 text-sm text-text-500;
+  }
+
+  .prose .hint > :first-child {
+    @apply mt-0;
+  }
+
+  .prose .hint > * + * {
+    @apply mt-2;
+  }
+
+  .prose .choice > * + * {
+    @apply mt-3;
+  }
+
+  .prose .choice-name {
+    @apply caps text-lg text-text-100;
+  }
+
+  .prose .choice > .choice-sub {
+    @apply mt-0 text-xs text-accent-300;
+  }
+
+  .prose .choice-label {
+    @apply caps-wide mt-4 text-xs;
+  }
+
+  .prose .choice-label.pros {
+    @apply text-success;
+  }
+
+  .prose .choice-label.cons {
+    @apply text-warning;
+  }
+
+  .prose .choice-label + ul {
+    @apply mt-1.5 space-y-1;
+  }
+
+  .prose .choice-label.pros + ul > li::marker {
+    content: '+  ';
+    @apply text-success;
+  }
+
+  .prose .choice-label.cons + ul > li::marker {
+    content: '−  ';
+    @apply text-warning;
+  }
+}
+

@@ -1,0 +1,16 @@
+# Opens a pull request when an action the workflows use releases a new major; the path filters run
+# the workflows it touches before the merge. A major tag such as @v7 already follows its minor and
+# patch releases.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - '*'
+    commit-message:
+      # The trailing space keeps Dependabot from adding a colon after the type.
+      prefix: '(chore) '

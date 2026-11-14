@@ -1,0 +1,63 @@
+// Every player-facing string the plugin prints. SwiftlyS2 loads this through its translation
+// service (resources/translations/<language>.jsonc next to the plugin assembly), so a new language
+// is a new file beside this one with the same keys.
+//
+// Values are formatted with string.Format, so arguments are {0}, {1}, ...; colours are SwiftlyS2's
+// bracket tags, resolved once when the file is read. [green] is the highlight, [default] returns to
+// the normal chat colour. Never put a raw colour byte in here.
+//
+// tests/MessagesTests.cs fails the build when a key used in code is missing here, when a key here
+// is used nowhere, or when the arguments a call site passes do not match the placeholders below.
+{
+  "warmup.waiting_one": "Waiting for {0} more player.",
+  "warmup.waiting_many": "Waiting for {0} more players.",
+  "warmup.countdown_knife": "Knife starts in {0} seconds.",
+  "warmup.countdown_live": "Match starts in {0} seconds.",
+  "warmup.countdown_restore": "Match will be restored in {0} seconds.",
+
+  "restore.failed": "The backup could not be restored.",
+
+  "forceready.not_captain": "Only captains can force-ready their team.",
+  "forceready.not_captain_ask": "Only captains can force-ready their team. Ask [green]{0}[default].",
+  "forceready.already": "Already force-readied.",
+  "forceready.done": "[green]{0}[default] force-readied [green]{1}[default].",
+  "forceready.done_spectators": "[green]{0}[default] force-readied the spectators.",
+
+  "ready.automatic": "The match starts on its own once everyone is here.",
+  "ready.external": "The organiser starts the match once everyone is ready.",
+  "ready.already_ready": "You are already ready.",
+  "ready.already_unready": "You are not ready yet — type [green]!{0}[default].",
+  "ready.forced": "Your side was force-readied.",
+  "ready.player_ready": "[green]{0}[default] is ready ({1}/{2}).",
+  "ready.player_unready": "[green]{0}[default] is no longer ready.",
+  "ready.reminder": "Type [green]!{0}[default] to start. Not ready: {1}.",
+  "ready.deadline_both": "Both teams must be ready within {0}.",
+  "ready.deadline_spectators": "The spectators must be ready within {0}.",
+  "ready.deadline_team": "[green]{0}[default] must be ready within {1}.",
+  "ready.timeout_warning": "{0} left to ready up.",
+  "ready.canceled": "The match was canceled.",
+
+  // Scoreboard clan tags: no prefix, colours or brackets; the scoreboard draws the brackets.
+  "ready.tag_ready": "READY",
+  "ready.tag_not_ready": "NOT READY",
+
+  "knife.start": "[green]KNIFE KNIFE KNIFE[default]",
+  "knife.winner": "[green]{0}[default] won the knife round ({1}v{2}, {3} vs {4} HP).",
+  "knife.side_prompt": "[green]{0}[default] must type [green]!{1}[default], [green]!{2}[default], [green]!{3}[default] or [green]!{4}[default] within {5}s.",
+  "knife.side_prompt_no_captain": "Their captain must type [green]!{0}[default], [green]!{1}[default], [green]!{2}[default] or [green]!{3}[default] within {4}s.",
+  "knife.no_decision": "[green]{0}[default] made no decision in time and will stay.",
+  "knife.not_captain": "You are not your team's captain. Only the captain may pick a side.",
+  "knife.not_captain_named": "You are not your team's captain. Only [green]{0}[default] may pick a side.",
+  "knife.chose_stay": "[green]{0}[default] chose to [green]stay[default].",
+  "knife.chose_swap": "[green]{0}[default] chose to [green]swap[default].",
+
+  "match.live": "[green]LIVE LIVE LIVE[default]",
+  "match.restored": "Backup restored from round [green]{0}[default] at {1}–{2}.",
+
+  // Kick reasons: shown in the disconnect dialog, never in chat, so no prefix and no colours.
+  "kick.player_unreadable": "Unable to verify your player information. Please reconnect.",
+  "kick.match_ended": "Match ended",
+  "kick.ready_timeout": "Ready-up time ran out",
+  "kick.not_on_roster": "Not on the match roster",
+  "kick.not_authorized": "Steam could not verify you. Please reconnect."
+}

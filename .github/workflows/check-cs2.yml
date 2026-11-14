@@ -1,0 +1,36 @@
+name: CS2 image
+
+# The CS2 image and the plugin it compiles, in packages/plugin, the check that the plugin's copy of
+# the contract's values matches packages/protocol, and a build of the headless host. ci.yml and release.yml run it when a
+# change touches the plugin, as scripts/ci-changes.sh lists its paths.
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: Build the image, which runs the plugin's tests. release.yml builds it instead when it publishes it.
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and plugin tests
+    if: inputs.image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build --platform linux/amd64 -f packages/plugin/docker/Dockerfile -t ankor-cs2:review packages/plugin
+
+  # The plugin copies the contract's env names, paths, cfg names, limits, protocol version and
+  # refusal codes by hand; a change on either side that the other does not follow fails here.
+  contract:
+    name: Plugin contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/toolchain
+      - run: docker compose run --rm toolchain scripts/plugin.sh contract
+      # Check that the conformance test still compiles; we don't run it
+      - run: docker compose run --rm toolchain dotnet build packages/plugin/headless

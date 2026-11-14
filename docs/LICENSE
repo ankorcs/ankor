@@ -1,0 +1,18 @@
+Copyright (c) 2026 Nicolai Cornelis. All rights reserved.
+
+The documentation in this directory, and the site that serves it, is published so that people can
+read it and help maintain it. It is not licensed for reuse.
+
+You may:
+
+- read it, and link to it and to its pages;
+- fork the repository on GitHub and propose changes to it through pull requests.
+
+You may not copy, publish or distribute it, or works based on it, outside those uses, without
+written permission from the copyright holder.
+
+By submitting a contribution to this directory, you license it to Nicolai Cornelis under the
+Apache License, Version 2.0, and confirm that you have the right to do so.
+
+The protocol reference that the site generates from @ankorcs/protocol (packages/protocol) remains
+under that package's Apache License, Version 2.0.

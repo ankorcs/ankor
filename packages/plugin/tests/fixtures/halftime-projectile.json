@@ -1,0 +1,124 @@
+{
+  "provenance": {
+    "capture": "175832f1-3c03-49fa-b27a-d41a0bcb4f37",
+    "observed": "Callback sequence and tick/subtick, smoke entity 256. Damage entry tick inferred from following hurt callback; omitted hurt/death bodies are unnecessary for closure assertion.",
+    "reconstructed": "Synthetic player identity, position, weapon reference and opaque damage entity. First round of a two-round configuration models regulation halftime. Captured outputs are not expected results."
+  },
+  "steps": [
+    {
+      "sourceSequence": 19044,
+      "tick": 56080.890625,
+      "record": {
+        "input": {
+          "$input": "WeaponFire",
+          "shooter": {
+            "slot": 0,
+            "steamId": 76561198000000001,
+            "name": "fixture-ct",
+            "side": "ct",
+            "health": 100,
+            "isAlive": true,
+            "isBot": false,
+            "position": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "angles": {
+              "pitch": 0,
+              "yaw": 0
+            }
+          },
+          "weapon": {
+            "id": 45,
+            "fallback": null
+          }
+        }
+      }
+    },
+    {
+      "sourceSequence": 19047,
+      "tick": 56083,
+      "record": {
+        "input": {
+          "$input": "DamageEnter",
+          "entity": 100
+        }
+      }
+    },
+    {
+      "sourceSequence": 19067,
+      "tick": 56083,
+      "record": {
+        "input": {
+          "$input": "RoundEnd",
+          "winnerSide": "ct",
+          "reason": 8
+        }
+      }
+    },
+    {
+      "sourceSequence": 19076,
+      "tick": 56083,
+      "record": {
+        "input": {
+          "$input": "DamageExit"
+        }
+      }
+    },
+    {
+      "sourceSequence": 19083,
+      "tick": 56088,
+      "record": {
+        "input": {
+          "$input": "GrenadeSpawned",
+          "thrower": {
+            "slot": 0,
+            "steamId": 76561198000000001,
+            "name": "fixture-ct",
+            "side": "ct",
+            "health": 100,
+            "isAlive": true,
+            "isBot": false,
+            "position": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "angles": {
+              "pitch": 0,
+              "yaw": 0
+            }
+          },
+          "kind": "smokegrenade",
+          "entityId": 256
+        }
+      }
+    },
+    {
+      "sourceSequence": 19125,
+      "tick": 56172,
+      "record": {
+        "input": {
+          "$input": "GrenadeDetonate",
+          "entityId": 256,
+          "position": {
+            "x": 1,
+            "y": 1,
+            "z": 1
+          }
+        }
+      }
+    },
+    {
+      "sourceSequence": 19197,
+      "tick": 56627,
+      "record": {
+        "input": {
+          "$input": "GrenadeRemoved",
+          "entityId": 256
+        }
+      }
+    }
+  ]
+}

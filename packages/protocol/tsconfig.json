@@ -1,0 +1,18 @@
+{
+  // Separate from tsconfig.build.json so the tests are typechecked without being published.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // The reference generator runs as TypeScript under Node, which needs the `.ts` in its imports.
+    "allowImportingTsExtensions": true,
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "src",
+    "test",
+    "reference",
+    "vitest.config.ts"
+  ]
+}

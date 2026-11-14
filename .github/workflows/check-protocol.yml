@@ -1,0 +1,27 @@
+name: Protocol
+
+# @ankorcs/protocol in packages/protocol, with the repository's TypeScript and lint config. The
+# packages that read it, the docs and the Rust agent's generated contract, list
+# packages/protocol/ in scripts/ci-changes.sh, so a protocol change runs their checks too. check-links.yml
+# checks the links of its README and CHANGELOG with every other Markdown file. ci.yml and
+# release.yml run this when a change touches the protocol, and release.yml before it publishes to
+# npm.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Build, lint and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/toolchain
+      - run: docker compose run --rm toolchain npm run build -w @ankorcs/protocol
+      # The root tsconfig typechecks the ESLint config, which every package's lint runs.
+      - run: docker compose run --rm toolchain npx tsc -p tsconfig.json
+      - run: docker compose run --rm toolchain npm run typecheck -w @ankorcs/protocol
+      - run: docker compose run --rm toolchain npx eslint packages/protocol eslint.config.ts
+      - run: docker compose run --rm toolchain npm test -w @ankorcs/protocol

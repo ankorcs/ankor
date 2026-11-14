@@ -1,0 +1,27 @@
+# The toolchain the repository's checks run in, on a workstation and in CI, so neither needs Node or
+# .NET installed: `docker compose run --rm toolchain <command>`. The checkout is mounted at /src, and
+# node_modules, bin/ and obj/ are written there as Linux builds, so Node or .NET on the host do not
+# work on the same checkout. CI points NPM_CACHE and NUGET_PACKAGES at folders it keeps between runs.
+services:
+  toolchain:
+    build:
+      context: scripts
+      dockerfile: toolchain.Dockerfile
+    image: ankorcs-toolchain
+    working_dir: /src
+    environment:
+      # The container runs as root, and git refuses a checkout another user owns, as on CI's runner.
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: /src
+      npm_config_cache: /cache/npm
+      npm_config_update_notifier: "false"
+      NUGET_PACKAGES: /cache/nuget
+    volumes:
+      - .:/src
+      - ${NPM_CACHE:-npm-cache}:/cache/npm
+      - ${NUGET_PACKAGES:-nuget-packages}:/cache/nuget
+
+volumes:
+  npm-cache:
+  nuget-packages:

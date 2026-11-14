@@ -1,0 +1,4 @@
+# The site's build and Astro's and Vite's caches.
+dist/
+.astro/
+.vite/

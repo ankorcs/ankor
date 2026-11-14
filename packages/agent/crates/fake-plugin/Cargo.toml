@@ -1,0 +1,18 @@
+[package]
+name = "ankor-fake-plugin"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+# The plugin's behaviour on the agent's relay, which the agent's fuzz test plays. It uses the
+# contract only, never the agent crate.
+[dependencies]
+ankor-protocol = { version = "0.9.0", path = "../protocol" }
+serde_json = { version = "1.0.154", features = ["preserve_order"] }
+tokio = { version = "1.54.1", features = ["net"] }
+tokio-tungstenite = { version = "0.30", default-features = false, features = ["connect", "handshake"] }
+
+[lints]
+workspace = true

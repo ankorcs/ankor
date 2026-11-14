@@ -1,0 +1,6 @@
+# Build context of docker/Dockerfile. Build output stays out. tests/ stays in: the plugin stage runs
+# `dotnet test` before the release build, so a missing chat translation fails the image build.
+**/bin
+**/obj
+**/TestResults
+build

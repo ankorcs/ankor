@@ -1,0 +1,4 @@
+# The build, which also writes the AsyncAPI document and the agent.yml schema, and test output.
+dist/
+coverage/
+.vitest/

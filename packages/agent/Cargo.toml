@@ -1,0 +1,42 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+edition = "2024"
+license = "GPL-3.0-only"
+rust-version = "1.99"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+similar_names = "allow"
+single_match_else = "allow"
+# `assert!(x.is_empty())` reads plainer than comparing a length with zero.
+assert_is_empty = "allow"
+# tungstenite's handshake callback dictates its error type.
+result_large_err = "allow"
+# Code that can crash the agent is refused outside tests; a justified exception carries
+# `#[allow(..., reason = "...")]` at the line.
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+todo = "deny"
+unimplemented = "deny"
+unreachable = "deny"
+allow_attributes_without_reason = "deny"
+
+# A panic ends the process rather than one task: the container restarts, and the agent adopts its
+# game servers again, where a task that died alone would leave the agent running without it.
+[profile.release]
+panic = "abort"
+
+# Mutation testing (`.cargo/mutants.toml`): no debug info, so each mutant links its test binaries
+# faster. Tests behave the same.
+[profile.mutants]
+inherits = "test"
+debug = false

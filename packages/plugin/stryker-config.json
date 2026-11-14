@@ -1,0 +1,7 @@
+{
+  "stryker-config": {
+    "project": "Ankor.Core.csproj",
+    "test-projects": ["Ankor.Tests.csproj"],
+    "reporters": ["html", "progress", "json"]
+  }
+}

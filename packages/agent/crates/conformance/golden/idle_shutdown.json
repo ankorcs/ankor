@@ -1,0 +1,506 @@
+{
+  "controller": [
+    {
+      "agent": {
+        "agent": {
+          "image": "ghcr.io/ankorcs/ankor-agent:0",
+          "image_id": "<agent-image-id>",
+          "version": "<agent-version>"
+        },
+        "agent_update": null,
+        "config": {
+          "auto_update": true,
+          "controller": {
+            "events_path": "/api/node/events",
+            "host": "controller.conformance.test",
+            "socket_path": "/ws/agent",
+            "tls": false
+          },
+          "demo_upload": null,
+          "memory_mb": null,
+          "pinned_ip": null,
+          "slots": [
+            {
+              "gslt_hint": "0000000001",
+              "id": "s1",
+              "port": 27015,
+              "tv_port": 27020
+            }
+          ]
+        },
+        "country": "DK",
+        "cs2": {
+          "build_id": "20260101",
+          "image": "ghcr.io/ankorcs/ankor-cs2:1",
+          "image_id": "sha256:<image-1>",
+          "image_update": null,
+          "latest_build_id": null,
+          "update": null
+        },
+        "demos": [],
+        "event_backlog": {
+          "event_count": 0,
+          "reason": null,
+          "server_count": 0,
+          "servers": []
+        },
+        "host": {
+          "cpu_count": "<cpu-count>",
+          "kernel": "<kernel>",
+          "os_name": "Alpine Linux v3.24"
+        },
+        "public_ip": "203.0.113.10",
+        "server_exits": [],
+        "slot_status": [
+          {
+            "allocation_id": null,
+            "gslt_state": "unchecked",
+            "match_id": null,
+            "plugin_online": false,
+            "reserved": true,
+            "server_steam_id": null,
+            "slot_id": "s1",
+            "state": "idle"
+          }
+        ],
+        "type": "hello",
+        "unavailable": null
+      }
+    },
+    {
+      "connect": {
+        "authorized": true,
+        "protocol": "0.9"
+      }
+    },
+    {
+      "controller": {
+        "type": "welcome"
+      }
+    },
+    {
+      "after_step": "the agent said hello; let Steam's build and token answers through"
+    },
+    {
+      "agent": {
+        "agent_update": null,
+        "cs2": {
+          "build_id": "20260101",
+          "image": "ghcr.io/ankorcs/ankor-cs2:1",
+          "image_id": "sha256:<image-1>",
+          "image_update": null,
+          "latest_build_id": "20260101",
+          "update": null
+        },
+        "type": "node_status",
+        "unavailable": null
+      }
+    },
+    {
+      "after_step": "the agent said hello; let Steam's build and token answers through"
+    },
+    {
+      "agent": {
+        "allocation_id": null,
+        "gslt_state": "ok",
+        "match_id": null,
+        "plugin_online": false,
+        "reserved": false,
+        "server_steam_id": null,
+        "slot_id": "s1",
+        "state": "idle",
+        "type": "slot_status"
+      }
+    },
+    {
+      "after_step": "the agent said hello; let Steam's build and token answers through"
+    },
+    {
+      "agent": {
+        "allocation_id": "11111111-1111-4111-8111-111111111111",
+        "gslt_state": "ok",
+        "match_id": null,
+        "plugin_online": false,
+        "reserved": false,
+        "server_steam_id": null,
+        "slot_id": "s1",
+        "state": "starting",
+        "type": "slot_status"
+      }
+    },
+    {
+      "agent": {
+        "data": {
+          "allocation_id": "11111111-1111-4111-8111-111111111111",
+          "slot_id": "s1"
+        },
+        "ok": true,
+        "reply_to": "req-1",
+        "request": "start_server",
+        "type": "reply"
+      }
+    },
+    {
+      "controller": {
+        "allocation_id": "11111111-1111-4111-8111-111111111111",
+        "id": "req-1",
+        "launch": {
+          "chat_tag": {
+            "color": "green",
+            "text": "Ankor"
+          },
+          "commands": [],
+          "exec": [],
+          "game_mode": "competitive",
+          "game_password": null,
+          "gotv": {
+            "delay_seconds": 0,
+            "password": null
+          },
+          "hostname": "Conformance",
+          "idle_shutdown_seconds": 1,
+          "map_name": "de_dust2",
+          "match": null,
+          "max_players": 10,
+          "steam_web_api_key": null,
+          "workshop_id": null
+        },
+        "type": "start_server"
+      }
+    },
+    {
+      "after_step": "controller → start_server 11111111-1111-4111-8111-111111111111"
+    },
+    {
+      "agent": {
+        "allocation_id": "11111111-1111-4111-8111-111111111111",
+        "gslt_state": "ok",
+        "match_id": null,
+        "plugin_online": true,
+        "reserved": false,
+        "server_steam_id": "85568392920039425",
+        "slot_id": "s1",
+        "state": "running",
+        "type": "slot_status"
+      }
+    },
+    {
+      "agent": {
+        "allocation_id": "11111111-1111-4111-8111-111111111111",
+        "gslt_state": "ok",
+        "match_id": null,
+        "plugin_online": true,
+        "reserved": false,
+        "server_steam_id": null,
+        "slot_id": "s1",
+        "state": "starting",
+        "type": "slot_status"
+      }
+    },
+    {
+      "after_step": "plugin 11111111: connect"
+    },
+    {
+      "agent": {
+        "allocation_id": "11111111-1111-4111-8111-111111111111",
+        "detail": null,
+        "exit_code": 0,
+        "reason": "idle_empty",
+        "slot_id": "s1",
+        "type": "server_exited"
+      }
+    },
+    {
+      "agent": {
+        "allocation_id": "11111111-1111-4111-8111-111111111111",
+        "gslt_state": "ok",
+        "match_id": null,
+        "plugin_online": false,
+        "reserved": false,
+        "server_steam_id": "85568392920039425",
+        "slot_id": "s1",
+        "state": "stopping",
+        "type": "slot_status"
+      }
+    },
+    {
+      "agent": {
+        "allocation_id": "11111111-1111-4111-8111-111111111111",
+        "gslt_state": "ok",
+        "match_id": null,
+        "plugin_online": true,
+        "reserved": false,
+        "server_steam_id": "85568392920039425",
+        "slot_id": "s1",
+        "state": "stopping",
+        "type": "slot_status"
+      }
+    },
+    {
+      "agent": {
+        "allocation_id": null,
+        "gslt_state": "ok",
+        "match_id": null,
+        "plugin_online": false,
+        "reserved": false,
+        "server_steam_id": null,
+        "slot_id": "s1",
+        "state": "idle",
+        "type": "slot_status"
+      }
+    },
+    {
+      "after_step": "plugin 11111111: connect"
+    },
+    {
+      "agent": {
+        "signal": "SIGTERM",
+        "type": "shutdown"
+      }
+    },
+    {
+      "agent_closed": {
+        "code": 1000,
+        "reason": "SIGTERM"
+      }
+    },
+    {
+      "after_step": "stop the agent"
+    }
+  ],
+  "docker": [
+    {
+      "action": "create",
+      "allocation": "11111111-1111-4111-8111-111111111111",
+      "exit_code": null,
+      "image": "sha256:<image-1>",
+      "name": "ankor-s1-game-<id>",
+      "role": "game",
+      "signal": null,
+      "slot": "s1"
+    },
+    {
+      "action": "create",
+      "allocation": null,
+      "exit_code": null,
+      "image": "sha256:<image-1>",
+      "name": "ankor-overlay-<id>",
+      "role": "overlay",
+      "signal": null,
+      "slot": null
+    },
+    {
+      "action": "destroy",
+      "allocation": "11111111-1111-4111-8111-111111111111",
+      "exit_code": null,
+      "image": "sha256:<image-1>",
+      "name": "ankor-s1-game-<id>",
+      "role": "game",
+      "signal": null,
+      "slot": "s1"
+    },
+    {
+      "action": "destroy",
+      "allocation": null,
+      "exit_code": null,
+      "image": "sha256:<image-1>",
+      "name": "ankor-overlay-<id>",
+      "role": "overlay",
+      "signal": null,
+      "slot": null
+    },
+    {
+      "action": "die",
+      "allocation": "11111111-1111-4111-8111-111111111111",
+      "exit_code": "0",
+      "image": "sha256:<image-1>",
+      "name": "ankor-s1-game-<id>",
+      "role": "game",
+      "signal": null,
+      "slot": "s1"
+    },
+    {
+      "action": "kill",
+      "allocation": "11111111-1111-4111-8111-111111111111",
+      "exit_code": null,
+      "image": "sha256:<image-1>",
+      "name": "ankor-s1-game-<id>",
+      "role": "game",
+      "signal": "15",
+      "slot": "s1"
+    },
+    {
+      "action": "start",
+      "allocation": "11111111-1111-4111-8111-111111111111",
+      "exit_code": null,
+      "image": "sha256:<image-1>",
+      "name": "ankor-s1-game-<id>",
+      "role": "game",
+      "signal": null,
+      "slot": "s1"
+    },
+    {
+      "action": "stop",
+      "allocation": "11111111-1111-4111-8111-111111111111",
+      "exit_code": null,
+      "image": "sha256:<image-1>",
+      "name": "ankor-s1-game-<id>",
+      "role": "game",
+      "signal": null,
+      "slot": "s1"
+    }
+  ],
+  "plugin/11111111-1111-4111-8111-111111111111": [
+    {
+      "code": 0,
+      "exiting": "SIGTERM"
+    },
+    {
+      "control": "closed"
+    },
+    {
+      "match": false,
+      "started": true
+    },
+    {
+      "plugin_frame": {
+        "config_error": null,
+        "map_name": "de_dust2",
+        "match": null,
+        "players": [],
+        "ready": true,
+        "request_id": null,
+        "server_steam_id": "85568392920039425",
+        "type": "server_status"
+      }
+    },
+    {
+      "plugin_frame": {
+        "config_error": null,
+        "map_name": "de_mirage",
+        "match": null,
+        "players": [],
+        "ready": false,
+        "request_id": null,
+        "server_steam_id": null,
+        "type": "server_status"
+      }
+    },
+    {
+      "relay": "closed"
+    },
+    {
+      "relay": "connected"
+    }
+  ],
+  "steam": [
+    {
+      "logoff": true
+    },
+    {
+      "logon": {
+        "answered": 1,
+        "app": 730,
+        "token_hint": "0000000001"
+      }
+    }
+  ],
+  "stubs": [
+    {
+      "authorization": "Bearer conformance-registry-token",
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/v2/ankorcs/ankor-agent/tags/list?n=1000"
+    },
+    {
+      "authorization": "Bearer conformance-registry-token",
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/v2/ankorcs/ankor-cs2/tags/list?n=1000"
+    },
+    {
+      "authorization": "Bearer conformance-registry-token",
+      "host": "ghcr.io",
+      "method": "HEAD",
+      "path": "/v2/ankorcs/ankor-agent/manifests/0.9"
+    },
+    {
+      "authorization": "Bearer conformance-registry-token",
+      "host": "ghcr.io",
+      "method": "HEAD",
+      "path": "/v2/ankorcs/ankor-cs2/manifests/1"
+    },
+    {
+      "authorization": null,
+      "host": "api.steamcmd.net",
+      "method": "GET",
+      "path": "/v1/info/730"
+    },
+    {
+      "authorization": null,
+      "host": "api.steampowered.com",
+      "method": "GET",
+      "path": "/ISteamDirectory/GetCMListForConnect/v1/?cellid=0&cmtype=websockets"
+    },
+    {
+      "authorization": null,
+      "host": "cm.conformance.test",
+      "method": "GET",
+      "path": "/cmsocket/"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/token?service=ghcr.io&scope=repository%3Aankorcs%2Fankor-agent%3Apull"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/token?service=ghcr.io&scope=repository%3Aankorcs%2Fankor-agent%3Apull"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/token?service=ghcr.io&scope=repository%3Aankorcs%2Fankor-cs2%3Apull"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/token?service=ghcr.io&scope=repository%3Aankorcs%2Fankor-cs2%3Apull"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/v2/ankorcs/ankor-agent/tags/list?n=1000"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "GET",
+      "path": "/v2/ankorcs/ankor-cs2/tags/list?n=1000"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "HEAD",
+      "path": "/v2/ankorcs/ankor-agent/manifests/0.9"
+    },
+    {
+      "authorization": null,
+      "host": "ghcr.io",
+      "method": "HEAD",
+      "path": "/v2/ankorcs/ankor-cs2/manifests/1"
+    },
+    {
+      "authorization": null,
+      "host": "ipinfo.io",
+      "method": "GET",
+      "path": "/json"
+    }
+  ]
+}

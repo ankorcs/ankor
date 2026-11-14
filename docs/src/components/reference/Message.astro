@@ -1,0 +1,108 @@
+---
+/** One message: what it is, its fields, the reply a request gets, and an example. */
+import { directionText, supportDescription, type MessageView, type Reference } from '../../reference/model.ts';
+import { markdown } from '../../reference/schema.ts';
+import Examples from './Examples.astro';
+import Expand from './Expand.astro';
+import SchemaTree from './SchemaTree.astro';
+
+interface Props {
+  message: MessageView;
+  reference: Reference;
+  /** Under a direction heading, so the name is an h3 and its reply an h4. */
+  nested?: boolean;
+}
+
+const { message, reference, nested = false } = Astro.props;
+const Name = nested ? 'h3' : 'h2';
+const ReplyHeading = nested ? 'h4' : 'h3';
+const schemas = reference.document.components.schemas;
+const text = message.description ?? message.summary;
+const reply = message.reply;
+const meta = message.support !== null || message.direction !== null;
+/** Coloured like the message cards in the guides; plugin traffic stays neutral. */
+const sender = message.direction?.from === 'agent' && message.direction.to === 'controller' ? 'from-agent'
+  : message.direction?.from === 'controller' && message.direction.to === 'agent' ? 'from-controller' : undefined;
+---
+
+<section class:list={['message', { nested }]}>
+  <div class:list={['head', { nested }]}>
+    <Name id={message.anchor} class="name"><code>{message.name}</code></Name>
+    <Expand />
+  </div>
+  {meta && (
+    <p class="meta">
+      {message.support !== null && (
+        <span class:list={['tag badge', message.support]} tabindex="0" data-tip={supportDescription(reference, message.support)}>{message.support}</span>
+      )}
+      {message.direction !== null && <span class:list={['direction', sender]}>{directionText(message.direction)}{message.transport === null ? '' : `, ${message.transport}`}</span>}
+    </p>
+  )}
+  <Fragment set:html={markdown(text)} />
+  {schemas[message.schema] !== undefined && <div class="not-prose tree-root"><SchemaTree schema={schemas[message.schema]!} reference={reference} seen={[message.schema]} /></div>}
+  <Examples label={message.examples.length === 1 ? 'Example' : 'Examples'} examples={message.examples} />
+  {message.kind === 'request' && reply !== null && (
+    <>
+      <ReplyHeading id={reply.anchor}>Reply</ReplyHeading>
+      {schemas[reply.schema] !== undefined && <div class="not-prose tree-root"><SchemaTree schema={schemas[reply.schema]!} reference={reference} seen={[reply.schema]} /></div>}
+      <Examples label="Reply examples" examples={reply.examples} />
+    </>
+  )}
+</section>
+
+<style>
+  .message + .message {
+    margin-top: 3rem;
+  }
+
+  /* Messages under a direction heading have no section rule of their own. */
+  .message.nested + .message.nested {
+    margin-top: 2.5rem;
+    border-top: 1px solid var(--color-line-800);
+  }
+
+  .direction {
+    color: var(--sender-c, var(--color-text-500));
+  }
+
+  /* The heading's own top margin moves here, so it still collapses with the section's. */
+  .head {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    margin: 3.5rem 0 0.75rem;
+  }
+
+  .head.nested {
+    margin-top: 2rem;
+  }
+
+  .name {
+    flex: 1;
+    margin: 0;
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 0 0 1.25rem;
+    align-items: center;
+    font-size: 0.875rem;
+    color: var(--color-text-500);
+  }
+
+  .message :global(.tree-root) {
+    margin-top: 1.25rem;
+  }
+
+  .badge {
+    padding: 0.25rem 0.7rem;
+    font-size: 0.75rem;
+  }
+
+  .optional {
+    color: var(--color-text-300);
+    background: var(--color-bg-700);
+  }
+</style>

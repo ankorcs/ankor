@@ -1,0 +1,489 @@
+---
+/**
+ * Every page: header, sidebar, the page, and the headings beside it. A `wide` page skips the
+ * heading list, for an overview that needs the room.
+ */
+import '../styles/global.css';
+import NavTree from '../components/NavTree.astro';
+import Search from '../components/Search.astro';
+import { DISCORD, flatLinks, NAV, REPOSITORY, sectionOf } from '../nav.ts';
+import { sitePath } from '../site.ts';
+
+export interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+  /** Shown beside the heading in the outline, such as `required` on a message. */
+  tag?: string;
+  /** The tag's tooltip. */
+  tagTitle?: string;
+  /** The group's sender, coloured as on message cards. */
+  tone?: 'agent' | 'controller';
+  /** Names a message or type, set in code type instead of as a section. */
+  code?: boolean;
+}
+
+interface Props {
+  title: string;
+  description: string;
+  headings?: Heading[];
+  wide?: boolean;
+  /** The source file, for the edit link; absent on generated pages. */
+  source?: string;
+}
+
+const { title, description, headings = [], wide = false, source } = Astro.props;
+const current = Astro.url.pathname.endsWith('/') ? Astro.url.pathname : `${Astro.url.pathname}/`;
+const links = flatLinks();
+const index = links.findIndex((link) => link.href === current);
+const previous = index > 0 ? links[index - 1] : undefined;
+const next = index >= 0 ? links[index + 1] : undefined;
+const section = sectionOf(current);
+const outline = wide ? [] : headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
+/** The page's columns, shared with the header so its search and links sit over the article and outline. */
+const column = {
+  sidebar: 'lg:w-64',
+  main: 'px-5 sm:px-8 lg:px-14 2xl:px-20',
+  gap: 'gap-12 2xl:gap-16',
+  outline: 'xl:w-60',
+};
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title === 'Ankor game nodes' ? title : `${title} | Ankor`}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href={sitePath('/favicon.svg')} type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;1,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+  </head>
+  <body>
+    <header class="site-header sticky top-0 z-30 h-14 border-b border-line-800 bg-bg-950/95 backdrop-blur">
+      <div class="mx-auto flex h-full max-w-[110rem] items-center">
+        <div class:list={['flex shrink-0 items-center gap-4 pl-4 lg:pl-6', column.sidebar]}>
+          <button
+            type="button"
+            class="cursor-pointer rounded-md p-1.5 text-text-300 hover:bg-bg-800 hover:text-text-100 lg:hidden"
+            aria-label="Menu"
+            aria-controls="sidebar"
+            aria-expanded="false"
+            data-menu
+          >
+            <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <a href={sitePath('/')} class="flex items-center gap-2 font-display text-2xl font-extrabold italic uppercase tracking-[0.03em] text-text-100 no-underline">
+            <img src={sitePath('/ankor-wordmark.svg')} alt="Ankor" class="h-9 w-auto" width="104" height="36" />
+            <span class="text-base font-bold not-italic tracking-[0.12em] text-text-500">docs</span>
+          </a>
+        </div>
+        <div class:list={['flex min-w-0 flex-1 items-center', column.main, column.gap]}>
+          <div class="flex min-w-0 flex-1 justify-end md:justify-start">
+            <Search />
+          </div>
+          <div class:list={['flex shrink-0 items-center justify-end gap-3', column.outline]}>
+            <a href={DISCORD} target="_blank" rel="noopener" class="rounded-md p-1.5 text-text-500 hover:bg-bg-800 hover:text-text-100" aria-label="Discord">
+              <svg viewBox="0 0 24 24" class="size-5" fill="currentColor" aria-hidden="true">
+                <path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.028C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.042-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .078-.011c3.928 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .079.01c.12.099.246.198.373.292a.077.077 0 0 1-.007.128 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 0 0 .084.029 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.029ZM8.02 15.331c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.211 0 2.176 1.095 2.157 2.42 0 1.332-.956 2.418-2.157 2.418Zm7.975 0c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.332-.946 2.418-2.157 2.418Z" />
+              </svg>
+            </a>
+            <a href={REPOSITORY} target="_blank" rel="noopener" class="-mr-1.5 rounded-md p-1.5 text-text-500 hover:bg-bg-800 hover:text-text-100" aria-label="GitHub">
+              <svg viewBox="0 0 24 24" class="size-5" fill="currentColor" aria-hidden="true">
+                <path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.1c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.3 1.9 1.3 1.1 1.8 2.9 1.3 3.6 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.3.5-2.4 1.3-3.2-.2-.3-.6-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.7 1.7.2 2.9.1 3.2.8.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="mx-auto flex max-w-[110rem]">
+      <aside
+        id="sidebar"
+        class:list={['fixed inset-y-0 top-14 z-20 hidden w-72 shrink-0 overflow-y-auto border-r border-line-800 bg-bg-900 px-4 py-6 lg:sticky lg:bg-transparent lg:block lg:h-[calc(100vh-3.5rem)]', column.sidebar]}
+      >
+        <NavTree items={NAV} current={current} />
+      </aside>
+
+      <main class:list={['min-w-0 flex-1 py-10', column.main]}>
+        <div class:list={['flex', column.gap]}>
+          <article class:list={['min-w-0 flex-1', wide ? 'max-w-[110rem]' : 'max-w-[1040px]']} data-pagefind-body>
+            <div class="prose">
+              <header class="page-head">
+                {section !== undefined && <p class="page-eyebrow">{section}</p>}
+                <h1>{title}</h1>
+              </header>
+              <slot />
+            </div>
+
+            <nav class="mt-16 grid gap-4 border-t border-line-800 pt-6 sm:grid-cols-2" aria-label="Pages">
+              {previous !== undefined && (
+                <a href={previous.href} class="pager">
+                  <span class="caps">← Previous</span>
+                  {previous.label}
+                </a>
+              )}
+              {next !== undefined && (
+                <a href={next.href} class="pager sm:col-start-2 sm:text-right">
+                  <span class="caps">Next →</span>
+                  {next.label}
+                </a>
+              )}
+            </nav>
+            {source !== undefined && (
+              <p class="mt-6 text-xs text-text-500">
+                <a href={`${REPOSITORY}/edit/master/docs/${source}`} target="_blank" rel="noopener" class="hover:text-text-300">Edit this page</a>
+              </p>
+            )}
+          </article>
+
+          {outline.length > 0 && (
+            <nav class:list={['sticky top-24 hidden max-h-[calc(100vh-7rem)] shrink-0 self-start overflow-y-auto xl:block', column.outline]} aria-label="On this page" data-outline>
+              <p class="caps mb-3 text-xs text-text-500">On this page</p>
+              <ul class="toc">
+                {outline.map((heading) => (
+                  <li class:list={['toc-item', heading.depth === 3 && 'toc-sub', heading.code === true ? 'toc-code' : heading.depth === 2 && 'toc-head', heading.tone !== undefined && `from-${heading.tone}`]}>
+                    <a href={`#${heading.slug}`} class="toc-link">{heading.text}</a>
+                    {heading.tag !== undefined && <span class="tag shrink-0" tabindex="0" data-tip={heading.tagTitle}>{heading.tag}</span>}
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )}
+        </div>
+      </main>
+    </div>
+
+    <div id="tip" role="tooltip" hidden></div>
+
+    <script>
+      // One tooltip for every `data-tip`, fixed to the viewport so the outline's scroll box cannot clip it.
+      const tip = document.getElementById('tip')!;
+
+      function showTip(event: Event): void {
+        const target = (event.target as Element | null)?.closest<HTMLElement>('[data-tip]');
+
+        if (target === null || target === undefined) {
+          return;
+        }
+
+        tip.textContent = target.dataset['tip'] ?? '';
+        tip.hidden = false;
+        const anchor = target.getBoundingClientRect();
+        const left = Math.min(Math.max(8, anchor.left + anchor.width / 2 - tip.offsetWidth / 2), window.innerWidth - tip.offsetWidth - 8);
+        const below = anchor.bottom + 6 + tip.offsetHeight <= window.innerHeight;
+
+        tip.style.left = `${left}px`;
+        tip.style.top = `${below ? anchor.bottom + 6 : anchor.top - 6 - tip.offsetHeight}px`;
+      }
+
+      function hideTip(event: Event): void {
+        if ((event.target as Element | null)?.closest('[data-tip]')) {
+          tip.hidden = true;
+        }
+      }
+
+      document.addEventListener('pointerover', showTip);
+      document.addEventListener('pointerout', hideTip);
+      document.addEventListener('focusin', showTip);
+      document.addEventListener('focusout', hideTip);
+      window.addEventListener('scroll', () => {
+        tip.hidden = true;
+      }, { passive: true });
+
+      // The whole heading links to its section, for sharing; one that already holds a link keeps
+      // that link and gets only the mark, as links cannot nest.
+      for (const heading of document.querySelectorAll<HTMLElement>('.prose :is(h2, h3)[id]')) {
+        const mark = document.createElement('span');
+
+        mark.className = 'heading-mark';
+        mark.setAttribute('aria-hidden', 'true');
+        mark.textContent = '#';
+
+        if (heading.querySelector('a') !== null) {
+          const anchor = document.createElement('a');
+
+          anchor.href = `#${heading.id}`;
+          anchor.className = 'heading-link';
+          anchor.setAttribute('aria-label', 'Link to this section');
+          anchor.append(mark);
+          heading.append(anchor);
+          continue;
+        }
+
+        const anchor = document.createElement('a');
+
+        anchor.href = `#${heading.id}`;
+        anchor.className = 'heading-link';
+        anchor.append(...heading.childNodes, mark);
+        heading.append(anchor);
+      }
+
+      for (const pre of document.querySelectorAll<HTMLPreElement>('.prose pre')) {
+        const copy = document.createElement('button');
+
+        copy.type = 'button';
+        copy.className = 'copy-code';
+        copy.textContent = 'Copy';
+        copy.addEventListener('click', () => {
+          navigator.clipboard.writeText(pre.querySelector('code')?.innerText ?? pre.innerText).then(() => {
+            copy.textContent = 'Copied';
+            setTimeout(() => { copy.textContent = 'Copy'; }, 1500);
+          }, () => { copy.textContent = 'Select and copy'; });
+        });
+        // Outside the scrolling block, so the button stays put when long lines scroll sideways.
+        const frame = document.createElement('div');
+
+        frame.className = 'code-block';
+        pre.replaceWith(frame);
+        frame.append(pre, copy);
+      }
+
+      const button = document.querySelector<HTMLButtonElement>('[data-menu]');
+      const sidebar = document.getElementById('sidebar');
+
+      button?.addEventListener('click', () => {
+        const open = sidebar?.classList.toggle('hidden') === false;
+
+        button.setAttribute('aria-expanded', String(open));
+      });
+
+      const outlineNav = document.querySelector<HTMLElement>('[data-outline]');
+      const outline = [...document.querySelectorAll<HTMLAnchorElement>('[data-outline] a')];
+      const targets = outline
+        .map((link) => ({ link, heading: document.getElementById(decodeURIComponent(link.hash.slice(1))) }))
+        .filter((entry): entry is { link: HTMLAnchorElement; heading: HTMLElement } => entry.heading !== null);
+      // Matches the outline's own `top-24`: a heading counts as reached once it passes under the header.
+      const REACHED_PX = 96;
+      let frame = 0;
+
+      function mark(): void {
+        frame = 0;
+        const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+        // Headings near the end never reach the top; a followed link names the one meant while it is in view.
+        const linked = targets.find((entry) => `#${entry.heading.id}` === decodeURIComponent(location.hash));
+        const linkedTop = linked?.heading.getBoundingClientRect().top;
+        let active = !atBottom ? undefined
+          : linkedTop !== undefined && linkedTop >= 0 && linkedTop < window.innerHeight ? linked : targets.at(-1);
+
+        if (active === undefined) {
+          for (const entry of targets) {
+            if (entry.heading.getBoundingClientRect().top > REACHED_PX) {
+              break;
+            }
+
+            active = entry;
+          }
+        }
+
+        for (const { link } of targets) {
+          if (link === active?.link) {
+            link.setAttribute('aria-current', 'location');
+          } else {
+            link.removeAttribute('aria-current');
+          }
+        }
+
+        // A long outline scrolls on its own; keep the current entry in it.
+        if (active !== undefined && outlineNav !== null) {
+          const nav = outlineNav.getBoundingClientRect();
+          const link = active.link.getBoundingClientRect();
+
+          if (link.top < nav.top || link.bottom > nav.bottom) {
+            outlineNav.scrollTop += link.top - nav.top - nav.height / 2;
+          }
+        }
+      }
+
+      if (targets.length > 0) {
+        const schedule = () => {
+          frame ||= requestAnimationFrame(mark);
+        };
+
+        window.addEventListener('scroll', schedule, { passive: true });
+        window.addEventListener('resize', schedule);
+        window.addEventListener('hashchange', schedule);
+        mark();
+      }
+
+      // A double click or double tap on a heading selects all of its text, so it can be copied whole.
+      document.addEventListener('dblclick', (event) => {
+        const heading = (event.target as Element | null)?.closest('.prose :is(h1, h2, h3, h4)');
+
+        if (heading === null || heading === undefined) {
+          return;
+        }
+
+        const range = document.createRange();
+
+        range.selectNodeContents(heading);
+
+        // The anchor's `#` mark is decoration, not part of the heading's text.
+        const mark = heading.querySelector('.heading-mark');
+
+        if (mark !== null) {
+          range.setEndBefore(mark);
+        }
+        window.getSelection()?.removeAllRanges();
+        window.getSelection()?.addRange(range);
+      });
+
+      // Headings are capitalised by CSS, and a browser copies text as it is shown. A copy from inside
+      // one heading takes the heading's written text instead.
+      document.addEventListener('copy', (event) => {
+        const selection = window.getSelection();
+
+        if (selection === null || selection.rangeCount === 0 || event.clipboardData === null) {
+          return;
+        }
+
+        const range = selection.getRangeAt(0);
+        const common = range.commonAncestorContainer;
+        const heading = (common instanceof Element ? common : common.parentElement)?.closest('.prose :is(h1, h2, h3, h4)');
+
+        if (heading === null || heading === undefined) {
+          return;
+        }
+
+        event.clipboardData.setData('text/plain', range.toString().replace(/#$/, '').trim());
+        event.preventDefault();
+      });
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  #tip {
+    position: fixed;
+    z-index: 50;
+    max-width: 18rem;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--color-line-500);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-800);
+    color: var(--color-text-100);
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    text-transform: none;
+    letter-spacing: normal;
+    pointer-events: none;
+  }
+
+  #tip[hidden] {
+    display: none;
+  }
+</style>
+
+<style>
+  /* A faint accent glint along the header's edge, brightest under the brand. */
+  .site-header::after {
+    position: absolute;
+    inset: auto 0 -1px;
+    height: 1px;
+    content: '';
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-accent-500) 60%, transparent) 15%, transparent 55%);
+  }
+
+  .toc {
+    border-left: 1px solid var(--color-line-800);
+    font-size: 0.8125rem;
+    line-height: 1.35;
+  }
+
+  .toc-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .toc-link {
+    display: block;
+    flex: 1;
+    margin-left: -1px;
+    padding: 0.3rem 0 0.3rem 0.875rem;
+    border-left: 2px solid transparent;
+    color: var(--color-text-300);
+    font-weight: 500;
+    overflow-wrap: anywhere;
+    transition: color 120ms, border-color 120ms;
+  }
+
+  .toc-sub .toc-link {
+    padding-left: 1.625rem;
+    color: var(--color-text-500);
+    font-weight: 400;
+  }
+
+  .toc-link:hover {
+    border-left-color: var(--color-line-500);
+    background: linear-gradient(90deg, var(--color-bg-800), transparent 85%);
+    color: var(--color-text-100);
+  }
+
+  .toc-item .toc-link[aria-current] {
+    border-left-color: var(--color-accent-400);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--color-accent-500) 14%, transparent), transparent 85%);
+    color: var(--color-accent-300);
+  }
+
+  /* Space only around a heading with entries under it, so a page of plain sections lists densely. */
+  .toc-sub + .toc-head,
+  .toc-head:not(:first-child):has(+ .toc-sub) {
+    margin-top: 0.875rem;
+  }
+
+  .toc-head .toc-link {
+    color: var(--sender-c, var(--color-text-100));
+  }
+
+  .toc-head:is(.from-agent, .from-controller) .toc-link {
+    border-left-color: var(--sender-c);
+  }
+
+  .toc-head .toc-link[aria-current] {
+    color: var(--sender-c, var(--color-accent-300));
+  }
+
+  .toc-code .toc-link {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+  }
+
+  .pager {
+    display: block;
+    padding: 0.875rem 1.125rem;
+    border: 1px solid var(--color-line-800);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-900);
+    color: var(--color-text-100);
+    font-weight: 500;
+    text-decoration: none;
+    transition: border-color 120ms, background-color 120ms;
+  }
+
+  .pager:hover {
+    border-color: color-mix(in srgb, var(--color-accent-500) 50%, var(--color-line-800));
+    background: var(--color-bg-800);
+  }
+
+  .pager span {
+    display: block;
+    margin-bottom: 0.125rem;
+    font-size: 0.75rem;
+    color: var(--color-text-500);
+    transition: color 120ms;
+  }
+
+  .pager:hover span {
+    color: var(--color-accent-300);
+  }
+</style>

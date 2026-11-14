@@ -1,0 +1,17 @@
+Copyright (c) 2026 Nicolai Cornelis. All rights reserved.
+
+The Ankor name, logo and wordmarks in this directory are not covered by the licenses of the rest of
+this repository.
+
+You may redistribute these files unmodified as part of Ankor's packages, images and documentation,
+and use them to refer to Ankor. Any other use, or a modified version, needs written permission from
+the copyright holder.
+
+The wordmarks include the gear of the Rust logo, from https://github.com/rust-lang/rust-artwork,
+which that repository licenses under the Creative Commons Attribution license (CC-BY), as
+https://github.com/rust-lang/rust-artwork/blob/master/logo/README.md states. The gear was changed: it is opened into an arc and
+wrapped around the R. The Rust logo is a trademark of the Rust Foundation, and its use here implies no
+endorsement by the Rust project.
+
+gearopen.py, the script that draws the gear onto the wordmark, is licensed under the Apache License,
+Version 2.0, as the root LICENSE file states.

@@ -1,0 +1,394 @@
+---
+/**
+ * A schema as a tree. With `field` it is one row: the name and the type, and when the type is a
+ * component, an object, a union or an array of one, the row opens onto it. Without, it is the body
+ * of a schema. A component opens inline wherever it is used; `seen` stops one opening inside itself.
+ */
+import type { JsonSchema, Reference } from '../../reference/model.ts';
+import { refName } from '../../reference/model.ts';
+import { detailRules, discriminator, enumValues, listsValues, markdown, opens, typeLabel, unwrapNullable, variants } from '../../reference/schema.ts';
+
+interface Props {
+  schema: JsonSchema;
+  reference: Reference;
+  seen?: string[];
+  field?: { name: string; required: boolean };
+}
+
+const { schema, reference, seen = [], field } = Astro.props;
+const { schema: inner } = unwrapNullable(schema);
+const schemas = reference.document.components.schemas;
+const messages = reference.document.components.messages;
+const plain = new Map<string, string>();
+const ref = inner.$ref === undefined ? undefined : refName(inner.$ref);
+const target = ref === undefined ? undefined : schemas[ref];
+const options = variants(inner);
+/** An alternative as its fields: a referenced component is read through to its schema. */
+const resolve = (option: JsonSchema): JsonSchema => option.$ref === undefined ? option : schemas[refName(option.$ref)] ?? option;
+const key = options === undefined ? undefined : discriminator(options.map(resolve));
+const required = new Set(inner.required ?? []);
+
+/** Where a message a schema stands for is documented: its own payload, or the message an inline alternative's `type` names. */
+const messageHref = (option: JsonSchema): string | undefined => {
+  if (option.$ref !== undefined) {
+    return reference.payloads.has(refName(option.$ref)) ? reference.hrefs.get(refName(option.$ref)) : undefined;
+  }
+
+  const type = option.properties?.['type']?.const;
+  const payload = typeof type === 'string' ? messages[type]?.payload.$ref : undefined;
+
+  return payload === undefined ? undefined : reference.hrefs.get(refName(payload));
+};
+const messageName = (option: JsonSchema): string =>
+  option.$ref !== undefined ? reference.payloads.get(refName(option.$ref)) ?? refName(option.$ref) : String(option.properties?.['type']?.const);
+// Messages are documented where they are; a schema holding them links there instead of inlining them.
+const toMessage = ref !== undefined && reference.payloads.has(ref);
+// A component already open above this row would open inside itself forever; the row links back instead.
+const cycle = ref !== undefined && seen.includes(ref);
+// Alternatives that are each a different message link to those messages. Alternatives that share one
+// message's `type`, such as each request's own `reply`, are shown as a union told apart by another key.
+const copies = options !== undefined && options.every((option) => messageHref(option) !== undefined)
+  && new Set(options.map(messageName)).size === options.length;
+---
+
+{field !== undefined ? (
+  opens(schema) && !toMessage && !cycle ? (
+    <li class="field">
+      <details class="tree">
+        <summary>
+          <code class="name">{field.name}</code>
+          <span class="type toggle" set:html={typeLabel(schema, plain)} />
+          {!field.required && <span class="optional">optional</span>}
+          {schema.description !== undefined && <span class="doc" set:html={markdown(schema.description)} />}
+        </summary>
+        <div class="body"><Astro.self schema={schema} reference={reference} seen={seen} /></div>
+      </details>
+    </li>
+  ) : (
+    <li class="field leaf">
+      <code class="name">{field.name}</code>
+      {toMessage
+        ? <span class="type"><a href={reference.hrefs.get(ref!)}><code>{reference.payloads.get(ref!)}</code></a></span>
+        : <span class="type" set:html={typeLabel(schema, reference.hrefs)} />}
+      {cycle && <span class="optional">contains itself; see above</span>}
+      {!field.required && <span class="optional">optional</span>}
+      {schema.description !== undefined && <span class="doc" set:html={markdown(schema.description)} />}
+    </li>
+  )
+) : ref !== undefined ? (
+  <div>
+    <p class="component-name">
+      <a href={reference.hrefs.get(ref) ?? '#'}><code>{ref}</code></a>
+      {target?.description !== undefined && <span class="doc" set:html={markdown(target.description)} />}
+    </p>
+    {target !== undefined && !seen.includes(ref) && <Astro.self schema={target} reference={reference} seen={[...seen, ref]} />}
+  </div>
+) : copies && options !== undefined ? (
+  <p class="alternatives">
+    One of {options.map((option, index) => (
+      <>{index > 0 && ', '}<a href={messageHref(option)}><code>{messageName(option)}</code></a></>
+    ))}.
+  </p>
+) : options !== undefined ? (
+  <div class="union" data-tabs>
+    <p class="union-intro">
+      One of {options.length}{key !== undefined && <>, told apart by <code>{key}</code></>}:
+    </p>
+    <div class="tablist" role="tablist">
+      {options.map((option, index) => {
+        const name = option.$ref === undefined ? undefined : refName(option.$ref);
+        const value = key === undefined ? undefined : resolve(option).properties?.[key]?.const;
+
+        return (
+          <button type="button" class="tab" role="tab" aria-selected={index === 0 ? 'true' : 'false'} data-tab={index}>
+            {value !== undefined && <code>{key}: {JSON.stringify(value)}</code>}
+            {name !== undefined && <code class="tab-name">{name}</code>}
+            {value === undefined && name === undefined && <span>Option {index + 1}</span>}
+          </button>
+        );
+      })}
+    </div>
+    {options.map((option, index) => {
+      const name = option.$ref === undefined ? undefined : refName(option.$ref);
+      const body = resolve(option);
+      const loops = name !== undefined && seen.includes(name);
+
+      return (
+        <div class="tabpanel" role="tabpanel" data-panel={index} hidden={index !== 0}>
+          {name !== undefined && (
+            <p class="variant-head"><a href={reference.hrefs.get(name) ?? '#'}><code>{name}</code></a></p>
+          )}
+          {body.description !== undefined && name !== undefined && <div class="doc variant-doc" set:html={markdown(body.description)} />}
+          {loops
+            ? <p class="scalar">Contains itself; see above.</p>
+            : <Astro.self schema={body} reference={reference} seen={name === undefined ? seen : [...seen, name]} />}
+        </div>
+      );
+    })}
+  </div>
+) : inner.properties !== undefined ? (
+  <ul class="fields">
+    {Object.entries(inner.properties).map(([name, property]) => (
+      <Astro.self schema={property} reference={reference} seen={seen} field={{ name, required: required.has(name) }} />
+    ))}
+  </ul>
+) : inner.type === 'array' && inner.items !== undefined ? (
+  <Astro.self schema={inner.items} reference={reference} seen={seen} />
+) : (
+  <>
+    <p class="scalar" set:html={typeLabel({ ...inner, description: undefined }, reference.hrefs)} />
+    {detailRules(inner).map((rule) => <p class="scalar" set:html={rule} />)}
+    {listsValues(inner) && (
+      <ul class="enum">
+        {enumValues(inner).map((entry) => (
+          <li>
+            <code>{entry.value}</code>
+            {entry.description !== undefined && <span class="doc" set:html={markdown(entry.description)} />}
+          </li>
+        ))}
+      </ul>
+    )}
+  </>
+)}
+
+<style>
+  :global(.tree-root) {
+    margin-top: 1rem;
+    padding-left: 1.75rem;
+  }
+
+  .fields {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .field {
+    margin: 0;
+    padding: 0.5rem 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .field + .field,
+  .enum li + li {
+    border-top: 1px solid var(--color-line-800);
+  }
+
+  code {
+    font-size: 0.95em;
+  }
+
+  .name {
+    color: var(--color-text-100);
+    font-weight: 600;
+  }
+
+  .type,
+  .type :global(code) {
+    color: var(--color-text-500);
+  }
+
+  .type :global(a),
+  .component-name a,
+  .variant-head a {
+    color: var(--color-accent-300);
+    text-decoration: none;
+  }
+
+  .leaf,
+  summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.6rem;
+    align-items: baseline;
+  }
+
+  summary {
+    position: relative;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  summary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -1.6rem;
+    width: 1.4rem;
+    height: 1.4rem;
+    background-color: var(--color-text-300);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E") center / 1rem no-repeat;
+    transition: transform 0.1s ease-out;
+  }
+
+  summary:hover::before {
+    background-color: var(--color-text-100);
+  }
+
+  details[open] > summary::before {
+    transform: rotate(90deg);
+  }
+
+  .toggle,
+  .toggle :global(code) {
+    color: var(--color-accent-300);
+  }
+
+  .optional {
+    font-size: 0.75rem;
+    color: var(--color-text-500);
+  }
+
+  .doc {
+    flex-basis: 100%;
+    color: var(--color-text-300);
+  }
+
+  .doc :global(p) {
+    margin: 0;
+  }
+
+  .doc :global(p + p),
+  .doc :global(ul) {
+    margin-top: 0.3rem;
+  }
+
+  .doc :global(code) {
+    color: var(--color-text-100);
+  }
+
+  .body {
+    margin: 0.5rem 0 0 0.25rem;
+    padding-left: 2rem;
+    border-left: 1px solid var(--color-line-700);
+  }
+
+  .component-name,
+  .scalar,
+  .alternatives,
+  .union-intro {
+    font-size: 0.875rem;
+    color: var(--color-text-300);
+  }
+
+  .component-name,
+  .scalar,
+  .alternatives {
+    margin: 0.25rem 0;
+  }
+
+  .component-name .doc {
+    display: block;
+    margin-top: 0.2rem;
+  }
+
+  .enum {
+    list-style: none;
+    margin: 0.4rem 0;
+    padding: 0;
+    font-size: 0.875rem;
+  }
+
+  .enum li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.75rem;
+    padding: 0.3rem 0;
+  }
+
+  .enum code {
+    min-width: 11rem;
+    color: var(--color-text-100);
+  }
+
+  .enum .doc {
+    flex: 1;
+    flex-basis: 16rem;
+  }
+
+  .union {
+    margin: 0.5rem 0;
+  }
+
+  .union-intro {
+    margin: 0 0 0.4rem;
+  }
+
+  .tablist {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--color-line-700);
+  }
+
+  .tab {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    margin-bottom: -1px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--color-text-500);
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    cursor: pointer;
+  }
+
+  .tab:hover {
+    color: var(--color-text-100);
+  }
+
+  .tab[aria-selected='true'] {
+    color: var(--color-text-100);
+    background: var(--color-bg-900);
+    border-color: var(--color-line-700);
+    border-bottom-color: var(--color-bg-900);
+  }
+
+  .tab-name {
+    color: var(--color-accent-300);
+  }
+
+  .tabpanel {
+    padding: 0.5rem 0.9rem 0.25rem;
+    background: var(--color-bg-900);
+    border: 1px solid var(--color-line-700);
+    border-top: none;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+  }
+
+  .variant-head {
+    margin: 0 0 0.25rem;
+    font-size: 0.875rem;
+  }
+
+  .variant-doc {
+    margin-bottom: 0.25rem;
+  }
+</style>
+
+<script>
+  // A tab shows its own alternative; nested unions answer only to their own tabs.
+  document.addEventListener('click', (event) => {
+    const tab = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-tabs] > .tablist > [role="tab"]');
+    const union = tab?.closest<HTMLElement>('[data-tabs]');
+
+    if (tab === null || tab === undefined || union === null || union === undefined) {
+      return;
+    }
+
+    for (const other of union.querySelectorAll<HTMLButtonElement>(':scope > .tablist > [role="tab"]')) {
+      other.setAttribute('aria-selected', String(other === tab));
+    }
+
+    for (const panel of union.querySelectorAll<HTMLElement>(':scope > .tabpanel')) {
+      panel.hidden = panel.dataset['panel'] !== tab.dataset['tab'];
+    }
+  });
+</script>

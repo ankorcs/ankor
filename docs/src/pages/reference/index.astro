@@ -1,0 +1,31 @@
+---
+import Docs from '../../layouts/Docs.astro';
+import { reference } from '../../reference/data.ts';
+import { REFERENCE_BASE, TYPES_SLUG } from '../../reference/model.ts';
+import { markdown } from '../../reference/schema.ts';
+import { sitePath } from '../../site.ts';
+
+const { info } = reference.document;
+const headings = reference.sections.map((section) => ({ depth: 2, slug: section.slug, text: section.label }));
+---
+
+<Docs title={'Protocol reference'} description={`${info.title}, version ${info.version}.`} headings={headings}>
+  <Fragment set:html={markdown(info.description)} />
+  <p>
+    Types used by several messages are collected on the <a href={`${REFERENCE_BASE}/${TYPES_SLUG}/`}>Types &amp; Values</a> page.
+    To generate code, the whole reference is also available as <a href={sitePath('/asyncapi.yaml')}>asyncapi.yaml</a>, an AsyncAPI 3.1 document.
+  </p>
+  {reference.sections.map((section) => {
+    return (
+      <>
+        <h2 id={section.slug}>{section.label}</h2>
+        <Fragment set:html={markdown(section.intro)} />
+        <ul>
+          {section.pages.map((page) => (
+            <li><a href={`${REFERENCE_BASE}/${page.slug}/`}>{page.title}</a>: {page.description}</li>
+          ))}
+        </ul>
+      </>
+    );
+  })}
+</Docs>

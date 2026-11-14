@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Ankor.Diagnostics</RootNamespace>
+    <AssemblyName>Ankor.Diagnostics</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../core/Ankor.Core.csproj" />
+    <InternalsVisibleTo Include="Ankor.Tests" />
+    <InternalsVisibleTo Include="Ankor.Testing" />
+  </ItemGroup>
+</Project>

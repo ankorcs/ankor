@@ -1,0 +1,118 @@
+---
+/** Pagefind search in a dialog. The index exists only in a built site, so `astro dev` says so. */
+---
+
+<button
+  type="button"
+  class="flex w-full items-center gap-2 rounded-md border border-line-700 bg-bg-950 px-3 py-1.5 text-sm text-text-500 hover:border-line-500 hover:text-text-300 md:w-72"
+  data-search-open
+>
+  <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+  </svg>
+  <span>Search</span>
+  <kbd class="ml-auto hidden font-mono text-xs text-text-700 md:inline">/</kbd>
+</button>
+
+<dialog class="search" data-search>
+  <div class="panel">
+    <div id="search"></div>
+    <p class="hint" hidden data-search-missing>Search works in a built site: <code>npm run docs:build</code>, then <code>npm run docs:preview</code>.</p>
+  </div>
+</dialog>
+
+<script>
+  import { sitePath } from '../site.ts';
+
+  const dialog = document.querySelector<HTMLDialogElement>('[data-search]');
+  let loaded: Promise<void> | undefined;
+
+  function load(): Promise<void> {
+    loaded ??= (async () => {
+      const css = document.createElement('link');
+
+      css.rel = 'stylesheet';
+      css.href = sitePath('/pagefind/pagefind-ui.css');
+      document.head.append(css);
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+
+          script.src = sitePath('/pagefind/pagefind-ui.js');
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('no search index'));
+          document.head.append(script);
+        });
+
+        const { PagefindUI } = window as unknown as { PagefindUI: new (options: object) => unknown };
+
+        new PagefindUI({ element: '#search', showSubResults: true, resetStyles: false });
+      } catch {
+        document.querySelector<HTMLElement>('[data-search-missing]')?.removeAttribute('hidden');
+      }
+    })();
+
+    return loaded;
+  }
+
+  function open(): void {
+    dialog?.showModal();
+    void load().then(() => document.querySelector<HTMLInputElement>('#search input')?.focus());
+  }
+
+  document.querySelector('[data-search-open]')?.addEventListener('click', open);
+
+  document.addEventListener('keydown', (event) => {
+    const target = event.target as HTMLElement;
+
+    if (event.key === '/' && !dialog?.open && !/^(INPUT|TEXTAREA)$/.test(target.tagName)) {
+      event.preventDefault();
+      open();
+    }
+  });
+
+  dialog?.addEventListener('click', (event) => {
+    if (event.target === dialog) {
+      dialog.close();
+    }
+  });
+</script>
+
+<style>
+  .search {
+    width: min(42rem, calc(100vw - 2rem));
+    max-height: min(40rem, calc(100vh - 6rem));
+    margin: 5rem auto auto;
+    padding: 0;
+    color: var(--color-text-100);
+    background: var(--color-bg-900);
+    border: 1px solid var(--color-line-700);
+    border-radius: var(--radius-lg);
+  }
+
+  .search::backdrop {
+    background: rgb(0 0 0 / 0.6);
+  }
+
+  .panel {
+    padding: 1rem;
+  }
+
+  .hint {
+    font-size: 0.875rem;
+    color: var(--color-text-500);
+  }
+
+  .panel :global(#search) {
+    --pagefind-ui-primary: var(--color-accent-300);
+    --pagefind-ui-text: var(--color-text-100);
+    --pagefind-ui-background: var(--color-bg-900);
+    --pagefind-ui-border: var(--color-line-700);
+    --pagefind-ui-tag: var(--color-bg-700);
+    --pagefind-ui-border-width: 1px;
+    --pagefind-ui-border-radius: 4px;
+    --pagefind-ui-font: var(--font-sans);
+    --pagefind-ui-scale: 0.85;
+  }
+</style>

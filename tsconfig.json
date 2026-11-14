@@ -1,0 +1,9 @@
+{
+  // Root-level TypeScript files only (the ESLint config); each workspace has its own tsconfig.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["eslint.config.ts"]
+}

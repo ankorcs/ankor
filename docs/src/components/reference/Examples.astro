@@ -1,0 +1,57 @@
+---
+/** A message's or a reply's examples, folded away under one summary. */
+import { Code } from 'astro:components';
+
+interface Props {
+  label: string;
+  examples: unknown[];
+}
+
+const { label, examples } = Astro.props;
+---
+
+<details class="examples">
+  <summary>{label}</summary>
+  {examples.map((example) => <Code code={JSON.stringify(example, null, 2)} lang="json" theme="css-variables" />)}
+</details>
+
+<style>
+  .examples {
+    margin-top: 1.25rem;
+  }
+
+  .examples > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    cursor: pointer;
+    list-style: none;
+    font-size: 0.875rem;
+    color: var(--color-accent-300);
+  }
+
+  .examples > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .examples > summary::before {
+    width: 1rem;
+    height: 1rem;
+    content: '';
+    background-color: currentColor;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E") center / 0.875rem no-repeat;
+    transition: transform 0.1s ease-out;
+  }
+
+  .examples > summary:hover {
+    color: var(--color-text-100);
+  }
+
+  .examples[open] > summary {
+    margin-bottom: 0.75rem;
+  }
+
+  .examples[open] > summary::before {
+    transform: rotate(90deg);
+  }
+</style>

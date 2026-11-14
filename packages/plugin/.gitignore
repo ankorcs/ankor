@@ -1,0 +1,19 @@
+# .NET build output, and the plugin's deploy layout that `dotnet build Ankor.csproj` writes.
+bin/
+obj/
+build/
+artifacts/
+publish/
+*.dll.config
+*.nupkg
+*.snupkg
+
+# Visual Studio and test scratch.
+.vs/
+*.user
+*.suo
+*.userprefs
+TestResults/
+
+# Stryker.NET's output when run without scripts/plugin.sh mutants.
+StrykerOutput/

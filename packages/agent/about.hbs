@@ -1,0 +1,16 @@
+Third-party software in the Ankor agent
+
+The ankor-agent binary includes the crates below. Each licence lists the crates it covers, then its
+text as the crate ships it.
+{{#each licenses}}
+
+================================================================================
+{{{name}}} ({{{id}}})
+
+Used by:
+{{#each used_by}}
+  {{crate.name}} {{crate.version}}
+{{/each}}
+
+{{{text}}}
+{{/each}}

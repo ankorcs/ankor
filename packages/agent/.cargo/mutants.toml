@@ -1,0 +1,13 @@
+# Mutation testing: `cargo mutants --workspace`. Test doubles, generated code and the conformance
+# suite, a harness, are left out, and so is `main.rs`, the process entry that only the conformance
+# suite runs. The corpus tests the generated validators instead: `codegen/corpus.mjs` writes each
+# rule's edge, just inside and just past it, and the contract judges every case.
+exclude_globs = ["crates/*/src/testing.rs", "crates/*/src/testing/**", "crates/*/src/**/schemas.rs", "crates/*/src/**/types.rs", "crates/*/src/**/constants.rs", "crates/conformance/**", "crates/agent/src/main.rs"]
+# nextest runs a package's test binaries together, and the mutants profile builds without debug info.
+test_tool = "nextest"
+# The nextest profile in .config/nextest.toml, which ends a hanging test.
+additional_cargo_test_args = ["--profile", "mutants"]
+profile = "mutants"
+# Parallel jobs slow each other's tests down, so a timeout is never shorter than this.
+minimum_test_timeout = 120
+timeout_multiplier = 3.0

@@ -1,0 +1,69 @@
+name: Image publish
+
+# Pushes the OCI archives that image-build.yml kept to ghcr.io/ankorcs, tagged X.Y.Z, X.Y and X, and
+# `latest` for the newest release, or with the entry's own `tags` when it has them. release.yml,
+# rebuild.yml and cs2-beta.yml call this once every image has built.
+# The calling job grants packages: write, and contents: write when it tags the commit.
+on:
+  workflow_call:
+    inputs:
+      builds:
+        description: >-
+          The same JSON list of {image, version, ref, latest} that image-build.yml built. An entry
+          with a `tags` list is pushed under those tags only.
+        type: string
+        required: true
+      tag:
+        description: Tag the built commit agent-vX.Y.Z or cs2-vX.Y.Z after the push.
+        type: boolean
+        default: false
+
+jobs:
+  publish:
+    name: ankor-${{ matrix.image }} ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(inputs.builds) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ matrix.ref }}
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: image-${{ matrix.image }}-${{ matrix.version }}
+          path: ${{ runner.temp }}
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # skopeo reads the login above from the Docker config. --all copies the archive as built, with
+      # the manifest's description annotation.
+      - env:
+          IMAGE: ${{ matrix.image }}
+          VERSION: ${{ matrix.version }}
+          LATEST: ${{ matrix.latest }}
+          TAGS: ${{ toJSON(matrix.tags) }}
+        run: |
+          repo="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/ankor-${IMAGE}"
+          if [[ "$TAGS" != null ]]; then
+            mapfile -t tags < <(jq -r '.[]' <<<"$TAGS")
+          else
+            tags=("$VERSION" "${VERSION%.*}" "${VERSION%%.*}")
+            [[ "$LATEST" == true ]] && tags+=(latest)
+          fi
+          for tag in "${tags[@]}"; do
+            skopeo copy --all "oci-archive:${RUNNER_TEMP}/image.tar" "docker://${repo}:${tag}"
+          done
+
+      - if: inputs.tag
+        env:
+          TAG: ${{ matrix.image }}-v${{ matrix.version }}
+        run: |
+          git tag "$TAG"
+          git push origin "$TAG"
