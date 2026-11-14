@@ -345,7 +345,7 @@ impl ImageAutoUpdate {
 
         let Some(running) = deps.running_version(kind).await?.filter(|running| parse_version(Some(running)).is_some()) else {
             if self.state().unversioned.insert(reference.clone()) {
-                log.info(format!("{reference} is not updated automatically, because the image on this host is missing or carries no release version"));
+                log.info(format!("{reference} is not followed until the image on this host carries a release version"));
             }
 
             return Ok(());
