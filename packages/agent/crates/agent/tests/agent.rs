@@ -674,6 +674,67 @@ async fn says_in_its_first_hello_how_the_last_agent_swap_went_and_when_one_still
     let _ = booted.agent.shutdown(Signal::Sigterm).await;
 }
 
+/// Docker can answer the helper's wait a moment before its container list stops showing the helper
+/// as running. The boot's sweep then finds the helper on its claim, waits for it again, and still
+/// removes the image the swap replaced.
+#[tokio::test(flavor = "multi_thread")]
+async fn sweeps_after_a_swap_when_docker_still_lists_its_helper_as_running_as_its_wait_returns() {
+    let image = "ankor-agent:next";
+    let helper = |running| SelfUpdateHelper { name: "ankor-self-update-beef00".to_owned(), image: Some(image.to_owned()), running };
+    let booted = boot(BootOptions {
+        prepare: Some(Box::new(move |docker, _| {
+            *docker.self_update_helpers.lock().unwrap() = vec![helper(true)];
+            docker.image_list.lock().unwrap().push((
+                ImageSummary { id: "sha256:agent-old".to_owned(), repo_tags: vec!["ankor-agent:old".to_owned()] },
+                std::collections::BTreeMap::from([("ankor.image".to_owned(), "agent".to_owned())]),
+            ));
+        })),
+        ..BootOptions::default()
+    })
+    .await;
+
+    hello_seen(&booted).await;
+
+    let follows = || {
+        booted
+            .docker
+            .followed
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|entry| entry.id == "ankor-self-update-beef00")
+            .map(|entry| entry.hooks.on_exit.clone())
+            .collect::<Vec<_>>()
+    };
+    // The guard and the swap's report each follow the helper, from tasks of their own.
+    until("the helper followed by the guard and the swap's report", || follows().len() == 2).await;
+
+    let checks = *booted.docker.update_container_checks.lock().unwrap();
+    let followed = follows().len();
+
+    // The wait returns, but the list still shows the helper running, so the sweep's claim refuses
+    // and follows the helper again.
+    for on_exit in follows() {
+        on_exit(Some(0));
+    }
+
+    until("the sweep's claim refused and followed the helper again", || {
+        *booted.docker.update_container_checks.lock().unwrap() > checks && follows().len() > followed
+    })
+    .await;
+    assert!(booted.docker.removed_images.lock().unwrap().is_empty());
+
+    // Docker caught up: the list no longer shows the helper, and its second wait returns.
+    *booted.docker.self_update_helpers.lock().unwrap() = vec![helper(false)];
+
+    for on_exit in follows().into_iter().skip(followed) {
+        on_exit(Some(0));
+    }
+
+    until("the replaced agent image removed", || booted.docker.removed_images.lock().unwrap().contains(&"ankor-agent:old".to_owned())).await;
+    let _ = booted.agent.shutdown(Signal::Sigterm).await;
+}
+
 #[tokio::test]
 async fn tells_the_controller_a_game_crashed_with_its_exit_code() {
     let booted = boot(BootOptions::default()).await;

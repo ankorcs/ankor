@@ -46,7 +46,9 @@ use crate::refused_gslts::RefusedGslts;
 use crate::registry_tags::RegistryFetch;
 use crate::request_handler::{RequestHandlerDeps, handle};
 use crate::resources::{ResourceReporter, ResourceReporterOptions};
-use crate::self_update::{AgentUpdateDeps, AgentUpdateFactory, Cs2ImageUpdateDeps, Cs2ImageUpdateFactory, Cs2ImageUpdateState, prune_superseded_images};
+use crate::self_update::{
+    AgentUpdateDeps, AgentUpdateFactory, BootSweep, Cs2ImageUpdateDeps, Cs2ImageUpdateFactory, Cs2ImageUpdateState, prune_superseded_images, sweep_after_swap,
+};
 use crate::slot_files::SlotFiles;
 use crate::slot_manager::{SlotEvent, SlotManager, SlotManagerDeps};
 use crate::spool_client::{SPOOL_CHECK, SpoolClient, SpoolPort, SpoolWatch};
@@ -670,21 +672,15 @@ pub async fn run_agent(host: AgentHost) -> Result<RunningAgent, BoxError> {
             tasks.spawn({
                 let (config, docker, updates, log, stop) = (config_reader.clone(), Arc::clone(&docker), updates.clone(), update_log.clone(), stop.clone());
 
-                async move {
-                    let mut running = updates.subscribe();
-
-                    // The guard's borrow ends here, before the sweep awaits anything.
-                    let freed = stop.run_until_cancelled(running.wait_for(|held| !held)).await.is_some_and(|waited| waited.is_ok());
-
-                    // A sweep cut short frees the guard as its claim drops; the next boot sweeps again.
-                    if freed {
-                        stop.run_until_cancelled(prune_superseded_images(&config, docker.as_ref(), &updates, &log)).await;
-                    }
-                }
+                async move { sweep_after_swap(&config, docker.as_ref(), &updates, &log, &stop).await }
             });
         }
         Some(_) => {}
-        None => prune_superseded_images(&config_reader, docker.as_ref(), &updates, &update_log).await,
+        None => {
+            if let BootSweep::Refused(reason) = prune_superseded_images(&config_reader, docker.as_ref(), &updates, &update_log).await {
+                update_log.warn(format!("skipping the image sweep: {reason}"));
+            }
+        }
     }
 
     // A fresh node extracts the addon overlay here instead of on its first launch, because the

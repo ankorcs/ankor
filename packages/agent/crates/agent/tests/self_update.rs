@@ -18,7 +18,8 @@ use ankor_agent::install::{InstallOptions, MaintenanceGuard, MaintenanceGuardOpt
 use ankor_agent::logger::{Entry, Logger};
 use ankor_agent::overlay::OverlayPort;
 use ankor_agent::self_update::{
-    AgentUpdateDeps, AgentUpdateReport, Cs2ImageUpdateDeps, Cs2ImageUpdateState, ImageUpdateReport, prune_superseded_images, update_agent, update_cs2_image,
+    AgentUpdateDeps, AgentUpdateReport, BootSweep, Cs2ImageUpdateDeps, Cs2ImageUpdateState, ImageUpdateReport, SWEEP_AFTER_SWAP_PAUSE, prune_superseded_images,
+    sweep_after_swap, update_agent, update_cs2_image,
 };
 use ankor_agent::testing::fixtures::agent_config;
 use ankor_agent::testing::{FakeDocker, FakeOverlay, until, wire};
@@ -30,6 +31,7 @@ use ankor_protocol::types::{
 use async_trait::async_trait;
 use futures_util::future::BoxFuture;
 use serde_json::{Value, json};
+use tokio_util::sync::CancellationToken;
 
 const CS2: &str = "ghcr.io/example/ankor-cs2";
 const AGENT: &str = "ghcr.io/example/ankor-agent";
@@ -986,8 +988,11 @@ async fn skips_the_sweep_while_an_update_holds_the_host() {
     let (config, docker, updates) = boot(vec![ours("sha256:agent-v1", "agent", &tagged(AGENT, "v1"))], "sha256:agent-v2");
 
     *docker.update_container.lock().unwrap() = Some(("ankor-update-ab12cd".to_owned(), Some(labelled())));
-    prune_superseded_images(&config.reader(), docker.as_ref(), &updates, &Logger::null()).await;
 
+    assert_eq!(
+        prune_superseded_images(&config.reader(), docker.as_ref(), &updates, &Logger::null()).await,
+        BootSweep::Refused("ankor-update-ab12cd is already running".to_owned())
+    );
     assert!(docker.removed_images.lock().unwrap().is_empty());
 }
 
@@ -1009,12 +1014,13 @@ async fn removes_nothing_when_inspection_of_either_configured_image_fails() {
 #[tokio::test]
 async fn reports_a_docker_lookup_failure_while_claiming_the_guard_without_calling_it_a_busy_host() {
     let (config, docker, updates) = boot(vec![ours("sha256:agent-v1", "agent", &tagged(AGENT, "v1"))], "sha256:agent-v2");
-    let (log, warned) = warnings();
 
     *docker.update_container_error.lock().unwrap() = Some("Docker connection reset".to_owned());
-    prune_superseded_images(&config.reader(), docker.as_ref(), &updates, &log).await;
+    assert_eq!(
+        prune_superseded_images(&config.reader(), docker.as_ref(), &updates, &Logger::null()).await,
+        BootSweep::Refused("Docker connection reset".to_owned())
+    );
     assert!(docker.removed_images.lock().unwrap().is_empty());
-    assert!(warned.lock().unwrap().contains(&"skipping the image sweep: Docker connection reset".to_owned()));
     assert!(!updates.running());
 }
 
@@ -1029,4 +1035,115 @@ async fn carries_on_past_an_image_the_daemon_will_not_remove() {
     assert!(docker.removed_images.lock().unwrap().is_empty());
     // And the guard came back, so the sweep did its cleanup.
     assert!(!updates.running());
+}
+
+mod after_swap {
+    use super::*;
+    use std::time::Duration;
+
+    const HELPER: &str = "ankor-self-update-beef00";
+    const PAUSE: Duration = SWEEP_AFTER_SWAP_PAUSE;
+
+    struct Swap {
+        docker: Arc<FakeDocker>,
+        stop: CancellationToken,
+        warned: Arc<Mutex<Vec<String>>>,
+        sweep: tokio::task::JoinHandle<()>,
+    }
+
+    impl Swap {
+        /// A host whose helper still proves this agent, and the sweep waiting for it.
+        async fn start() -> Self {
+            let (config, docker, updates) = boot(vec![ours("sha256:agent-v1", "agent", &tagged(AGENT, "v1"))], "sha256:agent-v2");
+            let (log, warned) = warnings();
+            let stop = CancellationToken::new();
+
+            Self::listed(&docker, true);
+            updates.adopt_running().await.unwrap();
+
+            let sweep = tokio::spawn({
+                let (docker, stop) = (Arc::clone(&docker), stop.clone());
+
+                async move { sweep_after_swap(&config.reader(), docker.as_ref(), &updates, &log, &stop).await }
+            });
+
+            Self { docker, stop, warned, sweep }
+        }
+
+        fn listed(docker: &FakeDocker, running: bool) {
+            *docker.self_update_helpers.lock().unwrap() = vec![SelfUpdateHelper { name: HELPER.to_owned(), image: None, running }];
+        }
+
+        /// Each follow of the helper, the boot's adoption first, then one per refused claim.
+        fn follows(&self) -> Vec<Arc<dyn Fn(Option<i64>) + Send + Sync>> {
+            self.docker.followed.lock().unwrap().iter().filter(|entry| entry.id == HELPER).map(|entry| Arc::clone(&entry.hooks.on_exit)).collect()
+        }
+
+        /// Answers the helper's `n`th wait, once that follow exists.
+        async fn exit(&self, n: usize) {
+            until("the helper followed", || self.follows().len() > n).await;
+            (self.follows()[n])(Some(0));
+        }
+
+        fn warned(&self) -> Vec<String> {
+            self.warned.lock().unwrap().clone()
+        }
+
+        async fn ended(self) -> Self {
+            self.ended_within(Duration::from_secs(30)).await
+        }
+
+        async fn ended_within(mut self, limit: Duration) -> Self {
+            tokio::time::timeout(limit, &mut self.sweep).await.expect("the sweep ended").unwrap();
+            self
+        }
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn sweeps_once_docker_stops_listing_the_helper_in_the_pause_after_a_refused_claim() {
+        let swap = Swap::start().await;
+
+        // The wait returns while the list still shows the helper, so the claim refuses and follows
+        // it again. That wait also returns immediately. The list catches up only during the pause.
+        swap.exit(0).await;
+        swap.exit(1).await;
+        tokio::time::sleep(PAUSE / 3).await;
+        Swap::listed(&swap.docker, false);
+
+        let swap = swap.ended().await;
+
+        assert_eq!(*swap.docker.removed_images.lock().unwrap(), [format!("{AGENT}:v1")]);
+        assert_eq!(swap.warned(), Vec::<String>::new());
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn gives_up_after_its_claims_when_docker_keeps_listing_the_helper() {
+        let swap = Swap::start().await;
+
+        for n in 0..3 {
+            swap.exit(n).await;
+        }
+
+        let swap = swap.ended().await;
+
+        assert!(swap.docker.removed_images.lock().unwrap().is_empty());
+        assert_eq!(swap.warned(), [format!("skipping the image sweep: {HELPER} is already running")]);
+        // The adoption, then one follow for each of the three refused claims.
+        assert_eq!(swap.follows().len(), 4);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn ends_quietly_when_the_agent_stops_during_the_pause() {
+        let swap = Swap::start().await;
+
+        swap.exit(0).await;
+        until("the claim refused", || swap.follows().len() == 2).await;
+        swap.stop.cancel();
+
+        // The stop cuts the pause short instead of letting it run out.
+        let swap = swap.ended_within(PAUSE / 2).await;
+
+        assert!(swap.docker.removed_images.lock().unwrap().is_empty());
+        assert_eq!(swap.warned(), Vec::<String>::new());
+    }
 }

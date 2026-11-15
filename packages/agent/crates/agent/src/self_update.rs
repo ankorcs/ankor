@@ -7,6 +7,7 @@
 use crate::sync::lock;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use ankor_protocol::constants::CS2_UPDATE_DETAIL_MAX_CHARS;
 use ankor_protocol::types::{
@@ -15,6 +16,7 @@ use ankor_protocol::types::{
 use async_trait::async_trait;
 use futures_util::future::BoxFuture;
 use serde_json::{Map, Value, json};
+use tokio_util::sync::CancellationToken;
 
 use crate::agent_update::{AgentUpdateState, SwapFailureOutcome};
 use crate::config::{ConfigPatch, ConfigReader, ConfigStore};
@@ -502,21 +504,72 @@ async fn pulled(docker: &dyn DockerPort, image: &str) -> Result<String, OpError>
     Ok(docker.image_id(image).await?.ok_or_else(|| SelfUpdateError::Disappeared { image: image.to_owned() })?)
 }
 
-/// The boot's sweep, under its own claim of the maintenance guard; skipped while an update holds it.
-pub async fn prune_superseded_images(config: &ConfigReader, docker: &dyn DockerPort, updates: &MaintenanceGuard, log: &Logger) {
+/// Whether the boot's sweep ran, or the maintenance guard refused it and why.
+#[derive(Debug, PartialEq, Eq)]
+pub enum BootSweep {
+    Swept,
+    Refused(String),
+}
+
+/// The boot's sweep, under its own claim of the maintenance guard. It does not run while an update
+/// holds the guard, and the caller decides whether to log that or wait and try again.
+pub async fn prune_superseded_images(config: &ConfigReader, docker: &dyn DockerPort, updates: &MaintenanceGuard, log: &Logger) -> BootSweep {
     let release = match updates.claim(MaintenanceOperation::ImageCleanup).await {
         Ok(release) => release,
-        Err(error) => {
-            log.warn(format!("skipping the image sweep: {error}"));
-
-            return;
-        }
+        Err(error) => return BootSweep::Refused(error.to_string()),
     };
 
     // Before any launch, so no server holds an image yet. A sweep that waited for the guard runs
     // later, but a launch that picked an image has its container by then, which keeps the image.
     sweep_superseded_images(config, docker, &[], log).await;
     release.release(None);
+    BootSweep::Swept
+}
+
+/// How many times the sweep after a swap claims the guard.
+const SWEEP_AFTER_SWAP_ATTEMPTS: u32 = 3;
+
+/// The pause before the sweep after a swap claims the guard again.
+pub const SWEEP_AFTER_SWAP_PAUSE: Duration = Duration::from_secs(1);
+
+/// The boot's sweep after a swap, once the helper that proves this agent frees the guard.
+///
+/// Docker can answer the helper's wait a moment before its container list stops showing the helper.
+/// The claim then finds the helper and hands the guard back to it. That wait returns immediately.
+/// The sweep therefore pauses before it claims again, and the list catches up in the pause. If the
+/// list never catches up, the sweep gives up after a few claims. The next boot sweeps again.
+pub async fn sweep_after_swap(config: &ConfigReader, docker: &dyn DockerPort, updates: &MaintenanceGuard, log: &Logger, stop: &CancellationToken) {
+    let mut running = updates.subscribe();
+
+    for attempt in 1..=SWEEP_AFTER_SWAP_ATTEMPTS {
+        // The guard's borrow ends here, before the sweep awaits anything.
+        let freed = stop.run_until_cancelled(running.wait_for(|held| !held)).await.is_some_and(|waited| waited.is_ok());
+
+        if !freed {
+            return;
+        }
+
+        // A sweep cut short frees the guard as its claim drops.
+        let Some(BootSweep::Refused(reason)) = stop.run_until_cancelled(prune_superseded_images(config, docker, updates, log)).await else {
+            return;
+        };
+
+        // A shutdown that begins during the claim also refuses it, which is no reason to log.
+        if stop.is_cancelled() {
+            return;
+        }
+
+        if attempt == SWEEP_AFTER_SWAP_ATTEMPTS {
+            log.warn(format!("skipping the image sweep: {reason}"));
+            return;
+        }
+
+        log.info(format!("the image sweep tries again: {reason}"));
+
+        if stop.run_until_cancelled(tokio::time::sleep(SWEEP_AFTER_SWAP_PAUSE)).await.is_none() {
+            return;
+        }
+    }
 }
 
 /// Removes images that carry the project's label, except those `agent.yml` names, the `held` ones
