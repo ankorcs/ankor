@@ -11,11 +11,28 @@ use rusqlite::{Connection, OptionalExtension as _, params};
 
 use crate::logger::Logger;
 
-include!(concat!(env!("OUT_DIR"), "/spool_layout.rs"));
+/// Every layout file in `migrations/`, by name, in version order. A new migration adds its line here
+/// and moves [`SPOOL_SCHEMA_VERSION`] to its version; the tests fail until both are done.
+pub const SPOOL_LAYOUT_FILES: &[(&str, &str)] = &[("event_spool_0001.sql", include_str!("../migrations/event_spool_0001.sql"))];
 
-/// The layouts a spool file moves through, read from files named by
-/// [`spool_file_version`](crate::spool_files::spool_file_version): the version-1 layout every file
-/// starts from, and each later step with the version it reaches.
+/// The layout this agent writes: the version of the newest file in [`SPOOL_LAYOUT_FILES`].
+pub const SPOOL_SCHEMA_VERSION: u32 = 1;
+
+/// The naming rule for the layout files in `migrations/`: `event_spool_NNNN.sql` takes a file to
+/// version `NNNN`, and `event_spool_0001.sql` is the layout every file starts from. `None` for a
+/// name that breaks the rule.
+fn spool_file_version(name: &str) -> Option<u32> {
+    let digits = name.strip_prefix("event_spool_")?.strip_suffix(".sql")?;
+
+    if digits.len() != 4 || !digits.bytes().all(|byte| byte.is_ascii_digit()) {
+        return None;
+    }
+
+    digits.parse().ok().filter(|version| *version >= 1)
+}
+
+/// The layouts a spool file moves through, read from files named by `spool_file_version`'s rule:
+/// the version-1 layout every file starts from, and each later step with the version it reaches.
 #[derive(Clone, Debug)]
 pub struct SpoolSchema {
     /// The version the newest step reaches.
@@ -31,7 +48,7 @@ impl SpoolSchema {
     ///
     /// # Errors
     ///
-    /// Fails as [`SpoolSchema::from_files`] does, which the build already rules out.
+    /// Fails as [`SpoolSchema::from_files`] does, which the tests rule out.
     pub fn current() -> std::result::Result<Self, String> {
         Self::from_files(SPOOL_LAYOUT_FILES.iter().map(|(name, sql)| ((*name).to_owned(), (*sql).to_owned())))
     }
@@ -43,7 +60,7 @@ impl SpoolSchema {
         let mut steps = Vec::new();
 
         for (name, sql) in files {
-            let version = crate::spool_files::spool_file_version(&name).ok_or_else(|| format!("{name} is not named event_spool_NNNN.sql"))?;
+            let version = spool_file_version(&name).ok_or_else(|| format!("{name} is not named event_spool_NNNN.sql"))?;
 
             steps.push((version, sql));
         }

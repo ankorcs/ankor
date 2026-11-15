@@ -41,7 +41,6 @@ pub mod skipped_types;
 pub mod slot_files;
 pub mod slot_manager;
 pub mod spool_client;
-pub mod spool_files;
 pub mod steam_logon;
 mod sync;
 #[cfg(any(test, feature = "testing"))]

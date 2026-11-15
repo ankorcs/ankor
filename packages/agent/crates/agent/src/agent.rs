@@ -40,7 +40,7 @@ use crate::image_auto_update::{ImageAutoUpdate, NodeImages};
 use crate::install::{Cs2UpdateState, InstallOptions, MaintenanceGuard, MaintenanceGuardOptions, begin_cs2_update};
 use crate::logger::Logger;
 use crate::node_log::{NodeLog, Transport};
-use crate::overlay::{OverlayPort, OverlayStore};
+use crate::overlay::{OverlayError, OverlayPort, OverlayStore};
 use crate::public_ip::{PublicIpResolver, resolve_public_address};
 use crate::refused_gslts::RefusedGslts;
 use crate::registry_tags::RegistryFetch;
@@ -693,8 +693,10 @@ pub async fn run_agent(host: AgentHost) -> Result<RunningAgent, BoxError> {
         let (overlay, image, log) = (Arc::clone(&overlay), config.read().cs2_image, log.clone());
 
         tokio::spawn(async move {
-            if let Err(error) = overlay.ensure(&image).await {
-                log.warn(format!("addon overlay not prepared: {error}; the first launch extracts it"));
+            match overlay.ensure(&image).await {
+                Ok(_) => {}
+                Err(OverlayError::NotOnHost { .. }) => log.info(format!("{image} is not on this host yet; the addon overlay is extracted once it is pulled")),
+                Err(error) => log.warn(format!("addon overlay not prepared: {error}; the first launch extracts it")),
             }
         });
     }
