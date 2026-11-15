@@ -103,7 +103,10 @@ message `required` or `optional`, and optional ones can be ignored.
 The agent builds its URLs from [config:controller.host], [config:controller.tls], [config:controller.socket_path]
 (default `/ws/agent`) and [config:controller.events_path] (default `/api/node/events`) in its
 [`agent.yml`](../configuration.md#agentyml). It sends two headers with the socket upgrade and every
-event upload: `Authorization: Bearer <node token>` and `Ankor-Protocol`.
+event upload:
+
+- `Authorization: Bearer <node token>`, the node's [token](#node-tokens).
+- `Ankor-Protocol`, the [protocol version](#versions) the agent speaks, such as `0.9`.
 
 ### Node tokens
 
@@ -216,13 +219,13 @@ A failed request:
 
 ## Versions
 
-- `Ankor-Protocol` is the protocol's `major.minor`. A peer on an incompatible version is refused
-  with `426`. [Versioning](versioning.md) says which versions are compatible, and how a controller
-  handles a message or key that a newer agent sends.
+- The agent sends the protocol's `major.minor` in the `Ankor-Protocol` header. A peer on an
+  incompatible version is refused with `426`. [Versioning](versioning.md) explains which versions
+  are compatible.
 - Pin each node to its [release line's](../requirements.md#images) tag, such as
-  `ghcr.io/ankorcs/ankor-agent:0.9`, in its `agent.yml` and in updates. Never pin `latest`.
-  Releases on a line only add messages and fields, which a controller can ignore until it uses
-  them.
+  `ghcr.io/ankorcs/ankor-agent:0.9`, in its `agent.yml` and in updates. Never pin `latest` unless
+  your node is connected to ankor.sh. Releases on a line only add messages and fields, which a
+  controller can ignore until it uses them.
 - Read the agent's version from `agent.version` in [agent:hello]. Still welcome a node on a line
   your controller does not support, but launch no servers on it. You can then still move it with
   [agent:update_agent].
