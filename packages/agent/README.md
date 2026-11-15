@@ -12,7 +12,7 @@ shutdown) and the rules for changing its code.
 | Path                      | Holds                                                                                                               |
 |---------------------------|---------------------------------------------------------------------------------------------------------------------|
 | `crates/agent`            | The agent: one binary, and a library its tests use.                                                                 |
-| `crates/agent/migrations` | The event spool's layout, one `event_spool_NNNN.sql` per step, which `build.rs` compiles in.                        |
+| `crates/agent/migrations` | The event spool's layout, one `event_spool_NNNN.sql` per step, listed in `SPOOL_LAYOUT_FILES` in `event_spool.rs`.  |
 | `crates/protocol`         | The wire contract: validators, types and constants generated from `@ankorcs/protocol`, and helpers written by hand. |
 | `crates/conformance`      | The [conformance suite](crates/conformance/README.md), a black-box check against golden transcripts.                |
 | `crates/fake-plugin`      | The plugin's behaviour on the agent's relay, which the fuzz test plays.                                             |
@@ -27,11 +27,11 @@ Each script runs itself in the pinned Linux toolchain of [docker/ci.Dockerfile](
 built for the workstation's architecture. A script therefore needs only Docker and gives the answer
 CI gives, and Linux-only code is checked on any workstation.
 
-| Script                     | Runs                                                                                                                                                                                 |
-|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Script                     | Runs                                                                                                                                                                                                   |
+|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `scripts/check.sh`         | Format, lints, tests, licences, advisories and the image's notices. `--docker`, `--coverage` and `--mutants` add the Docker suite (`docker_service`), line coverage and mutation testing, and combine. |
-| `scripts/run.sh`           | One command in the container, with `ANKOR_*` and `FUZZ_*` variables. `--docker` hands it the host's Docker socket, and `--conformance` sets it up for the conformance suite.         |
-| `scripts/protocol-sync.sh` | The check that the generated contract matches `packages/protocol`. `--update` regenerates it, writes the corpus and runs the protocol tests.                                         |
+| `scripts/run.sh`           | One command in the container, with `ANKOR_*` and `FUZZ_*` variables. `--docker` hands it the host's Docker socket, and `--conformance` sets it up for the conformance suite.                           |
+| `scripts/protocol-sync.sh` | The check that the generated contract matches `packages/protocol`. `--update` regenerates it, writes the corpus and runs the protocol tests.                                                           |
 
 `scripts/lib` holds the functions the scripts load: [in-docker.sh](scripts/lib/in-docker.sh) runs a
 script in the container, and [protocol.sh](scripts/lib/protocol.sh) builds `packages/protocol`.

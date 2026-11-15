@@ -93,7 +93,7 @@ fn base() -> SpoolSchema {
     SpoolSchema::from_files(SPOOL_LAYOUT_FILES.iter().take(1).map(|(name, sql)| ((*name).to_owned(), (*sql).to_owned()))).unwrap()
 }
 
-/// The layout steps in the test fixtures, read from their files as the build reads `migrations/`.
+/// The layout steps in a test fixture directory, read from its files.
 fn fixture_steps(fixture: &str) -> Vec<(String, String)> {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures").join(fixture);
 
@@ -202,9 +202,24 @@ fn creates_a_new_file_at_the_current_schema_version_and_keeps_it_there_on_reopen
 }
 
 #[test]
-fn compiles_in_the_version_one_layout_as_the_current_one() {
-    assert_eq!(SPOOL_LAYOUT_FILES.first().map(|(name, _)| *name), Some("event_spool_0001.sql"));
-    assert_eq!(SpoolSchema::current().unwrap().version, SPOOL_SCHEMA_VERSION);
+fn compiles_in_every_layout_file_and_writes_the_newest() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("migrations");
+    let mut on_disk = Vec::new();
+
+    for entry in std::fs::read_dir(&dir).unwrap() {
+        let path = entry.unwrap().path();
+
+        if path.extension().is_some_and(|extension| extension.eq_ignore_ascii_case("sql")) {
+            on_disk.push(path.file_name().unwrap().to_str().unwrap().to_owned());
+        }
+    }
+
+    on_disk.sort();
+
+    let listed: Vec<&str> = SPOOL_LAYOUT_FILES.iter().map(|(name, _)| *name).collect();
+
+    assert_eq!(listed, on_disk, "every file in migrations/ needs its line in SPOOL_LAYOUT_FILES, in version order");
+    assert_eq!(SpoolSchema::current().unwrap().version, SPOOL_SCHEMA_VERSION, "SPOOL_SCHEMA_VERSION must be the newest file's version");
 }
 
 #[test]
@@ -388,50 +403,6 @@ fn leaves_a_file_at_its_version_when_a_step_read_from_a_file_is_not_valid_sql() 
     let version: u32 = Connection::open(&file.path).unwrap().query_row("PRAGMA user_version", [], |row| row.get(0)).unwrap();
 
     assert_eq!(version, 1);
-}
-
-mod layout_files {
-    use super::*;
-    use ankor_agent::spool_files::layout_files;
-
-    fn dir_with(files: &[(&str, &str)]) -> TempDir {
-        let dir = tempfile::tempdir().unwrap();
-
-        for (name, sql) in files {
-            std::fs::write(dir.path().join(name), sql).unwrap();
-        }
-
-        dir
-    }
-
-    #[test]
-    fn reads_the_sql_files_in_version_order_and_ignores_every_other_file() {
-        let dir = dir_with(&[("event_spool_0003.sql", ""), (".DS_Store", ""), ("event_spool_0001.sql", ""), ("notes.txt", "")]);
-
-        assert_eq!(layout_files(dir.path()).unwrap(), [(1, "event_spool_0001.sql".to_owned()), (3, "event_spool_0003.sql".to_owned())]);
-    }
-
-    #[test]
-    fn fails_without_the_version_one_layout() {
-        let dir = dir_with(&[("event_spool_0002.sql", "")]);
-
-        assert!(layout_files(dir.path()).unwrap_err().contains("has no event_spool_0001.sql"));
-    }
-
-    #[test]
-    fn fails_on_a_sql_file_that_breaks_the_naming_rule() {
-        let dir = dir_with(&[("event_spool_0001.sql", ""), ("spool_2.sql", "")]);
-
-        assert_eq!(layout_files(dir.path()).unwrap_err(), "spool_2.sql is not named event_spool_NNNN.sql");
-    }
-
-    #[test]
-    fn fails_on_a_file_it_cannot_read() {
-        let dir = dir_with(&[("event_spool_0001.sql", ""), ("event_spool_0002.sql", "")]);
-
-        std::fs::set_permissions(dir.path().join("event_spool_0002.sql"), std::fs::Permissions::from_mode(0o000)).unwrap();
-        assert!(layout_files(dir.path()).unwrap_err().starts_with("cannot read event_spool_0002.sql"));
-    }
 }
 
 #[test]
