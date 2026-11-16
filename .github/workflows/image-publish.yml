@@ -1,8 +1,11 @@
 name: Image publish
 
-# Pushes the OCI archives that image-build.yml kept to ghcr.io/ankorcs, tagged X.Y.Z, X.Y and X, and
-# `latest` for the newest release, or with the entry's own `tags` when it has them. release.yml,
-# rebuild.yml and cs2-beta.yml call this once every image has built.
+# Pushes the OCI archives that image-build.yml kept to ghcr.io/ankorcs, tagged `latest` when it is
+# the newest release, then X, X.Y and X.Y.Z, or with the entry's own `tags` when it has them.
+# release.yml, rebuild.yml and cs2-beta.yml call this once every image has built.
+# A release version must be published with all its tags, X.Y.Z last, and a failed run must be run
+# again. The agent looks for a rebuild under X.Y.Z but pulls the tag agent.yml names, so the two
+# must name one build. If X.Y.Z moves alone, a node on `latest` can install an older `latest`.
 # The calling job grants packages: write, and contents: write when it tags the commit.
 on:
   workflow_call:
@@ -54,8 +57,10 @@ jobs:
           if [[ "$TAGS" != null ]]; then
             mapfile -t tags < <(jq -r '.[]' <<<"$TAGS")
           else
-            tags=("$VERSION" "${VERSION%.*}" "${VERSION%%.*}")
+            # X.Y.Z last, as the header explains.
+            tags=()
             [[ "$LATEST" == true ]] && tags+=(latest)
+            tags+=("${VERSION%%.*}" "${VERSION%.*}" "$VERSION")
           fi
           for tag in "${tags[@]}"; do
             skopeo copy --all "oci-archive:${RUNNER_TEMP}/image.tar" "docker://${repo}:${tag}"

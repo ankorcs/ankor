@@ -444,7 +444,9 @@ mod image_auto_update {
         running: PerKind<Option<String>>,
         refuse: Mutex<Option<AgentFailure>>,
         rebuilt: Mutex<PerKind<Option<String>>>,
-        rebuild_checks: Mutex<Vec<String>>,
+        rebuilt_digest_checks: Mutex<Vec<String>>,
+        /// The image agent.yml named at each `rebuilt_digest` call.
+        rebuilt_digest_follows: Mutex<Vec<String>>,
         failed_swap: Mutex<Option<Candidate>>,
         updates: Mutex<Vec<(ImageKind, String)>>,
     }
@@ -472,8 +474,9 @@ mod image_auto_update {
             Ok(())
         }
 
-        async fn rebuild(&self, kind: ImageKind, image: &str) -> Result<Option<String>, OpError> {
-            self.rebuild_checks.lock().unwrap().push(image.to_owned());
+        async fn rebuilt_digest(&self, kind: ImageKind, image: &str) -> Result<Option<String>, OpError> {
+            self.rebuilt_digest_checks.lock().unwrap().push(image.to_owned());
+            self.rebuilt_digest_follows.lock().unwrap().push(self.image(kind));
 
             Ok(self.rebuilt.lock().unwrap().get(kind).clone())
         }
@@ -507,7 +510,8 @@ mod image_auto_update {
             running: versions,
             refuse: Mutex::default(),
             rebuilt: Mutex::default(),
-            rebuild_checks: Mutex::default(),
+            rebuilt_digest_checks: Mutex::default(),
+            rebuilt_digest_follows: Mutex::default(),
             failed_swap: Mutex::default(),
             updates: Mutex::default(),
         });
@@ -544,23 +548,29 @@ mod image_auto_update {
 
         setup.auto.poll().await;
         assert!(updates(&setup).is_empty());
-        assert_eq!(*setup.node.rebuild_checks.lock().unwrap(), ["ghcr.io/ankorcs/ankor-cs2:1", "ghcr.io/ankorcs/ankor-agent:1"]);
+        // The check asks about each running version's exact tag.
+        assert_eq!(*setup.node.rebuilt_digest_checks.lock().unwrap(), ["ghcr.io/ankorcs/ankor-cs2:1.1.0", "ghcr.io/ankorcs/ankor-agent:1.0.1"]);
 
         *setup.node.rebuilt.lock().unwrap().get_mut(ImageKind::Cs2) = Some("sha256:b".to_owned());
         setup.auto.poll().await;
+        // The update still goes to the tag agent.yml follows.
         assert_eq!(updates(&setup), [(ImageKind::Cs2, "ghcr.io/ankorcs/ankor-cs2:1".to_owned())]);
     }
 
     #[tokio::test]
-    async fn checks_for_a_rebuild_under_the_tag_the_node_names_at_its_precision() {
+    async fn checks_for_a_rebuild_under_the_running_version_and_updates_to_the_tag_the_node_follows() {
+        // The check asks about the running version's exact tag, whichever tag agent.yml follows.
+        // A tag like `latest` can point to another version than the one running.
         let setup = setup(
             &[(ImageKind::Cs2, Some("1.1.0")), (ImageKind::Agent, Some("1.0.1"))],
-            &[(ImageKind::Cs2, "ghcr.io/ankorcs/ankor-cs2:1.1.0"), (ImageKind::Agent, "ghcr.io/ankorcs/ankor-agent:1.0")],
+            &[(ImageKind::Cs2, "ghcr.io/ankorcs/ankor-cs2:1"), (ImageKind::Agent, "ghcr.io/ankorcs/ankor-agent:latest")],
             true,
         );
 
+        *setup.node.rebuilt.lock().unwrap().get_mut(ImageKind::Agent) = Some("sha256:b".to_owned());
         setup.auto.poll().await;
-        assert_eq!(*setup.node.rebuild_checks.lock().unwrap(), ["ghcr.io/ankorcs/ankor-cs2:1.1.0", "ghcr.io/ankorcs/ankor-agent:1.0"]);
+        assert_eq!(*setup.node.rebuilt_digest_checks.lock().unwrap(), ["ghcr.io/ankorcs/ankor-cs2:1.1.0", "ghcr.io/ankorcs/ankor-agent:1.0.1"]);
+        assert_eq!(updates(&setup), [(ImageKind::Agent, "ghcr.io/ankorcs/ankor-agent:latest".to_owned())]);
     }
 
     #[tokio::test]
@@ -613,7 +623,8 @@ mod image_auto_update {
         *setup.node.images.lock().unwrap().get_mut(ImageKind::Cs2) = "ghcr.io/ankorcs/ankor-cs2:1.1".to_owned();
         setup.auto.maintenance_ended().await;
         first.await;
-        until("the poll after the maintenance", || setup.node.rebuild_checks.lock().unwrap().contains(&"ghcr.io/ankorcs/ankor-cs2:1.1".to_owned())).await;
+        until("the poll after the maintenance", || setup.node.rebuilt_digest_follows.lock().unwrap().contains(&"ghcr.io/ankorcs/ankor-cs2:1.1".to_owned()))
+            .await;
     }
 
     #[tokio::test]

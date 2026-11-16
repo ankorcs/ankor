@@ -3,9 +3,10 @@
 //! line, a major, or for `0.x` a minor, because a `0.x` minor may break.
 //! The component reads the tags of each repository that `agent.yml` names from its registry. It
 //! runs the update that `update_cs2_image` or `update_agent` runs for the newest `X.Y.Z` above the
-//! running version. If there is none, and the registry's digest for the tag differs from the running
-//! image, the update is to a rebuild of the running version. The cs2 image goes first, because the
-//! agent's swap ends this process.
+//! running version. If there is none, the component compares the digest that the registry gives for
+//! the `X.Y.Z` tag of the running version with the running image. If they differ, the update is to a
+//! rebuild of the running version, still pulled by the tag `agent.yml` names. The cs2 image goes
+//! first, because the agent's swap ends this process.
 //!
 //! - A reference by digest, or with a tag other than `X`, `X.Y`, `X.Y.Z` or `latest`, is left alone.
 //! - The new reference keeps the tag. `latest` stays `latest` and moves to the newest release of
@@ -41,7 +42,7 @@ use crate::docker::DockerPort;
 use crate::failure::OpError;
 use crate::host_layout::agent_update_failure_path;
 use crate::logger::Logger;
-use crate::registry_tags::{ImageName, RegistryFetch, list_tags, parse_image_reference, tag_digest};
+use crate::registry_tags::{ImageName, RegistryError, RegistryFetch, list_tags, parse_image_reference, tag_digest};
 use crate::self_update::{AgentUpdateFactory, Cs2ImageUpdateFactory, Schedule, update_agent, update_cs2_image};
 
 /// The image label that release builds carry their version in.
@@ -154,9 +155,10 @@ pub trait ImageUpdates: Send + Sync {
     async fn running_version(&self, kind: ImageKind) -> Result<Option<String>, OpError>;
     /// Runs the update `update_cs2_image` or `update_agent` runs, and returns once it has ended.
     async fn update(&self, kind: ImageKind, image: &str) -> Result<(), OpError>;
-    /// The digest `image` points to in the registry when that is another build than `kind` runs;
-    /// `None` when it is the same.
-    async fn rebuild(&self, kind: ImageKind, image: &str) -> Result<Option<String>, OpError>;
+    /// The digest `image`, the running version's `X.Y.Z` tag, points to in the registry when that is
+    /// another build than `kind` runs. `None` when it is the same build, when the registry does not
+    /// have the tag, or when no image of `kind` runs.
+    async fn rebuilt_digest(&self, kind: ImageKind, image: &str) -> Result<Option<String>, OpError>;
     /// Whether `candidate` is the build that an earlier agent swap failed with. The swap rolled back
     /// to this agent, which started afresh and so does not remember it. A cs2 image needs no such
     /// check, because nothing can tell whether it works without a launch.
@@ -354,10 +356,17 @@ impl ImageAutoUpdate {
         let Some(target) = target_reference(&image, newest.as_deref().unwrap_or(&running)) else {
             return Ok(());
         };
-        // Without a newer release, a rebuild of the running one under the same tags is the update.
+        // No newer release. Only the newest release is rebuilt every week on fresh base images
+        // (`rebuild.yml`) and pushed under its same tags, so 0.10.0 gets a new digest but keeps its
+        // version. To find such a rebuild, compare the digest of the running version's exact tag,
+        // such as `:0.10.0`, with the digest this host's image was pulled as. An older version's
+        // tag never moves, so it never finds one.
+        // The check does not use the tag `agent.yml` follows, because `latest` can point to another
+        // version. If this host runs 0.10.0 while the registry's `latest` is 0.9.3, those digests
+        // differ too, and updating would install 0.9.3.
         let candidate = match newest {
             Some(version) => Candidate { version, digest: None },
-            None => match deps.rebuild(kind, &target).await? {
+            None => match deps.rebuilt_digest(kind, &format!("{}:{}", image.name, running)).await? {
                 Some(digest) => Candidate { version: running.clone(), digest: Some(digest) },
                 None => return Ok(()),
             },
@@ -465,11 +474,18 @@ impl ImageUpdates for NodeImages {
         Ok(())
     }
 
-    async fn rebuild(&self, kind: ImageKind, image: &str) -> Result<Option<String>, OpError> {
-        match self.running_id(kind).await? {
-            Some(id) => self.moved_tag_digest(image, &id).await,
-            None => Ok(None),
-        }
+    async fn rebuilt_digest(&self, kind: ImageKind, image: &str) -> Result<Option<String>, OpError> {
+        let Some(id) = self.running_id(kind).await? else {
+            return Ok(None);
+        };
+        let (digest, pulled_as) = tokio::join!(tag_digest(image, self.registry.as_ref()), self.docker.repo_digests(&id));
+        let digest = match digest {
+            // The registry does not have this version yet, so there is no rebuild of it.
+            Err(RegistryError::NoDigest { status: 404, .. }) => return Ok(None),
+            digest => digest?,
+        };
+
+        Ok((!pulled_at(&pulled_as?, &digest)).then_some(digest))
     }
 
     // After a failed swap, the local agent_image tag names the build the swap pulled and failed with.
@@ -500,7 +516,7 @@ impl ImageUpdates for NodeImages {
 mod tests {
     use super::*;
     use crate::config::ConfigStore;
-    use crate::registry_tags::{Method, RegistryAnswer, RegistryError};
+    use crate::registry_tags::{Method, RegistryAnswer};
     use crate::testing::FakeDocker;
     use crate::testing::fixtures::agent_config;
     use serde_json::json;
@@ -552,15 +568,66 @@ mod tests {
         let docker = FakeDocker::new();
         let images = node(&docker, true);
 
-        assert_eq!(images.rebuild(ImageKind::Cs2, "ghcr.io/example/ankor-cs2:1").await.unwrap().as_deref(), Some("sha256:new"));
-        assert_eq!(images.rebuild(ImageKind::Agent, "ghcr.io/example/ankor-agent:1").await.unwrap().as_deref(), Some("sha256:new"));
+        assert_eq!(images.rebuilt_digest(ImageKind::Cs2, "ghcr.io/example/ankor-cs2:1.0.1").await.unwrap().as_deref(), Some("sha256:new"));
+        assert_eq!(images.rebuilt_digest(ImageKind::Agent, "ghcr.io/example/ankor-agent:1.0.1").await.unwrap().as_deref(), Some("sha256:new"));
 
         lock(&docker.repo_digests_by_id).insert("sha256:image".to_owned(), vec!["ghcr.io/example/ankor-cs2@sha256:new".to_owned()]);
         lock(&docker.repo_digests_by_id).insert("sha256:own".to_owned(), vec!["ghcr.io/example/ankor-agent@sha256:old".to_owned()]);
-        assert_eq!(images.rebuild(ImageKind::Cs2, "ghcr.io/example/ankor-cs2:1").await.unwrap(), None);
-        assert_eq!(images.rebuild(ImageKind::Agent, "ghcr.io/example/ankor-agent:1").await.unwrap().as_deref(), Some("sha256:new"));
+        assert_eq!(images.rebuilt_digest(ImageKind::Cs2, "ghcr.io/example/ankor-cs2:1.0.1").await.unwrap(), None);
+        assert_eq!(images.rebuilt_digest(ImageKind::Agent, "ghcr.io/example/ankor-agent:1.0.1").await.unwrap().as_deref(), Some("sha256:new"));
 
         *lock(&docker.no_images) = true;
-        assert_eq!(images.rebuild(ImageKind::Cs2, "ghcr.io/example/ankor-cs2:1").await.unwrap(), None);
+        assert_eq!(images.rebuilt_digest(ImageKind::Cs2, "ghcr.io/example/ankor-cs2:1.0.1").await.unwrap(), None);
+    }
+
+    /// A registry where `:1.0.1` names the build the running cs2 image was pulled as, and every
+    /// other tag another build.
+    struct ByTag;
+
+    #[async_trait]
+    impl RegistryFetch for ByTag {
+        async fn fetch(&self, url: &str, _method: Method, _headers: &[(&str, String)]) -> Result<RegistryAnswer, RegistryError> {
+            let digest = if url.ends_with("/manifests/1.0.1") { "sha256:running" } else { "sha256:other" };
+
+            Ok(RegistryAnswer { status: 200, headers: [("docker-content-digest".to_owned(), digest.to_owned())].into(), body: Vec::new() })
+        }
+    }
+
+    #[tokio::test]
+    async fn compares_the_running_image_with_the_digest_of_the_tag_it_is_given() {
+        let docker = FakeDocker::new();
+        let images = NodeImages { registry: Arc::new(ByTag), ..node(&docker, true) };
+
+        lock(&docker.repo_digests_by_id).insert("sha256:image".to_owned(), vec!["ghcr.io/example/ankor-cs2@sha256:running".to_owned()]);
+        assert_eq!(images.rebuilt_digest(ImageKind::Cs2, "ghcr.io/example/ankor-cs2:1.0.1").await.unwrap(), None);
+        assert_eq!(images.rebuilt_digest(ImageKind::Cs2, "ghcr.io/example/ankor-cs2:latest").await.unwrap().as_deref(), Some("sha256:other"));
+    }
+
+    /// A registry that answers every request with one status and no digest.
+    struct Answers(u16);
+
+    #[async_trait]
+    impl RegistryFetch for Answers {
+        async fn fetch(&self, _url: &str, _method: Method, _headers: &[(&str, String)]) -> Result<RegistryAnswer, RegistryError> {
+            Ok(RegistryAnswer { status: self.0, headers: std::collections::BTreeMap::default(), body: Vec::new() })
+        }
+    }
+
+    #[tokio::test]
+    async fn finds_no_rebuild_of_a_version_the_registry_never_released() {
+        let docker = FakeDocker::new();
+        let images = NodeImages { registry: Arc::new(Answers(404)), ..node(&docker, true) };
+
+        // A build made on this host, of a version not released yet: no rebuild, and no error.
+        assert_eq!(images.rebuilt_digest(ImageKind::Agent, "ghcr.io/example/ankor-agent:0.10.0").await.unwrap(), None);
+        assert_eq!(images.rebuilt_digest(ImageKind::Cs2, "ghcr.io/example/ankor-cs2:0.10.0").await.unwrap(), None);
+    }
+
+    #[tokio::test]
+    async fn fails_when_the_registry_answers_another_error_than_not_found() {
+        let docker = FakeDocker::new();
+        let images = NodeImages { registry: Arc::new(Answers(500)), ..node(&docker, true) };
+
+        assert!(images.rebuilt_digest(ImageKind::Agent, "ghcr.io/example/ankor-agent:0.10.0").await.is_err());
     }
 }
