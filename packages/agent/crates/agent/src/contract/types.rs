@@ -2,21 +2,18 @@
 // Generated from @ankorcs/protocol, licensed under Apache-2.0 (LICENSE-APACHE).
 #![allow(clippy::all, clippy::pedantic, unused_imports, reason = "generated")]
 //! The parsed form of each schema. Deserialize only values that the matching validator in
-//! [`crate::schemas`] accepted; the types do not repeat its checks.
+//! [`crate::schemas`] accepted; the types do not repeat its checks. The type of an exported
+//! schema keeps the name of that schema in `@ankorcs/protocol`, whose JSDoc and
+//! <https://docs.ankor.sh/reference/> say what it means.
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use ankor_protocol::literal;
 
-/// Runs a server console command. The plugin answers with a `command_result`
-/// once it has handed the command to the engine, or refuses a line that names a command of
-/// `MATCH_BLOCKED_COMMANDS` while it runs a match.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ExecCommand {
-    /// The console command line.
     pub command: String,
-    /// An id that the answering `command_result` carries back.
     pub request_id: String,
 }
 
@@ -25,14 +22,9 @@ impl ExecCommand {
     pub const FIELDS: &'static [&'static str] = &["type", "command", "request_id"];
 }
 
-/// Loads the server's backup of a round, as `restore_round` from the controller
-/// asks. The plugin runs `mp_backup_restore_load_file` on the file the engine wrote for it
-/// and answers with a `command_result`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginRestoreRound {
-    /// The round to play on from, one-based.
     pub round: i64,
-    /// An id that the answering `command_result` carries back.
     pub request_id: String,
 }
 
@@ -41,11 +33,8 @@ impl PluginRestoreRound {
     pub const FIELDS: &'static [&'static str] = &["type", "round", "request_id"];
 }
 
-/// Starts a match in warmup whatever its `ready_mode`, as `start_match` from
-/// the controller asks. The plugin answers with a `command_result`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginStartMatch {
-    /// An id that the answering `command_result` carries back.
     pub request_id: String,
 }
 
@@ -54,12 +43,8 @@ impl PluginStartMatch {
     pub const FIELDS: &'static [&'static str] = &["type", "request_id"];
 }
 
-/// Asks the plugin for its server's state, which the plugin answers with a
-/// `server_status`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginGetServerStatus {
-    /// An id that the answering `server_status` carries back, to match it to this
-    /// request. Null for none.
     pub request_id: Option<String>,
 }
 
@@ -68,12 +53,6 @@ impl PluginGetServerStatus {
     pub const FIELDS: &'static [&'static str] = &["type", "request_id"];
 }
 
-/// Acknowledges that every frame with `seq <= to_seq` is stored on the node, so the plugin may
-/// discard them.
-///
-/// The agent sends it as frames are stored, and on every connect once the server has events on the
-/// node, so a reconnecting plugin resends only what follows. An `ack` past the last frame the plugin
-/// sent breaks the stream, and the plugin drops the connection.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EventAck {
     pub to_seq: i64,
@@ -84,13 +63,6 @@ impl EventAck {
     pub const FIELDS: &'static [&'static str] = &["type", "to_seq"];
 }
 
-/// What the agent sends a plugin: commands, and an `ack` once events are stored on
-/// the node.
-///
-/// When the agent ends a plugin's socket, it sends a close frame whose reason says why: `1001` when
-/// the agent shuts down, and `1000` when the plugin must replay its history, when a newer connection
-/// of the same server takes its place, or when the server's launch has ended. The plugin reconnects
-/// after each and resends from its last `ack`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum AgentToPluginMessage {
@@ -111,7 +83,6 @@ impl AgentToPluginMessage {
     pub const TAGS: &'static [&'static str] = &["exec", "restore_round", "start_match", "get_server_status", "ack"];
 }
 
-/// Why a plugin did not carry out a command, as an `AgentErrorCode`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CommandRefusal {
     #[serde(rename = "no_match")]
@@ -149,12 +120,9 @@ impl CommandRefusal {
     ];
 }
 
-/// The plugin's answer to a command that carries a `request_id`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CommandResult {
-    /// The `request_id` of the command this answers.
     pub request_id: String,
-    /// Why the plugin refused the command. Null when the plugin carried it out.
     pub error: Option<CommandRefusal>,
 }
 
@@ -174,13 +142,8 @@ fn write_round_backup_tagged<S: serde::Serializer>(value: &ankor_protocol::types
     value.serialize(serializer)
 }
 
-/// The `round_backup` of a match that sends no statistics, which the plugin
-/// sends like `phase_change`, and the agent forwards as
-/// `backup`. `backup` holds the complete event, unchanged, as the
-/// event stream would carry it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginBackup {
-    /// The `round_backup` event, as the event stream would carry it.
     #[serde(serialize_with = "write_round_backup_tagged")]
     pub backup: ankor_protocol::types::RoundBackup,
 }
@@ -190,12 +153,6 @@ impl PluginBackup {
     pub const FIELDS: &'static [&'static str] = &["type", "backup"];
 }
 
-/// What the agent asks of a game server.
-///
-/// - `exec`: relays `console_command` from the controller.
-/// - `restore_round`: relays `restore_round` from the controller.
-/// - `start_match`: relays `start_match` from the controller.
-/// - `get_server_status`: the agent's own request.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum PluginCommand {
@@ -227,8 +184,6 @@ impl PluginConfigFileChat {
     pub const FIELDS: &'static [&'static str] = &["Tag", "TagColor"];
 }
 
-/// The plugin's SwiftlyS2 config file, rendered per launch and bind-mounted over the image's copy.
-/// Keys are PascalCase because the framework's configuration provider reads them that way.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginConfigFile {
     #[serde(rename = "Chat")]
@@ -240,23 +195,9 @@ impl PluginConfigFile {
     pub const FIELDS: &'static [&'static str] = &["Chat"];
 }
 
-/// One sequenced event, which the plugin sends and the agent spools without its `type`, then uploads
-/// as an `EventBatchFrame` of an `event_batch`. `seq` runs from 0 without gaps.
-/// The frame names no server, because the connection's key already proves which one it is.
-///
-/// A frame carries at most `MAX_FRAME_BYTES`, which is no more than
-/// `EVENT_BATCH_MAX_BYTES`, so every event the agent accepts fits an upload batch once stored.
-/// The plugin drops a larger event before sending it, and the agent ends a socket that sends one.
-///
-/// After a gap past the events it stored, or with more than `RELAY_QUEUE_MAX_FRAMES` events or
-/// `RELAY_QUEUE_MAX_BYTES` of them waiting to be stored, the agent accepts no more history and
-/// ends the socket with code `1000` once the rest is stored. The plugin reconnects and resends from its last
-/// `ack`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginEventFrame {
-    /// The event's position among the events of its server.
     pub seq: i64,
-    /// The gameplay event, one of `PluginToControllerMessage`.
     pub event: Value,
 }
 
@@ -265,12 +206,8 @@ impl PluginEventFrame {
     pub const FIELDS: &'static [&'static str] = &["seq", "event", "type"];
 }
 
-/// The match moved to another phase, which the plugin sends whether or not the match sends
-/// statistics, and the agent forwards as `phase_change`. Like
-/// `server_status`, it is sent once and lost without a connection.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginPhaseChange {
-    /// The phase the match is in now.
     pub phase: ankor_protocol::types::MatchPhase,
 }
 
@@ -279,13 +216,9 @@ impl PluginPhaseChange {
     pub const FIELDS: &'static [&'static str] = &["type", "phase"];
 }
 
-/// The match's score changed, which the plugin sends like `phase_change`,
-/// and the agent forwards as `score`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginScore {
-    /// Team 1's score.
     pub team1_score: i64,
-    /// Team 2's score.
     pub team2_score: i64,
 }
 
@@ -294,35 +227,14 @@ impl PluginScore {
     pub const FIELDS: &'static [&'static str] = &["type", "team1_score", "team2_score"];
 }
 
-/// A game server's state, which the plugin sends in answer to every
-/// `get_server_status`. The plugin also sends it unasked once when it
-/// connects and once when it turns `ready`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ServerStatus {
-    /// The map the server is on, up to `MAP_NAME_MAX_CHARS` characters.
     pub map_name: String,
-    /// The loaded match and its team state. Null on a server without a match or after a refused
-    /// config.
     pub r#match: Option<ankor_protocol::types::GetServerStatusReplyMatch>,
-    /// Everyone connected, up to `MAX_SERVER_PLAYERS`.
     pub players: Vec<ankor_protocol::types::GetServerStatusReplyPlayers>,
-    /// Why the plugin could not read or use the match config it was launched with, up to
-    /// `CONFIG_ERROR_MAX_CHARS` characters. Null when the server has no match config or the
-    /// plugin accepted it.
     pub config_error: Option<String>,
-    /// Whether players can join. When `true`, the server is logged on to Steam and has loaded the map
-    /// that its launch asked for, the workshop map when it has one. It stays `true` once set.
-    ///
-    /// CS2 does not fall back to an anonymous logon when Steam refuses its token, so `true` also
-    /// indicates that Steam accepted the GSLT and that its last use can be updated.
     pub ready: bool,
-    /// The SteamID64 that Steam gave the server when it logged on with its GSLT. Each token keeps
-    /// one SteamID across logons, so a controller can look the server up in Steam's server list by
-    /// it. The plugin also adds the `allocation_id` without its dashes to `sv_tags`, which that list
-    /// shows. Null until `ready`.
     pub server_steam_id: Option<String>,
-    /// The `request_id` of the `get_server_status` this answers. Null
-    /// when the request had none or the status was sent unasked.
     pub request_id: Option<String>,
 }
 
@@ -331,10 +243,6 @@ impl ServerStatus {
     pub const FIELDS: &'static [&'static str] = &["map_name", "match", "players", "config_error", "ready", "server_steam_id", "type", "request_id"];
 }
 
-/// Tells the agent that the plugin is about to run `quit` after its match, with every event
-/// acknowledged and the demo finished. The agent stops a server that is still running
-/// `QUIT_TIMEOUT_SECONDS` later. Like `server_status`, it is not resent,
-/// so one sent without a connection is lost.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Quitting {}
 
@@ -343,10 +251,6 @@ impl Quitting {
     pub const FIELDS: &'static [&'static str] = &["type"];
 }
 
-/// What a plugin sends its agent: sequenced `event` frames, its
-/// `server_status`, `phase_change`,
-/// `score`, `backup`,
-/// `command_result` and `quitting`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum PluginToAgentMessage {

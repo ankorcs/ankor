@@ -8,12 +8,12 @@ Ankor has four parts that release separately: the `@ankorcs/protocol` package, t
 the CS2 image and your controller. The protocol and both images share their `major.minor`, and
 only their patch versions differ, so releases with the same `major.minor` work together under
 [SemVer](https://semver.org/). The protocol's version decides whether two parts can talk.
-[Images](../requirements.md#images) explains the image tags and how a node moves between releases.
+[Images](../operations.md#images) explains the image tags and how a node moves between releases.
 
 ## The protocol version
 
 Every request between the parts carries the protocol's version in the `Ankor-Protocol` HTTP
-header. The value is the `major.minor` of `@ankorcs/protocol`, such as `Ankor-Protocol: 0.9`. These
+header. The value is the `major.minor` of `@ankorcs/protocol`, such as `Ankor-Protocol: 0.10`. These
 requests carry it:
 
 - the agent's [socket upgrade](index.md#1-accept-the-connection), [event uploads](events.md) and

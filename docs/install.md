@@ -27,22 +27,21 @@ controller's side of these steps. If you use [ankor.sh](https://ankor.sh), follo
    - If the agent has not connected within a minute, setup warns that the agent keeps retrying.
      Setup still prints the summary. Follow the agent's log with `docker logs -f ankor-agent` to
      see why it hasn't connected.
-   - If the agent rejects its configuration or its token, setup stops with an error. A node that
-     was deleted in the controller has to be added again.
+   - If the agent rejects its configuration or its token, setup stops with an error. If the node
+     was deleted in the controller, you must add it again.
    - [Setup script](setup-script.md) lists the options and explains unattended installs.
 4. In the controller, add the node's slots. A slot is room for one game server. Give each slot a
-   game port, a GOTV port and a [login token](requirements.md#game-server-login-tokens). The controller sends the slots to the agent with
-   [agent:set_config]. A node without slots still connects and reports to the controller, but it
-   cannot run a server.
+   game port, a GOTV port and a [login token](requirements.md#game-server-login-tokens). The
+   controller sends the slots to the agent with [agent:set_config]. A node without slots still
+   connects and reports to the controller, but it cannot start a server.
 5. Open each slot's game port (UDP) in the host's firewall and in your router, so that players can
    reach the server. If you want people to watch matches on the slot, open its GOTV port as well.
-   Setup leaves the firewall alone, so you have to do this yourself.
    - For a test on your LAN, you can skip the router's port forwarding and connect to the node's
      LAN IP. The host's firewall must still allow the ports. Players connect to the node's public
      IPv4 address by default. To hand out the LAN address instead, set it as `pinned_ip` in the
      node's [configuration](configuration.md#agentyml).
-6. In the controller, install CS2. The controller sends [agent:update_cs2], and the agent
-   downloads CS2. This is the large download that [Capacity](requirements.md#capacity) sizes. From
+6. In the controller, install CS2 by sending [agent:update_cs2] to the node. CS2 is a large
+   download, so the node needs the disk space that [Capacity](requirements.md#capacity) lists. From
    then on, the node [keeps CS2 up to date](operations.md#update-cs2) by itself.
 7. [Launch a test server](operations.md#launch-a-test-server) to check that players can join.
 
@@ -52,12 +51,12 @@ Setup installs Docker with your distribution's package manager, so the packages 
 between distributions. Before you run setup, install the packages listed for your distribution and
 read its notes.
 
-Before it changes anything, setup checks the host's architecture, distribution, init system and
-LXC nesting. If the host is not ready, setup stops and explains why.
+Before it changes anything, setup checks the host's architecture, init system and LXC nesting,
+and reads which distribution it runs. If a check fails, setup stops and explains why.
 
 ### Debian and Ubuntu
 
-Install the prerequisites:
+Install the packages that setup needs:
 
 ```sh
 apt-get update && apt-get install -y curl ca-certificates
@@ -74,7 +73,7 @@ apt-get update && apt-get install -y curl ca-certificates
 
 ### Fedora, RHEL, Rocky, AlmaLinux, CentOS Stream
 
-Install the prerequisites:
+Install the packages that setup needs:
 
 ```sh
 dnf install -y curl ca-certificates
@@ -87,7 +86,7 @@ dnf install -y curl ca-certificates
 
 ### Arch
 
-Install the prerequisites:
+Install the packages that setup needs:
 
 ```sh
 pacman -Syu --needed curl ca-certificates
@@ -97,12 +96,12 @@ pacman -Syu --needed curl ca-certificates
   upgrades.
 - On Proxmox's Arch template, initialise the keyring first:
   `pacman-key --init && pacman-key --populate archlinux`.
-- In LXC, pacman's download sandbox fails with "Landlock is not supported by the kernel". Turn the
-  sandbox off with `sed -i '/^\[options\]/a DisableSandbox' /etc/pacman.conf`.
+- In LXC, pacman's download sandbox may fail with "Landlock is not supported by the kernel".
+  Turn the sandbox off with `sed -i '/^\[options\]/a DisableSandbox' /etc/pacman.conf`.
 
 ### openSUSE
 
-Install the prerequisites:
+Install the packages that setup needs:
 
 ```sh
 zypper install -y curl ca-certificates
@@ -110,7 +109,8 @@ zypper install -y curl ca-certificates
 
 ### Alpine
 
-Install the prerequisites. Alpine also needs `bash`, because the setup script is a bash script:
+Install the packages that setup needs. Alpine also needs `bash`, because the setup script is a
+bash script:
 
 ```sh
 apk add bash curl ca-certificates
@@ -122,7 +122,8 @@ apk add bash curl ca-certificates
 
 ## Proxmox LXC
 
-You can run a node in a Proxmox LXC container.
+You can run a node in a Proxmox LXC container. Perform these steps in Proxmox, then follow the steps
+above for the OS the LXC container runs.
 
 - Enable nesting on the Proxmox host with `pct set <vmid> --features nesting=1`. You don't need
   keyctl.
@@ -138,7 +139,7 @@ packages and written `agent.yml`. Fix the setting and run setup again.
 
 Setup stops on these settings:
 
-- Docker Engine older than 25, because the agent needs Engine API 1.44.
+- Docker Engine older than 25, because the agent needs at least Engine API 1.44.
 - Rootless Docker, because the agent container mounts the system daemon's socket and the game
   servers share the host network.
 - `userns-remap` in `/etc/docker/daemon.json`, because it maps uid 1000 away from the owner of

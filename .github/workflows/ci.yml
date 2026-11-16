@@ -1,15 +1,13 @@
 name: CI
 
-# Every pull request and every push to develop runs the Markdown link check, and the checks of each
-# part it changes, as scripts/ci-changes.sh lists the parts. No image is built here: release.yml
-# builds the images on a merge into master and publishes nothing unless they build. The exception is
-# the CS2 image on SwiftlyS2's bump pull request, which swiftlys2.yml merges on its own once its checks
-# pass, so a SwiftlyS2 release that does not build stops before master. All checks passes when each of
-# them passed or had nothing to check, so it is the one check to wait for.
+# Every pull request runs the Markdown link check, and the checks of each part it changes, as
+# scripts/ci-changes.sh lists the parts. Pushes to develop run nothing. No image is built here:
+# release.yml builds the images on a merge into master and publishes nothing unless they build. The
+# exception is the CS2 image on SwiftlyS2's bump pull request, which swiftlys2.yml merges on its own
+# once its checks pass, so a SwiftlyS2 release that does not build stops before master. All checks
+# passes when each of them passed or had nothing to check, so it is the one check to wait for.
 on:
   pull_request:
-  push:
-    branches: [develop]
 
 permissions:
   contents: read
@@ -31,10 +29,10 @@ jobs:
           fetch-depth: 0
       - run: scripts/release-line.sh
       # A pull request's checkout is the pull request merged into its base, so the diff from the base
-      # is its change. A push compares with the commit before it.
+      # is its change.
       - id: changes
         env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha }}
         run: scripts/ci-changes.sh "$BASE" "$GITHUB_SHA" | tee -a "$GITHUB_OUTPUT"
 
   # A renamed file can break a link from Markdown that the pull request leaves alone, so this always

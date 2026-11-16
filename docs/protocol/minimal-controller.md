@@ -1,6 +1,6 @@
 ---
 title: A minimal controller
-description: The shortest path from a new node token to a running CS2 server on a node of your own controller.
+description: Build a simple controller that sets up an Ankor node and starts a CS2 server on it.
 slug: protocol/minimal-controller
 ---
 
@@ -13,8 +13,8 @@ a node to a controller. The "operator" in this context is likely yourself.
 
 The [protocol overview](index.md) describes how to accept a node's connection and exchange messages
 with its agent. In Node.js, the `@ankorcs/protocol` package holds the message schemas. Its session,
-`@ankorcs/protocol/session`, contains helper functions that run the exchange for you, since a WebSocket
-does not have the normal request-response cycle an HTTP request does.
+`@ankorcs/protocol/session`, contains helper functions that run the exchange for you. They match
+each reply to its request, because a WebSocket has no request-response cycle like HTTP.
 
 Agents may run a newer protocol version than your controller. [Versioning](versioning.md) lists
 what your controller must accept from them, and what it skips.
@@ -50,8 +50,8 @@ token: <the token from the request>
 controller:
   host: cs.example.com
   tls: true
-cs2_image: ghcr.io/ankorcs/ankor-cs2:0.9
-agent_image: ghcr.io/ankorcs/ankor-agent:0.9
+cs2_image: ghcr.io/ankorcs/ankor-cs2:0.10
+agent_image: ghcr.io/ankorcs/ankor-agent:0.10
 slots: []
 ```
 
@@ -83,7 +83,7 @@ const sockets = new WebSocketServer({ noServer: true });
 
 server.on('upgrade', (request, socket, head) => {
   const token = bearerNodeToken(request.headers.authorization);
-  // Look up the node via a SHA256 hash of the token the node sent.
+  // Look up the node by the SHA-256 hash of the token that the node sent.
   const node = token === null ? null : findNodeByTokenHash(createHash('sha256').update(token).digest('hex'));
 
   if (node === null) {
@@ -96,7 +96,7 @@ server.on('upgrade', (request, socket, head) => {
   const protocol = request.headers[PROTOCOL_HEADER.toLowerCase()];
 
   if (!isCompatibleProtocol(protocol)) {
-    // If this protocol version is incompatible, reply 426 and close. 
+    // If this protocol version is incompatible, reply 426 and close.
     socket.end(upgradeRefusal(426));
 
     return;
@@ -104,7 +104,7 @@ server.on('upgrade', (request, socket, head) => {
 
   // You can use the node's version header to determine which Ankor features it supports.
   node.protocol = protocolVersionOf(protocol);
-  // Upgrade to WS, which returns a ws object to you
+  // Upgrade the connection to a WebSocket and run the session on it.
   sockets.handleUpgrade(request, socket, head, (ws) => run(node, ws));
 });
 
@@ -116,7 +116,7 @@ function run(node, ws) {
   ws.on('message', (raw) => {
     const frame = session.receive(raw);
 
-    // The typed values from the npm package help you:
+    // The session parses each message into a typed frame, so you can branch on its kind and type.
     if (frame.kind === 'report' && frame.message.type === 'hello') {
       saveHello(node, frame.message);
       // A welcome carries no data; it acknowledges the node, and the node will then
@@ -132,8 +132,9 @@ function run(node, ws) {
 
 ### 5. Add slots
 
-With no slots in `agent.yml`, send [agent:set_config] with each slot's ports and its own
-[Game Server Login Token](../requirements.md#game-server-login-tokens). `slots` is the whole layout:
+If the node's `agent.yml` has no slots, send [agent:set_config] to add them. Give each slot its
+ports and a [Game Server Login Token](../requirements.md#game-server-login-tokens). The `slots`
+array replaces the node's whole slot layout, so always send every slot the node should have:
 
 ```json
 {
@@ -147,8 +148,8 @@ With no slots in `agent.yml`, send [agent:set_config] with each slot's ports and
 }
 ```
 
-The reply carries the node's settings with the new slots. An [agent:slot_status] follows for each
-new slot. With the session:
+The reply carries the node's settings with the new slots. A [agent:slot_status] follows for each
+new slot. With the session, it would look like this:
 
 ```ts
 const result = await node.request({ type: 'set_config', config: { slots } });
@@ -164,22 +165,24 @@ A controller can create the GSLTs with a user's Steam Web API key.
 [`IGameServersService`](https://partner.steamgames.com/doc/webapi/IGameServersService)
 `CreateAccount`, with `appid` `730` and a `memo`, returns the `login_token`. `GetAccountList`,
 `ResetLoginToken` and `DeleteAccount` manage tokens later. [ankor.sh](../ankor-web.md#login-tokens)
-creates its tokens this way. You may also manually create and assign your GSLTs - the agent
-does not care, as long as they are valid.
+creates its tokens this way. You can also create GSLTs by hand and assign them to slots. The
+agent accepts any valid token.
 
 ### 6. Install CS2
 
 Send [agent:update_cs2] with `mode` `update`, then wait until `cs2.update` in [agent:node_status]
-has an `outcome`. The installation usually takes about 30-40 minutes depending on connection. [Install CS2](index.md#5-install-cs2)
-explains the reports sent to your controller during an update.
+has an `outcome`. The installation usually takes about 30–40 minutes, depending on the node's
+connection. [Install CS2](index.md#5-install-cs2) explains the reports sent to your controller
+during an update.
 
 ### 7. Start a server
 
 Create and store a new allocation id, then send it in [agent:start_server]. [Keep track of every
 server](#keep-track-of-every-server) explains why. This launch leaves out every field that has a
-default. It therefore has no `match`, which means it runs a plain CS2 server on `de_dust2` in competitive
-mode, and Ankor's plugin does nothing to the game. `map_name`, `exec`, `commands` and, potentially,
-the node's own plugins then determine the game. [`ServerLaunchConfig`](/reference/types/#schema-ServerLaunchConfig)
+default, so it has no `match`. The node then runs a plain CS2 server on `de_dust2` in competitive
+mode. Ankor's plugin does nothing to the game. `map_name`, `exec`, `commands` and any plugins
+installed on the node determine the game instead.
+[`ServerLaunchConfig`](/reference/types/#schema-ServerLaunchConfig)
 lists the defaults. The agent replies with the allocation and the slot it picked.
 
 <div class="message-cards">
@@ -230,7 +233,7 @@ Wait for the slot's [agent:slot_status] with `state` `running`. Players connect 
 address and the slot's `port`, both from the latest [agent:hello] or [agent:set_config] reply.
 The address is `config.pinned_ip`, or `public_ip` when none is pinned. A `public_ip` of null
 means the node found no public address, so set `pinned_ip` with [agent:set_config] first.
-A player then connects as normally, i.e.:
+A player then connects from the CS2 console as usual:
 
 ```text
 -- if WAN/public IP
@@ -239,9 +242,10 @@ connect 203.0.113.7:27015
 connect 192.168.1.20:27015
 ```
 
-[agent:stop_server] shuts down the server. To run matches with statistics/event collection, launch with a
-[`MatchConfig`](/reference/types/#schema-MatchConfig) whose `send_statistics` is `true`, and accept
-[event uploads](events.md) on your controller.
+[agent:stop_server] shuts down the server. To run matches that collect statistics and events,
+launch with a [`MatchConfig`](/reference/types/#schema-MatchConfig) whose `send_statistics` is
+`true`, and accept [event uploads](events.md) on your controller. To store demos, set
+[config:demo_upload] and accept [demo uploads](demos.md).
 
 ## Keep track of every server
 
@@ -262,10 +266,10 @@ Treat a server as stopped only once the node confirms the stop.
   [agent:start_server].
 - Rank nodes by their latest reports with `slotTakesLaunch` and `cs2Behind` from
   `@ankorcs/protocol/helpers`. The node still decides based on available slots, and may refuse.
-- The server is running once the reply to the start request, or a [agent:slot_status] names its slot,
-  whichever comes first.
-- A [`StartRefusal`](/reference/types/#schema-StartRefusal) means no server started. If you have multiple
-  nodes, you should move on to the next and retry.
+- The server is running once the reply to the start request or a [agent:slot_status] names its
+  slot, whichever comes first.
+- A [`StartRefusal`](/reference/types/#schema-StartRefusal) means no server started. If you have
+  several nodes, retry the launch on the next one.
 - `allocation_in_use` answers a [agent:start_server] sent again with the same `allocation_id`. It
   means the first launch is starting or running on that node. Wait for its [agent:slot_status]
   instead of retrying on a different node, or you may inadvertently launch the allocation twice.
@@ -276,30 +280,29 @@ Treat a server as stopped only once the node confirms the stop.
 
 ### Stops
 
-- A stop may be sent while the server's launch is still waiting for its reply. The node then ends
-  the launch after its current step, without starting the server, and the reply to the start becomes an error.
-  If the stop arrives while Docker starts the container, the launch succeeds and the server is
-  then stopped as soon as possible.
+- You can send a stop while the server's launch is still waiting for its reply. The node finishes
+  the launch's current step, which can take minutes after an image switch. It then ends the launch
+  without starting the server, and the reply to the start is an error. If the stop arrives while
+  Docker starts the container, the launch succeeds and the node stops the server right after.
 - The node replies to a stop once the server's container has stopped. That takes up to
   [limit:STOP_TIMEOUT_SECONDS] seconds for the server to shut down, and up to
   [limit:STOP_REPLY_MARGIN_SECONDS] seconds more if Docker has to kill it. The session waits
   this long for a stop's reply, even if you set a shorter timeout on the session or the call.
-- A stop sent during a launch first waits for the launch's current step to finish, which can
-  take minutes after an image switch. Its reply can then arrive after the session gives up.
+  During a launch, the reply can arrive after the session gives up.
 - `unknown_allocation` means no server runs under the allocation. `failed` leaves the server
-  running: Send the stop again to retry it.
+  running, so send the stop again.
 
 ### Disconnects and restarts
 
 - A disconnected node may still run its servers. Keep their records until the node reconnects.
-- Compare each [agent:hello] with your records. A server on the controller that the `hello` no longer
-  lists has ended. A launch whose reply never came is running if the `hello` lists it. Typically,
-  you should stop a server that you have no record of - or investigate how that happened.
+- Compare each [agent:hello] with your records. If the `hello` no longer lists a server that you
+  have a record of, that server has ended. A launch whose reply never came is running if the
+  `hello` lists it. Stop any server that you have no record of.
 - `server_exits` in the `hello` gives the reason for each server that ended while the node was
   away. A server with no entry there, and no [agent:server_exited] after the [agent:welcome], ended
   without the agent knowing why.
 - A server can end after the agent sent its [agent:hello] but before your [agent:welcome]
-  arrived. The agent then reports it as an [agent:server_exited] right after the `welcome`.
+  arrived. The agent then reports it as a [agent:server_exited] right after the `welcome`.
 - You can receive the same exit twice, in the `hello` and again as a `server_exited`. Record
   each exit by its `allocation_id` and ignore one you already have.
 - Keep [one socket per node](index.md#1-accept-the-connection). The node will never open more than
@@ -347,9 +350,9 @@ replies to its requests.
 
 ### Events
 
-- The node can send the same event batch twice. That happens when its receipt is lost, and a batch
-  can also arrive after its server has ended. [Handling a batch](events.md#handling-a-batch)
-  explains how to keep statistics consistent in both cases.
+The node can send the same event batch twice, when its receipt is lost. A batch can also arrive
+after its server has ended. [Handling a batch](events.md#handling-a-batch) explains how to keep
+statistics consistent in both cases.
 
 ## Replace a slot's token
 

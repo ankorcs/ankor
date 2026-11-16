@@ -53,7 +53,7 @@ agent stays within them even with [limit:MAX_SLOTS] busy slots.
   budget, [ankor.sh](https://ankor.sh) answers `429`.
 - The agent handles at most one [agent:check_cs2_build] in
   [limit-time:CS2_BUILD_CHECK_INTERVAL_MS] and drops any that comes sooner. The agent's scheduled
-  read of the public CS2 build, every [limit-time:CS2_BUILD_POLL_INTERVAL_MS], is not limited.
+  reads of the public CS2 build, [limit-time:CS2_BUILD_POLL_INTERVAL_MS] apart, are not limited.
 - [ankor.sh](https://ankor.sh)'s [demo receiver](demos.md) accepts one upload per node at a time.
   It answers `429` to a second upload. It answers `403` to an upload that would push the node's
   stored demos past the service's quota.

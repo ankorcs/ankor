@@ -6,11 +6,18 @@ slug: how-it-works
 
 An Ankor setup has three sides:
 
-- a controller, which organises matches
-- game nodes, which run them
-- the players who join.
+- A controller, which organises matches - either your own or the official ankor.sh controller.
+- Game nodes, which run the matches on CS2 servers.
+- The players, who join those servers in CS2.
+
+The sections below show how the sides fit together and follow one match from its launch to its
+end. The other guides use the terms that this page defines, so read it before you
+[install a node](install.md) or start on the [protocol](protocol/index.md).
 
 ## The moving parts
+
+The diagram shows a controller and one game node with two slots. One slot runs a match, and the
+other runs a server without a match.
 
 <figure class="diagram" aria-label="The controller at the top; a game node below it, holding the agent, the CS2 installation and two slots, each running a game server; players at the bottom joining the game servers.">
 <div class="diagram-card"><p class="diagram-name">Controller</p><p class="diagram-sub"><a href="https://ankor.sh">ankor.sh</a> or your own</p><p class="diagram-text">Lobbies, teams and maps; statistics built from uploaded events.</p></div>
@@ -33,6 +40,8 @@ An Ankor setup has three sides:
 <div class="diagram-card"><p class="diagram-name">Players</p><p class="diagram-text">In CS2.</p></div>
 </figure>
 
+The rest of these docs use the terms below.
+
 <div class="parts">
 <p class="parts-title">Terminology</p>
 
@@ -40,11 +49,14 @@ An Ankor setup has three sides:
 
 ### Controller
 
-Organises matches and decides what runs where. Nodes never start a server on their own.
+The controller organises matches and decides which server runs on which node. A node starts a
+server only when its controller asks for one.
 
-A controller is anything that serves the agent's socket and its HTTP endpoints. It is typically a
-web service, such as [ankor.sh](https://ankor.sh) or one you build against the
-[protocol](protocol/index.md). The `controller` keys in `agent.yml` hold the controller's address.
+A controller is any service that accepts the agent's WebSocket connection and serves the HTTP
+endpoints that the node uploads to. It is typically a web service, such as
+[ankor.sh](https://ankor.sh) or one that you build against the [protocol](protocol/index.md). The
+node finds its controller through the `controller` keys in
+[`agent.yml`](configuration.md#agentyml), the node's configuration file.
 
 </div>
 
@@ -52,7 +64,8 @@ web service, such as [ankor.sh](https://ankor.sh) or one you build against the
 
 ### Game node
 
-A Linux host you control, with a **node token** that identifies it to the controller.
+A game node, or node, is a Linux host that you control and that runs game servers. Each node has a
+**node token**, which identifies the node to its controller.
 
 </div>
 
@@ -60,9 +73,9 @@ A Linux host you control, with a **node token** that identifies it to the contro
 
 ### Agent
 
-The one long-running service on a node. It runs in a container, `ankor-agent`, beside the game
-servers. It dials the controller and runs the node's game servers and CS2 installation through
-Docker.
+The agent is the one long-running service on a node. It runs in a Docker container named
+`ankor-agent`, beside the game servers. The agent connects to the controller and carries out its
+requests. Through Docker, the agent installs and updates CS2 and starts and stops the game servers.
 
 </div>
 
@@ -70,14 +83,16 @@ Docker.
 
 ### Slots and game servers
 
-A **slot** is room for one game server. It has an id, a game port, a GOTV port and a
-[login token](requirements.md#game-server-login-tokens).
+A **slot** is room for one game server on a node. Each slot has an id, a game port, a GOTV port
+and a [login token](requirements.md#game-server-login-tokens). GOTV is the CS2 feature that lets
+spectators watch a server and that records demos.
 
 A **game server**, or **server**, is the CS2 process that a [launch](#kinds-of-launch) starts in a
-slot. Each server runs in a container of its own. The controller picks an **allocation id** for
-each launch, and the node names the server by it.
+slot. Each server runs in a separate Docker container. The controller picks an **allocation id**
+for each launch, and the node names the server and its events by that id.
 
-A **match** is a server launched with a match configuration. Ankor's plugin runs it for one map.
+A **match** is a server that was launched with a match configuration. Ankor's plugin runs the
+match for one map.
 
 </div>
 
@@ -85,10 +100,11 @@ A **match** is a server launched with a match configuration. Ankor's plugin runs
 
 ### Plugin
 
-Ankor's SwiftlyS2 plugin, in every game server. What it does depends on the
-[launch](#kinds-of-launch). It talks only to the agent on its node, on
-[port [limit:EVENT_RELAY_PORT]](#host-networking). The node's
-[SwiftlyS2 plugins](operations.md#add-swiftlys2-plugins) load beside it.
+The plugin is Ankor's plugin for [SwiftlyS2](https://swiftlys2.net), a plugin framework for CS2
+servers. It runs in every game server, and the [kind of launch](#kinds-of-launch) decides what it
+does. The plugin talks only to the agent on its node, on
+[port [limit:EVENT_RELAY_PORT]](#host-networking). Any
+[SwiftlyS2 plugins](operations.md#add-swiftlys2-plugins) that you add to the node load beside it.
 
 </div>
 
@@ -96,8 +112,8 @@ Ankor's SwiftlyS2 plugin, in every game server. What it does depends on the
 
 ### CS2 installation
 
-One per node, shared by every slot.
-[One installation, many servers](#one-installation-many-servers) explains how.
+Each node has one CS2 installation, which the servers in every slot share.
+[One installation, many servers](#one-installation-many-servers) explains how they share it.
 
 </div>
 
@@ -105,80 +121,91 @@ One per node, shared by every slot.
 
 ## Kinds of launch
 
-A launch sets the game mode, the player count, the cfgs and the console settings. It may also
-carry a match.
+A launch is the controller's request to start a game server, which it sends as
+[agent:start_server]. The launch sets the game mode, the player count, the cfgs and the console
+settings. Cfgs are CS2 config files, which hold console commands for the server to run. A launch
+can also carry a match.
 
-A match may carry a **match id**, the controller's identifier for it. The match id names the
-match's demos. Every match reports its phase and score to the controller over the agent's socket.
-A match that sends **statistics** also uploads its gameplay events.
+A match can carry a **match id**, which is the controller's identifier for the match. The match id
+names the demos of the match. Every match reports its phase and score to the controller over the
+agent's connection, in [agent:phase_change] and [agent:score]. If a match sends **statistics**, the
+node also uploads its gameplay events to the controller. The match sends statistics when its
+`send_statistics` field is `true`.
 
-The match and its statistics decide what the server does:
+Whether a launch carries a match, and whether that match sends statistics, decides what the server
+does:
 
-| Launch                      | Ankor's plugin                                                                                                                                       | Phase and score                 | Gameplay events             |
-|-----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------|-----------------------------|
-| Match that sends statistics | Runs the roster and warmup for one map, and the knife round and demo recording when the [match](/reference/types/#schema-MatchConfig) asks for them. | Reported on the agent's socket. | Uploaded to the controller. |
-| Match without statistics    | Runs the same match flow as a match that sends statistics.                                                                                           | Reported on the agent's socket. | Not collected.              |
-| No match                    | Stays idle. The node's plugins and cfgs set the game.                                                                                                | Not reported.                   | Not collected.              |
+| Launch                      | Ankor's plugin                                                                                                                                                              | Phase and score                 | Gameplay events             |
+|-----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------|-----------------------------|
+| Match that sends statistics | Runs the roster and warmup for one map, and the knife round and [demo recording](operations.md#demos) when the [match](/reference/types/#schema-MatchConfig) asks for them. | Reported on the agent's socket. | Uploaded to the controller. |
+| Match without statistics    | Runs the same match flow as a match that sends statistics.                                                                                                                  | Reported on the agent's socket. | Not collected.              |
+| No match                    | Runs no match. The map, the cfgs, the console settings and the node's plugins set the game.                                                                                 | Not reported.                   | Not collected.              |
 
-A match can play on from a live round's backup, on a new server.
-[Launch a game](protocol/index.md#6-launch-a-game) explains how. A match plays a stock map, which
-every CS2 installation has, in the `casual`, `competitive` or `wingman` game mode. A launch without
-a match can play a map from the Steam Workshop, in any [game mode](/reference/types/#schema-GameMode).
+A match can continue on a new server from the backup of a live round.
+[Launch a game](protocol/index.md#6-launch-a-game) explains how. A match must play a stock map,
+which every CS2 installation includes, in the `casual`, `competitive` or `wingman` game mode. A
+launch without a match can play a map from the Steam Workshop, in any
+[game mode](/reference/types/#schema-GameMode).
 
 ## Series
 
-A match is one map. Its launch carries no series information, such as the number of maps, the
-map's place in the series or the score so far.
+A match covers one map. Its launch carries no information about a series, such as the number of
+maps, the place of the map in the series or the score so far.
 
-A best-of-three is therefore three matches, with three match ids, launched one after another. The
-controller runs the veto, the side picks, the series score and the launch of each next map.
+A best-of-three is therefore three matches, with three match ids, which the controller launches one
+after another. The controller runs the veto, the side picks and the series score. It also launches
+each next map.
 
-get5 and MatchZy work differently. They play a whole series on one server, which changes maps and
-keeps the series score. Ankor leaves the series to the controller, because a game server ends with
-its map:
+Other match plugins, such as get5 and MatchZy, play a whole series on one server. That server
+changes maps and keeps the series score. Ankor leaves the series to the controller instead, because
+each game server shuts down when its map ends. This choice has these trade-offs:
 
 <p class="choice-label pros">Pros</p>
 
-- **Any map, any node.** Each map goes to whichever node has a free slot. A node that fails between
-  maps loses no series state, because it stores none.
-- **One kind of game server.** A map in a series runs like any other. The plugin has no map change,
-  series state or end-of-series handling.
-- **Formats are the controller's.** Bo2, Bo7, a map pool or a per-map side rule needs no plugin or
-  agent release.
+- **Any map, any node.** The controller can send each map to whichever node has a free slot. If a
+  node fails between maps, no series state is lost, because the node stores none.
+- **One kind of game server.** A map in a series runs like any other map. The plugin has no map
+  change, series state or end-of-series handling.
+- **Formats are the controller's.** Bo2, Bo7, a map pool or a per-map side rule needs no new
+  release of the plugin or the agent.
 
 <p class="choice-label cons">Cons</p>
 
-- **More to build.** A controller that offers series implements the veto, the score and the
-  hand-over between maps itself.
-- **Players reconnect between maps,** since the next map will start on another server.
-- **No series in the records a node sends.** Demos carry only their match id, and events only their
-  server. The controller groups them into a series.
+- **More to build.** If your controller offers series, it must implement the veto, the series score
+  and the hand-over between maps.
+- **Players reconnect between maps,** because each map runs on a new server.
+- **No series in the records a node sends.** Demos carry only their match id, and events carry only
+  the allocation id of their server. The controller groups them into a series.
 
 ## From launch to finished match
 
-1. **Launch.** The controller asks a node to start a server. The agent claims a free slot and
-   starts CS2 with the plugin. If the node has no free slot, it refuses the launch, and the controller
-   tries another node.
-2. **Ready.** Once the server is logged on to Steam and its map is loaded, the plugin reports that
-   players can join. The agent then reports the slot `running`. The controller gives players the
-   server's address.
-3. **Play.** In a match, the plugin reports gameplay events. The agent forwards them to the
-   controller.
-4. **Finish.** A match ends with its map. Any server also ends when it is stopped, or when it stays
-   empty for the launch's `idle_shutdown_seconds`. The server shuts down once its last events are
-   stored. The agent then frees the slot and uploads the demo, if one was recorded.
+These steps follow one server from the controller's request to the end of its match:
 
-The messages behind each step are in the [protocol overview](protocol/index.md) and the
-[reference](/reference/).
+1. **Launch.** The controller asks a node to start a server with [agent:start_server]. The agent
+   claims a free slot and starts CS2 with the plugin. If the node has no free slot, it refuses the
+   launch, and the controller tries another node.
+2. **Ready.** When the server has logged on to Steam and loaded its map, the plugin reports that
+   players can join. The agent then reports the slot as `running` in [agent:slot_status]. The
+   controller gives the players the address of the server.
+3. **Play.** In a match that sends statistics, the plugin reports gameplay events. The agent stores
+   them on the node and forwards them to the controller.
+4. **Finish.** A match ends when its map ends. The controller can stop any server earlier. The
+   agent also stops a server that stays empty for the `idle_shutdown_seconds` of its launch. The
+   server shuts down once the agent has stored its last events. The agent then frees the slot and
+   [uploads the demo](protocol/demos.md), if the match recorded one.
+
+The [protocol overview](protocol/index.md) shows the messages behind each step, and the
+[reference](/reference/) describes each message.
 
 ## Control and history
 
-Two kinds of traffic run between the agent and the controller:
+The agent and the controller exchange two kinds of traffic, which the node handles differently:
 
-- **Live control** (launches, commands, server status) is not stored. After a reconnect the agent
-  reports its current state again.
-- **Gameplay history** is stored on the node until the controller confirms it.
-  [Event uploads](protocol/events.md) describes how.
+- **Live control** covers launches, commands and server status. The node does not store it. After
+  a reconnect, the agent reports its current state again.
+- **Gameplay history** stays stored on the node until the controller confirms that it has received
+  it. [Event uploads](protocol/events.md) describes how the node uploads events and how the
+  controller confirms them.
 
 ## Host networking
 
@@ -187,8 +214,12 @@ Game servers and the agent run in Docker's
 network stack instead of a private Docker network behind NAT.
 
 Game traffic is a steady stream of small UDP packets. Host networking keeps Docker's address
-translation and port forwarding out of that path. Players therefore connect straight to the server
-on the node's address. Each plugin talks to the agent on loopback TCP port [limit:EVENT_RELAY_PORT].
+translation and port forwarding out of that path. Players therefore connect directly to the server
+on the address of the node. Each plugin connects to the agent on loopback TCP port
+[limit:EVENT_RELAY_PORT].
+
+The diagram shows the connections of a node with two slots. The agent opens the connection to the
+controller, so the controller never connects to the node.
 
 <figure class="diagram" aria-label="The agent opens a connection out to the controller on TCP 443; on the node, each plugin talks to the agent on loopback port [limit:EVENT_RELAY_PORT]; players reach each slot's game server on its UDP game and GOTV ports.">
 <div class="diagram-card"><p class="diagram-name">Controller</p><p class="diagram-text">Never connects to the node.</p></div>
@@ -207,44 +238,55 @@ on the node's address. Each plugin talks to the agent on loopback TCP port [limi
 
 ## One installation, many servers
 
-Every game server on a node reads the same CS2 installation, so CS2 is downloaded once per node.
-The plugin and its configuration sit in a separate overlay, mounted on top. Each `ankor-cs2` image
-has its own overlay. A CS2 update therefore never overwrites the plugin, and the plugin never
-changes the game files.
+Every game server on a node reads the same CS2 installation, so the node downloads CS2 only once.
+The plugin and its configuration sit in a separate folder, called the overlay. The agent copies the
+overlay out of the `ankor-cs2` image and mounts it on top of the installation in every server. The
+agent keeps one overlay for each `ankor-cs2` image. A CS2 update therefore never overwrites the
+plugin, and the plugin never changes the game files.
 
-The installation cannot change while a server reads it. A CS2 update therefore waits until every
-slot on the node is free. [Update CS2](operations.md#update-cs2) has the details.
-[Node size versus node count](requirements.md#node-size-versus-node-count) weighs this for many
-small nodes against a few large ones.
+The installation must not change while a server reads it. A CS2 update therefore waits until every
+slot on the node is idle. [Update CS2](operations.md#update-cs2) describes how the node updates CS2
+and what it needs for an update.
+[Node size versus node count](requirements.md#node-size-versus-node-count) compares many small
+nodes with a few large ones, which this wait affects.
 
 ## Updates and restarts
 
-| Change                                | When                                                            | Running servers                                                                                                      |
-|---------------------------------------|-----------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
-| CS2 update                            | Only when every slot is [idle](#one-installation-many-servers). | None run during it.                                                                                                  |
-| CS2 image (`ankor-cs2`) replaced      | Any time.                                                       | Keep their image. New servers get the new one.                                                                       |
-| Agent restarted or its image replaced | Any time.                                                       | Keep running. The new agent takes over the running servers and their stored events. A failed replacement rolls back. |
-| Game server crashes                   | Without warning.                                                | Events that the agent has stored are kept. The rest are lost. A relaunch is a new server.                            |
-| Host restarts                         | Any time.                                                       | End as in a crash. The agent starts again with Docker.                                                               |
-| Connection to the controller lost     | Any time.                                                       | Keep running. Their events wait on the node.                                                                         |
+The table shows when each change to a node can happen and what it does to the servers that are
+running:
 
-The node updates CS2 and its images when the controller asks. While [config:auto_update] is on,
-it also updates them by itself. [Images](requirements.md#images) lists which versions go together.
-[Automatic updates](operations.md#automatic-updates) describes what updates by itself and how to
-stop it.
+| Change                                | When                                                            | Running servers                                                                                                                              |
+|---------------------------------------|-----------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| CS2 update                            | Only when every slot is [idle](#one-installation-many-servers). | None run during the update.                                                                                                                  |
+| CS2 image (`ankor-cs2`) replaced      | Any time.                                                       | Keep the image that they started with. New servers start on the new image.                                                                   |
+| Agent restarted or its image replaced | Any time.                                                       | Keep running. The new agent takes over the running servers and their stored events. If the replacement fails, the previous agent runs again. |
+| Game server crashes                   | Without warning.                                                | Keep the events that the agent has stored, and lose the rest. A relaunch starts a new server.                                                |
+| Host restarts                         | Any time.                                                       | End as in a crash. Docker starts the agent again.                                                                                            |
+| Connection to the controller lost     | Any time.                                                       | Keep running. Their events wait on the node.                                                                                                 |
+
+The node updates CS2 and its images when the controller asks. While [config:auto_update] is on, as
+it is by default, the node also updates them by itself. [Images](operations.md#images) lists
+which versions of the agent and CS2 images work together.
+[Automatic updates](operations.md#automatic-updates) describes what the node updates by itself and
+how to turn that off.
 
 ## Trust
 
+The agent controls Docker on the host through the Docker socket, which gives the agent root
+access to the host. These rules decide which images a node runs, and what a controller and a game
+server can reach:
+
 - By default, a node runs only the official images that the
   [Ankor GitHub repository](https://github.com/ankorcs/ankor) publishes, as
-  [config:official_images_only] describes. [agent:update_agent] and [agent:update_cs2_image] refuse
-  any other image, and the setup script refuses to run one. Only the node's operator can turn this
-  off, in `agent.yml`.
-- With it off, [agent:update_agent] runs whatever image the controller sends, and that image can
-  use the Docker socket. Connect such a node only to a controller you would give root on that host.
+  [config:official_images_only] describes. The agent refuses [agent:update_agent] and
+  [agent:update_cs2_image] for any other image, and the setup script refuses to run one. Only the
+  node's operator can turn this setting off, in `agent.yml`.
+- If the setting is off, [agent:update_agent] runs any image that the controller sends, and that
+  image can use the Docker socket. Connect such a node only to a controller that you would give
+  root on that host.
 - While [config:auto_update] is on, the node runs each new release or rebuild of its
-  [line](requirements.md#images) from the repositories that `agent.yml` names.
-- A workshop server receives the Steam Web API key from its launch. Whoever runs the node can
-  therefore read the key.
-- Game containers run with dropped capabilities and no access to the Docker socket.
-- The agent listens for plugins on loopback only and accepts only the servers it launched.
+  [release line](operations.md#images), from the image repositories that `agent.yml` names.
+- A server needs a Steam Web API key to download a map from the Steam Workshop. The key arrives in
+  the launch of the server, so whoever runs the node can read the key.
+- Game containers run with dropped capabilities and without access to the Docker socket.
+- The agent listens for plugins on loopback only, and it accepts only the servers that it launched.

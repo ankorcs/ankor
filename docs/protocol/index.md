@@ -106,7 +106,7 @@ The agent builds its URLs from [config:controller.host], [config:controller.tls]
 event upload:
 
 - `Authorization: Bearer <node token>`, the node's [token](#node-tokens).
-- `Ankor-Protocol`, the [protocol version](#versions) the agent speaks, such as `0.9`.
+- `Ankor-Protocol`, the [protocol version](#versions) the agent speaks, such as `0.10`.
 
 ### Node tokens
 
@@ -222,8 +222,8 @@ A failed request:
 - The agent sends the protocol's `major.minor` in the `Ankor-Protocol` header. A peer on an
   incompatible version is refused with `426`. [Versioning](versioning.md) explains which versions
   are compatible.
-- Pin each node to its [release line's](../requirements.md#images) tag, such as
-  `ghcr.io/ankorcs/ankor-agent:0.9`, in its `agent.yml` and in updates. Never pin `latest` unless
+- Pin each node to its [release line's](../operations.md#images) tag, such as
+  `ghcr.io/ankorcs/ankor-agent:0.10`, in its `agent.yml` and in updates. Never pin `latest` unless
   your node is connected to ankor.sh. Releases on a line only add messages and fields, which a
   controller can ignore until it uses them.
 - Read the agent's version from `agent.version` in [agent:hello]. Still welcome a node on a line
@@ -424,7 +424,7 @@ reports coming.
 
 ## 4. Keep the connection alive
 
-The agent pings every [limit-time:AGENT_PING_INTERVAL_MS]. WebSocket libraries answer pings for
+The agent sends a ping, then waits [limit-time:AGENT_PING_INTERVAL_MS] before the next. WebSocket libraries answer pings for
 you. Close the socket of an agent that has sent nothing for [limit-time:AGENT_PING_TIMEOUT_MS]. A
 ping counts as something sent, so an idle node stays connected.
 

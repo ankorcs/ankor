@@ -190,6 +190,19 @@ commit none of it.
 - **Reopen if:** keeping it in step costs more than the Node step would, such as frequent conflicts
   in the generated files.
 
+## The generated Rust does not copy the contract's JSDoc
+
+**Tried:** codegen read the JSDoc of every schema and field from the protocol's sources and wrote it
+into the generated Rust as doc comments.
+
+- **Why not:** `protocol-sync.sh` compares the committed Rust byte for byte. Every JSDoc edit in
+  `packages/protocol` therefore failed the agent's check until someone regenerated and committed
+  the Rust, although the agent compiled the same code. The type of an exported schema keeps the
+  schema's name. A reader looks its meaning up in `@ankorcs/protocol`. The protocol reference
+  renders most of that JSDoc, but not the container constants.
+- **Reopen if:** agent developers need the meaning of a type in their editor often enough that a
+  lookup in the reference costs more than the regeneration did.
+
 ## The Rust contract is generated from zod, not from JSON Schema
 
 **Proposal:** make JSON Schema, an AsyncAPI generator, a neutral IDL such as TypeSpec or Protobuf, or

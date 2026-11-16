@@ -10,49 +10,86 @@ Most actions on an installed node are requests from the controller to the agent.
 ## Launch a test server
 
 Before a node runs real matches, have the controller launch a server without a match on it. This
-is an [agent:start_server] with `match` set to `null`. Join the server to check that CS2 is
-installed, the ports are open and players can get in. The node needs an idle slot whose login token
-Steam has not refused.
+is a [agent:start_server] with `match` set to `null`. Join the server to check that CS2 is
+installed, the ports are open and players can get in. The node needs an idle slot with a valid GSLT.
 
 ## Automatic updates
 
-A node keeps itself up to date while [config:auto_update] is on, as it is by default. It follows
-the game build and both images together, since a CS2 update can break the plugin or SwiftlyS2. The
-break lasts until a fixed `ankor-cs2` release is out.
+While [config:auto_update] is on, as it is by default, the node updates CS2 and both images by
+itself. It updates them together, because a CS2 update can break the plugin or SwiftlyS2 until a
+fixed `ankor-cs2` release is out.
 
-| What               | Source of new versions                               | When it updates                                     |
-|--------------------|------------------------------------------------------|-----------------------------------------------------|
-| The CS2 game build | Steam's public build                                 | Once every slot is idle                             |
-| The CS2 image      | Tags of the `cs2_image` repository in its registry   | At the next registry read. Running servers carry on |
-| The agent image    | Tags of the `agent_image` repository in its registry | At the next registry read. Running servers carry on |
+| What               | Source of new versions           | When it updates                                          |
+|--------------------|----------------------------------|----------------------------------------------------------|
+| The CS2 game build | Steam's public build             | Once every slot is idle. [Update CS2](#update-cs2)       |
+| The CS2 image      | The image's tags in its registry | At the next registry read. Running servers carry on      |
+| The agent image    | The image's tags in its registry | At the next registry read. Running servers carry on      |
 
-[Update CS2](#update-cs2) describes the game update.
-[Follow image releases](#follow-image-releases) describes the image updates.
+### Images
 
-[agent:update_cs2], [agent:update_cs2_image] and [agent:update_agent] work whether the setting is
-on or off. While it is on, a manual update to an older release of a line does not last. At the
-next registry read, the image moves back to the newest release of its
-[line](requirements.md#images). That read follows the
-manual update immediately. To keep an older release, name it by digest in `agent.yml` or turn the
-setting off.
+Nodes run the `ghcr.io/ankorcs/ankor-agent` and `ghcr.io/ankorcs/ankor-cs2` images, so the node
+must be able to reach `ghcr.io`. Your controller names their tags in `agent.yml`.
 
-### Keep a node on its versions
+- Each release is tagged `X.Y.Z`, `X.Y` and `X`. The newest release of all is also tagged
+  `latest`, which crosses majors.
+- A release line is a major, such as `:1`. For a `0.x` image, it is a minor, such as `:0.10`,
+  because [SemVer](https://semver.org/#spec-item-4) lets a `0.x` minor break compatibility.
+- Both images and the protocol share a line, so `ankor-agent:0.10` and `ankor-cs2:0.10` work
+  together.
+- Only a new line can break compatibility. The agent can break the protocol, and
+  [Versioning](protocol/versioning.md) lists which releases support each version. The CS2 image can
+  break the software it carries. For example, a new SwiftlyS2 major requires node plugins to be
+  rebuilt.
+- Only the newest release is maintained, because only it receives fixes for CS2 updates. It is
+  rebuilt each week on updated base images under the same tags. Run the newest line.
+- Your controller chooses the line, and moves a node with [agent:update_agent] and
+  [agent:update_cs2_image]. An update to a line's tag gives the newest release of that line.
 
-You can keep a node on its installed build and images. This suits a LAN event, or any event where
-the players' clients stay on one build. Your controller turns [config:auto_update] off with
-[agent:set_config]. Alternatively, set it to `false` in `agent.yml` and
+### Follow image releases
+
+The agent reads the image tags from the registry, and waits
+[limit-time:IMAGE_UPDATE_POLL_INTERVAL_MS] between reads. It also reads them when it starts, when [config:auto_update] is turned on, and after a manual
+update to other images. It then updates each image, the CS2 image first:
+
+- to a newer `X.Y.Z` release on its line, or to any newer release on `latest`
+- otherwise, to the [weekly rebuild](#images) of its release, when the registry's digest for the
+  running version differs from the running image.
+
+The node reports each update in [agent:node_status], as it reports a manual one.
+
+The agent follows an image only when `agent.yml` names it by `X`, `X.Y`, `X.Y.Z` or `latest`. An
+image named by digest or by another tag stays on its build. The new reference keeps the precision
+of the tag, so `:1.2` becomes `:1.3` and `:1` stays `:1`. ankor.sh issues `latest`, and a
+controller that pins a line issues its tag, such as `:0.10`.
+
+- While [config:auto_update] is on, the next registry read undoes a manual update to an older
+  release. To stay on that release, name the image by digest or
+  [disable updates](#disable-updates).
+- If a pull fails, the agent tries again at the next read. If other maintenance refuses the
+  update, the agent tries again when that maintenance ends.
+- If an agent update fails, the node keeps the old agent and reports the failure. The agent then
+  skips that build and waits for a newer release or rebuild. If the update helper crashed and
+  rolled back instead, the agent tries the same build again.
+  [Update the agent](#update-the-agent) describes the swap.
+- The agent reads the version from the image's `org.opencontainers.image.version` label, and
+  leaves an image without it alone. It reads any registry that allows anonymous reads over HTTPS,
+  Docker Hub included.
+
+### Disable updates
+
+To keep a node on its CS2 build and images, for example at a LAN event, turn [config:auto_update]
+off. Your controller sends [agent:set_config], or you set it to `false` in `agent.yml` and
 [restart the agent](#restart-the-agent).
 
-The node then updates nothing by itself, and it accepts launches while a newer public build is out.
-Players whose clients have updated cannot join its servers. Manual updates still run.
-
-When the setting is turned back on, a node behind the public build updates as soon as every slot
-is idle. The images update immediately.
+The node then updates nothing by itself, and it accepts launches even when a newer public build is
+out. Players whose clients have updated cannot join its servers. Manual updates still run. When
+the setting is turned back on, the images update immediately, and CS2 updates once every slot is
+idle.
 
 ## Update CS2
 
 Once CS2 is installed, the node keeps it up to date by itself, unless you
-[keep it on its versions](#keep-a-node-on-its-versions). When Valve releases a new build, the node
+[disable updates](#disable-updates). When Valve releases a new build, the node
 stops accepting launches, since players on the new client cannot join the old build. Running
 servers play on, and the node updates as soon as every slot is idle. It makes one attempt per
 build, and one more after an agent restart. After a failed attempt, the node accepts no launches
@@ -71,51 +108,11 @@ the install volume:
 | `update`, `verify` | [limit:CS2_UPDATE_MIN_FREE_GB] GB                   |
 | `reinstall`        | [limit:CS2_REINSTALL_MIN_FREE_GB] GB after the wipe |
 
-## Follow image releases
-
-While [config:auto_update] is on, the agent reads the tags of the `cs2_image` and `agent_image`
-repositories from their registry. It waits [limit-time:IMAGE_UPDATE_POLL_INTERVAL_MS] between
-reads. It also reads them when the agent starts, when the setting is turned on, and after a manual
-update that names other images.
-
-When the registry has a newer `X.Y.Z` release on the node's release line, the agent updates to it.
-A node on `latest` updates to any newer release.
-It updates as [agent:update_cs2_image] and [agent:update_agent] would, the CS2 image first.
-
-Without a newer release, the agent compares the digest that the registry gives for the `X.Y.Z` tag
-of the running version with the image it runs. If they differ, it updates the same way to that
-[weekly rebuild](requirements.md#images) of its release. If the registry does not have the running
-version yet, the agent leaves the image alone. The node reports each update in [agent:node_status],
-as it reports a manual one.
-
-- The agent reads the running version from the image's `org.opencontainers.image.version` label,
-  which release images carry. It leaves an image without the label alone.
-- The new reference keeps the precision of the tag in `agent.yml`. `ghcr.io/ankorcs/ankor-cs2:1`
-  stays as it is and is pulled again. `:1.2` becomes `:1.3`, and `:1.2.0` becomes `:1.3.0`.
-- `latest` stays `latest`, so the node moves to every new line by itself. ankor.sh issues `latest`
-  because it deploys each new line as it ships. A controller that pins a line issues its tag, such
-  as `:0.9`.
-- An image named by digest, or with a tag other than `X`, `X.Y`, `X.Y.Z` or `latest`, stays as it
-  is.
-- If a pull fails, the agent tries again at the next read. If an update is refused while other
-  maintenance runs, the agent tries again when that maintenance ends.
-- If the swap or the new agent fails after an agent update's pull, the node keeps the old agent. It
-  reports the failed update in [agent:node_status]. The agent then updates only to a newer release
-  or rebuild, not to the build that failed.
-- If the helper crashes or runs out of memory, its rerun finishes or rolls back the swap. After a
-  rollback, the agent tries the same build again at the next read.
-- The agent reads any registry over HTTPS that allows anonymous reads, Docker Hub included.
-  `ghcr.io` allows them for the official images.
-
-Auto-update follows an image only when `agent.yml` names it by a release tag: `X`, `X.Y`, `X.Y.Z`
-or `latest`. An image named by a digest, such as `ghcr.io/ankorcs/ankor-cs2@sha256:…`, or by any
-other tag stays on its build. The other image and CS2 itself still update.
-
 ## Update the CS2 image
 
 The plugin, SwiftlyS2 and the server configuration ship together in the `ankor-cs2` image.
 [agent:update_cs2_image] switches the node to another version. Only servers launched afterwards
-use it. [Images](requirements.md#images) lists the version tags. The node also
+use it. [Images](#images) explains the version tags. The node also
 [follows image releases](#follow-image-releases) by itself.
 
 ## Update the agent
@@ -194,7 +191,7 @@ docker logs ankor-self-update-<id>
 The agent removes the images that an update replaced once no container uses them. It checks after
 each update and when it starts.
 
-## Update the agent from the host
+### Update the agent from the host
 
 If the agent cannot connect, or the controller rejects its protocol version, it cannot receive
 [agent:update_agent]. Update it on the host instead, with `--update` of the
