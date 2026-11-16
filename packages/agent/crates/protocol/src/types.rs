@@ -2856,7 +2856,7 @@ impl ControllerReserveSlot {
 ///   (`GameMode`).
 /// - `plugin_offline` while the slot's `plugin_online` is `false`.
 /// - `plugin_status_timeout` when the plugin does not answer.
-/// - `no_match`, `not_live`, `at_halftime` or `between_rounds` when the plugin refuses the restore.
+/// - A `CommandRefusal` code when the plugin refuses the restore.
 ///
 /// The node keeps the backup of every round it has played, including rounds after one it was
 /// restored to. If `round` is past the current round, the server loads play that the match has
