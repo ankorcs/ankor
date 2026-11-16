@@ -718,13 +718,13 @@ public sealed class MatchState : IDisposable
     public bool AtHalftime => SidesSwapPending;
 
     /// <summary>
-    /// From a round's end to the next round's start. A backup loaded then has its scores applied, but
-    /// the engine never restarts into the restored round: the round end already under way absorbs the
-    /// restart, and the server is left loading for good. The next round start is seconds away.
+    /// From a round's end to the next round's start. The engine applies the scores of a backup loaded
+    /// then, but it does not restart into the restored round, because the round end under way takes
+    /// the restart. The server stays loading. The next round start is seconds away.
     /// </summary>
     public bool BetweenRounds { get; private set; }
 
-    /// <summary>A round ended, live or not; the next round start clears it.</summary>
+    /// <summary>A round ended, live or not. The next round start clears <see cref="BetweenRounds"/>.</summary>
     public void NoticeRoundEnded() => BetweenRounds = true;
 
     /// <summary>
@@ -766,17 +766,17 @@ public sealed class MatchState : IDisposable
             return false;
         }
 
-        if (BetweenRounds)
-        {
-            LogEvent(LogLevel.Warn, "a backup load was refused: the round has ended; load it once the next round has started");
-            return false;
-        }
-
         // A backup belongs to live play; loaded in the knife round or the side choice it would skip the
         // live cfgs and the demo, and a failed one would leave no phase to go back to.
         if (Phase is MatchPhase.Knife or MatchPhase.SideChoice)
         {
             LogEvent(LogLevel.Warn, "a backup load was refused: load one in warmup or during live play");
+            return false;
+        }
+
+        if (BetweenRounds)
+        {
+            LogEvent(LogLevel.Warn, "a backup load was refused: the round has ended; load it once the next round has started");
             return false;
         }
 
@@ -895,9 +895,10 @@ public sealed class MatchState : IDisposable
 
     /// <summary>
     /// The engine started loading but never restarted the round, or restarted it with scores the
-    /// plugin cannot read. A live match goes back to how the load found it. A launch stays pending,
-    /// unreported, until a load is tried again or the controller, which sees the phase and the
-    /// log, ends the server.
+    /// plugin cannot read. A live match goes back to how the load found it. If the load's round end
+    /// was seen, a new load is refused as <see cref="BetweenRounds"/> until the next round starts. A
+    /// launch stays pending, unreported, until a load is tried again or the controller, which sees
+    /// the phase and the log, ends the server.
     /// </summary>
     private void RestoreFailed(string reason)
     {
@@ -1269,6 +1270,7 @@ public sealed class MatchState : IDisposable
     {
         CancelPhaseWork();
         SidesSwapPending = false;
+        BetweenRounds = false;
         if (!Ending) Phase = MatchPhase.Loading;
     }
 

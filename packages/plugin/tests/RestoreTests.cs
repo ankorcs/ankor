@@ -396,9 +396,8 @@ public sealed class RestoreTests
     }
 
     /// <summary>
-    /// From a round's end to the next round's start, the engine applies a loaded backup's scores but
-    /// never restarts into its round, and stays loading: the load is refused from every path until the
-    /// next round has started.
+    /// From a round's end to the next round's start, the engine applies the scores of a loaded backup
+    /// but stays loading. So the load is refused from every path until the next round has started.
     /// </summary>
     [Fact]
     public void ALoadBetweenRoundsIsRefusedFromEveryPath()
@@ -425,6 +424,61 @@ public sealed class RestoreTests
         Assert.False(match.BetweenRounds);
         Assert.Null(match.RestoreRound(2, "ankor/backups/ankor_round01.txt"));
         Assert.Single(LoadCommands(session));
+    }
+
+    /// <summary>
+    /// A load whose round end the engine fired, and which never restarted the round, fails back to the
+    /// live match. A new load is refused until the next round starts.
+    /// </summary>
+    [Fact]
+    public void AFailedLoadAfterItsRoundEndIsRetriedOnceTheNextRoundStarts()
+    {
+        var session = InRoundFour();
+        var match = session.Match;
+        Assert.Null(match.RestoreRound(2, "ankor/backups/ankor_round01.txt"));
+        session.Engine.LoadingRoundBackup = true;
+        session.EndRound(Side.T, 8);
+        session.Engine.LoadingRoundBackup = false;
+        Assert.Equal(MatchPhase.PendingRestore, match.Phase);
+
+        session.Engine.Advance(10);
+
+        Assert.Equal(MatchPhase.Live, match.Phase);
+        Assert.True(match.BetweenRounds);
+        Assert.Equal(CommandResult.BetweenRounds, match.RestoreRound(2, "ankor/backups/ankor_round01.txt"));
+
+        session.StartRound(5);
+        Assert.Null(match.RestoreRound(2, "ankor/backups/ankor_round01.txt"));
+    }
+
+    /// <summary>The knife round's end refuses a console load as the knife round, not as between rounds.</summary>
+    [Fact]
+    public void ALoadAfterTheKnifeRoundEndsIsRefusedAsTheKnifeRound()
+    {
+        var session = new GameplayTestSession(record: false);
+        var match = session.Match;
+        match.StartKnifeRound();
+        session.Send(new RoundStartInput());
+        session.EndRound(Side.T, 8);
+        session.Sent.Clear();
+        Assert.True(match.BetweenRounds);
+
+        Assert.False(match.BeforeBackupLoad());
+
+        Assert.Single(session.Sent.OfType<PluginLog>(), log => log.message.Contains("load one in warmup or during live play"));
+    }
+
+    /// <summary>A map change clears a round end that the next map's warmup would otherwise carry.</summary>
+    [Fact]
+    public void AMapChangeClearsTheRoundEnd()
+    {
+        var session = InRoundFour();
+        session.EndRound(Side.T, 8);
+        Assert.True(session.Match.BetweenRounds);
+
+        session.Match.OnMapLoad();
+
+        Assert.False(session.Match.BetweenRounds);
     }
 
     /// <summary>A load already running at halftime cannot be refused, so it is followed.</summary>
