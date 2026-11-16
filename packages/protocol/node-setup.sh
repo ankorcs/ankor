@@ -40,7 +40,7 @@ unset ANKOR_NODE_TOKEN
 
 # The protocol version this script sends with the node-setup request; PROTOCOL_VERSION in
 # @ankorcs/protocol's paths.ts.
-readonly PROTOCOL_VERSION=0.9
+readonly PROTOCOL_VERSION=0.10
 # The official images' repositories, OFFICIAL_IMAGES in @ankorcs/protocol's values.ts. Unless
 # agent.yml sets official_images_only to false, this script runs no other image.
 readonly OFFICIAL_AGENT_IMAGE=ghcr.io/ankorcs/ankor-agent

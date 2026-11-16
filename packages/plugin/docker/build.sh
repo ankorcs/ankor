@@ -18,10 +18,16 @@ set -euo pipefail
 TAG="${1:-ankor-cs2:dev}"
 [ $# -gt 0 ] && shift
 PLUGIN="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# The image is labelled with the plugin's version, which the Dockerfile checks.
+VERSION="$(sed -n 's:.*<AnkorVersion>\(.*\)</AnkorVersion>.*:\1:p' "$PLUGIN/Directory.Build.props")"
+# It is also labelled with the commit, or with none outside a git checkout.
+REVISION="$(git -C "$PLUGIN" rev-parse HEAD 2>/dev/null || true)"
 
 exec docker build \
   --platform linux/amd64 \
   -f "$PLUGIN/docker/Dockerfile" \
+  --build-arg VERSION="$VERSION" \
+  --build-arg REVISION="$REVISION" \
   -t "$TAG" \
   "$@" \
   "$PLUGIN"

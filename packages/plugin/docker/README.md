@@ -55,6 +55,9 @@ packages/plugin/docker/build.sh ankor-cs2:1.2.3  # tags ankor-cs2:1.2.3
   contents only.
 - The plugin's tests run in the Dockerfile's first stage, so a failing test fails the build. Among
   them, a chat message key without a translation fails it.
+- The image is labelled `org.opencontainers.image.version` with `AnkorVersion` from
+  [Directory.Build.props](../Directory.Build.props). The agent reads that label to follow image
+  releases, so the Dockerfile refuses a `VERSION` build argument that differs. build.sh passes it.
 
 ## Changing the image
 

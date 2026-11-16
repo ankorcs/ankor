@@ -29,8 +29,9 @@ file does not hold. Warmup and the knife round have no backups.
 ## Restore a running match
 
 [agent:restore_round] plays a running match on from one of its earlier rounds, on the same server.
-The plugin loads the file that CS2 wrote as that round started. The match must be live and not in
-the halftime break. The reference entry lists the refusals.
+The plugin loads the file that CS2 wrote as that round started. The match must be live, and neither
+in the halftime break nor between a round's end and the next round's start. The reference entry
+lists the refusals.
 
 1. The reply comes once the plugin has asked CS2 to load the backup.
 2. The restored round opens paused in its freeze time, and the plugin lifts the pause shortly

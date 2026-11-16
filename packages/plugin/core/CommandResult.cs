@@ -18,6 +18,8 @@ public static class CommandResult
     public const string NotLive = "not_live";
     /// <summary>The match is in its halftime break, while the sides are about to swap.</summary>
     public const string AtHalftime = "at_halftime";
+    /// <summary>The round has ended and the next has not started. The engine would apply a backup loaded now but stay loading.</summary>
+    public const string BetweenRounds = "between_rounds";
     /// <summary>An exec named a command of <see cref="AgentControl.MatchBlockedCommands"/> while a match is loaded.</summary>
     public const string CommandBlocked = "command_blocked";
     /// <summary>The command is one a newer agent sends that this plugin does not have yet.</summary>

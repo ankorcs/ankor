@@ -80,10 +80,13 @@ update that names other images.
 
 When the registry has a newer `X.Y.Z` release on the node's release line, the agent updates to it.
 A node on `latest` updates to any newer release.
-It updates as [agent:update_cs2_image] and [agent:update_agent] would, the CS2 image first. Without
-a newer release, the agent compares the registry's digest for the tag with the image it runs. It
-updates to a [weekly rebuild](requirements.md#images) of its release the same way. The node reports
-each update in [agent:node_status], as it reports a manual one.
+It updates as [agent:update_cs2_image] and [agent:update_agent] would, the CS2 image first.
+
+Without a newer release, the agent compares the digest that the registry gives for the `X.Y.Z` tag
+of the running version with the image it runs. If they differ, it updates the same way to that
+[weekly rebuild](requirements.md#images) of its release. If the registry does not have the running
+version yet, the agent leaves the image alone. The node reports each update in [agent:node_status],
+as it reports a manual one.
 
 - The agent reads the running version from the image's `org.opencontainers.image.version` label,
   which release images carry. It leaves an image without the label alone.

@@ -12,6 +12,7 @@ import {
 } from './game-events.js';
 import { addGsltIssues, addSlotLayoutIssues } from './helpers.js';
 import { type GameMode, ServerLaunchConfig } from './launch.js';
+import type { CommandRefusal } from './plugin-socket.js';
 import {
   type AGENT_WELCOME_TIMEOUT_MS, type CS2_BUILD_CHECK_INTERVAL_MS, type CS2_BUILD_POLL_INTERVAL_MS,
   type EVENT_SPOOL_RETENTION_MS, type MAX_MEMORY_MB, MAX_REPORTED_BACKLOGS, MAX_REPORTED_DEMOS, MAX_SLOTS, type MIN_MEMORY_MB,
@@ -107,6 +108,11 @@ export const AGENT_ERRORS = {
    * round has started.
    */
   atHalftime: 'at_halftime',
+  /**
+   * The round has ended and the next has not started yet. A backup loaded in this window is never
+   * restarted into, so ask again once the next round has started.
+   */
+  betweenRounds: 'between_rounds',
   /**
    * The node has no backup of the round that {@link ControllerRestoreRound | restore_round} named for that
    * server.
@@ -1728,7 +1734,7 @@ export type ConsoleCommandReply = z.infer<typeof ConsoleCommandReply>;
  *   ({@link GameMode}).
  * - `plugin_offline` while the slot's `plugin_online` is `false`.
  * - `plugin_status_timeout` when the plugin does not answer.
- * - `no_match`, `not_live` or `at_halftime` when the plugin refuses the restore.
+ * - A {@link CommandRefusal} code when the plugin refuses the restore.
  *
  * The node keeps the backup of every round it has played, including rounds after one it was
  * restored to. If `round` is past the current round, the server loads play that the match has

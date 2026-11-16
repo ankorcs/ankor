@@ -24,9 +24,6 @@ FROM alpine:3.24 AS runtime
 # Do not remove or rename it. An agent refuses to update to an image without this exact label, so a
 # release without it can never be installed by an update.
 LABEL ankor.image=agent
-# The image auto-update compares this version with the registry's tags.
-ARG VERSION
-LABEL org.opencontainers.image.version="${VERSION}"
 LABEL org.opencontainers.image.source="https://github.com/ankorcs/ankor"
 LABEL org.opencontainers.image.description="Ankor game-host agent: Runs CS2 game servers of one host for an Ankor controller."
 LABEL org.opencontainers.image.licenses="GPL-3.0-only"
@@ -41,4 +38,10 @@ COPY LICENSE LICENSE-APACHE THIRD-PARTY-LICENSES.txt /usr/share/licenses/ankor-a
 
 # No USER: the agent reads the socket's gid as root, then drops to uid 1000.
 # The event listener is loopback-only; run with --network host.
+# These come last, because a changed build argument reruns every RUN after it. A new version or
+# commit then reruns none of them. The agent's auto-update reads the version label. REVISION is the
+# commit, which the build cannot read itself, and it is empty when none is passed.
+ARG VERSION
+ARG REVISION
+LABEL org.opencontainers.image.version="${VERSION}" org.opencontainers.image.revision="${REVISION}"
 ENTRYPOINT ["/usr/local/bin/ankor-agent"]

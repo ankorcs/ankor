@@ -8,7 +8,7 @@ import type { EventBatch, EventBatchReceipt, EventBatchRejection } from './event
  * `426 Upgrade Required`, and no frame is exchanged. [Versioning](/protocol/versioning/) says
  * which versions are.
  */
-export const PROTOCOL_VERSION = '0.9';
+export const PROTOCOL_VERSION = '0.10';
 
 /**
  * The header that carries {@link PROTOCOL_VERSION} on every request a node, its plugin or the setup

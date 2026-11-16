@@ -93,23 +93,26 @@ scripts/nodes.sh deploy root@<node> [root@<node> ...]
 
 - The images take the release names, so a copied build replaces the release tags on the node.
   `--image-prefix` names others, which a node runs only with `official_images_only: false`.
-- `build` refuses uncommitted changes, untracked files included. `--dirty` builds anyway and tags
-  the build `-dirty`.
+- `build` refuses uncommitted changes, untracked files included. `--dirty` builds anyway, tags
+  the build `-dirty` and leaves its revision label empty.
 - The images are linux/amd64. On an ARM workstation, build on an x86_64 node with
   `DOCKER_HOST=ssh://root@<node> scripts/nodes.sh deploy root@<node> [root@<other> ...]`.
 - To move a node onto a copied agent image, run `node-setup.sh --update --no-pull` on it.
-- A node with `auto_update` on replaces a copied agent image once its
-  [line](docs/requirements.md#images) has a newer release. A copied CS2 image has no version label,
-  so the node keeps it.
+- Both copied images carry the version label. A node with `auto_update` on replaces them once
+  their [line](docs/requirements.md#images) has a newer release. If the registry already has the
+  same version, the node replaces them with the registry's build on its next poll. To keep a copied
+  build, turn `auto_update` off.
 
 ## Release node images
 
-| Image         | Version                                                                                                                     | Git tag        |
-|---------------|-----------------------------------------------------------------------------------------------------------------------------|----------------|
-| `ankor-agent` | `version` in [Cargo.toml](packages/agent/crates/agent/Cargo.toml). Its Dockerfile refuses to label an image with any other. | `agent-vX.Y.Z` |
-| `ankor-cs2`   | `AnkorVersion` in [Directory.Build.props](packages/plugin/Directory.Build.props), which also versions the plugin.           | `cs2-vX.Y.Z`   |
+| Image         | Version                                                                                                                                                                    | Git tag        |
+|---------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------|
+| `ankor-agent` | `version` in [Cargo.toml](packages/agent/crates/agent/Cargo.toml). Its Dockerfile refuses to label an image with any other.                                                | `agent-vX.Y.Z` |
+| `ankor-cs2`   | `AnkorVersion` in [Directory.Build.props](packages/plugin/Directory.Build.props), which also versions the plugin. Its Dockerfile refuses to label an image with any other. | `cs2-vX.Y.Z`   |
 
-Both are published to `ghcr.io/ankorcs`, tagged `X.Y.Z`, `X.Y` and `X`.
+Both are published to `ghcr.io/ankorcs`, tagged `latest` for the newest release, then `X`, `X.Y` and
+`X.Y.Z`. [image-publish.yml](.github/workflows/image-publish.yml) pushes `X.Y.Z` last, because the
+agent looks for a rebuild under it.
 [Images](docs/requirements.md#images) says what changes a major. Builds on SwiftlyS2's newest beta
 are tagged `beta` and `X.Y.Z-swiftlys2-A.B.C-beta.N`. [Workflows](.github/workflows/README.md)
 describes each release workflow.

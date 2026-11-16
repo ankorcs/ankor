@@ -71,17 +71,21 @@ context_for() {
 # build — linux/amd64 only (steamcmd and CS2 are x86_64, and so are the nodes).
 # ---------------------------------------------------------------------------------------------
 cmd_build() {
-  local selection=("$@") tag name ref
+  local selection=("$@") tag name ref revision
   ((${#selection[@]} > 0)) || selection=(agent cs2)
   for name in "${selection[@]}"; do
     [[ "$name" =~ ^(agent|cs2)$ ]] || die "unknown image \"$name\" (agent or cs2)"
   done
   tag="$(git_tag)"
+  # A dirty tree matches no commit, so its images carry an empty revision label.
+  revision="$(git rev-parse HEAD)"
+  if [[ "$tag" == *-dirty ]]; then revision=""; fi
   for name in "${selection[@]}"; do
     ref="$(image_ref "$name" "$tag")"
     echo "==> ${ref}"
     run docker buildx build --load --platform linux/amd64 -f "$(dockerfile_for "$name")" \
-      --build-arg VERSION="$(image_version "$name")" -t "$ref" "$(context_for "$name")"
+      --build-arg VERSION="$(image_version "$name")" --build-arg REVISION="$revision" \
+      -t "$ref" "$(context_for "$name")"
   done
 }
 
