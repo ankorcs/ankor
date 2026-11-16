@@ -108,6 +108,11 @@ export const AGENT_ERRORS = {
    */
   atHalftime: 'at_halftime',
   /**
+   * The round has ended and the next has not started yet. A backup loaded in this window is never
+   * restarted into, so ask again once the next round has started.
+   */
+  betweenRounds: 'between_rounds',
+  /**
    * The node has no backup of the round that {@link ControllerRestoreRound | restore_round} named for that
    * server.
    */
@@ -1728,7 +1733,7 @@ export type ConsoleCommandReply = z.infer<typeof ConsoleCommandReply>;
  *   ({@link GameMode}).
  * - `plugin_offline` while the slot's `plugin_online` is `false`.
  * - `plugin_status_timeout` when the plugin does not answer.
- * - `no_match`, `not_live` or `at_halftime` when the plugin refuses the restore.
+ * - `no_match`, `not_live`, `at_halftime` or `between_rounds` when the plugin refuses the restore.
  *
  * The node keeps the backup of every round it has played, including rounds after one it was
  * restored to. If `round` is past the current round, the server loads play that the match has

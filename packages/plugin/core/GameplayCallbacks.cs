@@ -72,6 +72,7 @@ public sealed class GameplayCallbacks(MatchState match, IGameHost host, EventFor
             case RoundEndInput e:
                 // Noticed before anything is scored: the round a load cuts off ends without a winner.
                 match.NoticeBackupLoading();
+                match.NoticeRoundEnded();
                 RoundEnd(e.winnerSide, e.reason);
                 break;
             case DamageEnterInput e: damage.Enter((nint)e.entity); break;

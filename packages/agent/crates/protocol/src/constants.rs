@@ -214,6 +214,9 @@ pub mod agent_errors {
     /// The match is in its halftime break, while the sides are about to swap. Ask again once the next
     /// round has started.
     pub const AT_HALFTIME: &str = "at_halftime";
+    /// The round has ended and the next has not started yet. A backup loaded in this window is never
+    /// restarted into, so ask again once the next round has started.
+    pub const BETWEEN_ROUNDS: &str = "between_rounds";
     /// The node has no backup of the round that `restore_round` named for that
     /// server.
     pub const NO_BACKUP: &str = "no_backup";
@@ -583,7 +586,7 @@ pub const PROTOCOL_HEADER: &str = "Ankor-Protocol";
 /// carry it in `PROTOCOL_HEADER`. A peer whose version is not compatible answers
 /// `426 Upgrade Required`, and no frame is exchanged. [Versioning](/protocol/versioning/) says
 /// which versions are.
-pub const PROTOCOL_VERSION: &str = "0.9";
+pub const PROTOCOL_VERSION: &str = "0.10";
 /// Seconds a server may keep running after its plugin sent `quitting`. Past them, the agent stops it
 /// with `quit_timeout` as its `ServerExitReason`.
 pub const QUIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);

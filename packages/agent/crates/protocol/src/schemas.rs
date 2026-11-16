@@ -215,6 +215,7 @@ pub fn s_agent_error_code(p: &mut Payload) {
         || same(p.value.as_ref(), &json!("team_empty"))
         || same(p.value.as_ref(), &json!("not_live"))
         || same(p.value.as_ref(), &json!("at_halftime"))
+        || same(p.value.as_ref(), &json!("between_rounds"))
         || same(p.value.as_ref(), &json!("no_backup"))
         || same(p.value.as_ref(), &json!("command_blocked"))
         || same(p.value.as_ref(), &json!("invalid_request"))
@@ -224,7 +225,7 @@ pub fn s_agent_error_code(p: &mut Payload) {
         || same(p.value.as_ref(), &json!("shutting_down"))
         || same(p.value.as_ref(), &json!("failed")))
     {
-        p.push(Issue::new(Code::InvalidValue, "Invalid option: expected one of \"no_free_slot\"|\"cs2_outdated\"|\"cs2_not_installed\"|\"node_unavailable\"|\"slots_held\"|\"slot_held\"|\"unknown_slot\"|\"slot_token_required\"|\"demo_header_value_required\"|\"unknown_allocation\"|\"maintenance_running\"|\"image_missing\"|\"image_not_allowed\"|\"demo_uploading\"|\"unknown_demo\"|\"demo_recording\"|\"plugin_offline\"|\"plugin_status_timeout\"|\"no_match\"|\"not_in_warmup\"|\"team_empty\"|\"not_live\"|\"at_halftime\"|\"no_backup\"|\"command_blocked\"|\"invalid_request\"|\"allocation_in_use\"|\"allocation_reused\"|\"unsupported_request\"|\"shutting_down\"|\"failed\"", None));
+        p.push(Issue::new(Code::InvalidValue, "Invalid option: expected one of \"no_free_slot\"|\"cs2_outdated\"|\"cs2_not_installed\"|\"node_unavailable\"|\"slots_held\"|\"slot_held\"|\"unknown_slot\"|\"slot_token_required\"|\"demo_header_value_required\"|\"unknown_allocation\"|\"maintenance_running\"|\"image_missing\"|\"image_not_allowed\"|\"demo_uploading\"|\"unknown_demo\"|\"demo_recording\"|\"plugin_offline\"|\"plugin_status_timeout\"|\"no_match\"|\"not_in_warmup\"|\"team_empty\"|\"not_live\"|\"at_halftime\"|\"between_rounds\"|\"no_backup\"|\"command_blocked\"|\"invalid_request\"|\"allocation_in_use\"|\"allocation_reused\"|\"unsupported_request\"|\"shutting_down\"|\"failed\"", None));
     }
 }
 

@@ -126,6 +126,8 @@ pub enum CommandRefusal {
     NotLive,
     #[serde(rename = "at_halftime")]
     AtHalftime,
+    #[serde(rename = "between_rounds")]
+    BetweenRounds,
     #[serde(rename = "command_blocked")]
     CommandBlocked,
     #[serde(rename = "unsupported_request")]
@@ -134,8 +136,17 @@ pub enum CommandRefusal {
 
 impl CommandRefusal {
     /// Every value, in the contract's order.
-    pub const ALL: &'static [Self] =
-        &[Self::NoMatch, Self::NotInWarmup, Self::TeamEmpty, Self::NoBackup, Self::NotLive, Self::AtHalftime, Self::CommandBlocked, Self::UnsupportedRequest];
+    pub const ALL: &'static [Self] = &[
+        Self::NoMatch,
+        Self::NotInWarmup,
+        Self::TeamEmpty,
+        Self::NoBackup,
+        Self::NotLive,
+        Self::AtHalftime,
+        Self::BetweenRounds,
+        Self::CommandBlocked,
+        Self::UnsupportedRequest,
+    ];
 }
 
 /// The plugin's answer to a command that carries a `request_id`.

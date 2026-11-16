@@ -232,8 +232,10 @@ public sealed class RestoreTests
         session.EndRound(Side.T, 8);
         session.Engine.RunNextFrame();
         Assert.Equal((3, 1), (match.Team1Score, match.Team2Score));
+        // A restore goes in once the next round has started; between rounds it is refused.
+        session.StartRound(5);
 
-        match.RestoreRound(2, "ankor/backups/ankor_round01.txt");
+        Assert.Null(match.RestoreRound(2, "ankor/backups/ankor_round01.txt"));
         session.RestoreAt(round: 2, team1Score: 1, team2Score: 1);
 
         Assert.Equal(Side.Ct, match.Team1Side);
@@ -390,6 +392,38 @@ public sealed class RestoreTests
         session.StartRound(4);
         Assert.False(match.AtHalftime);
         match.RestoreRound(2, "ankor/backups/ankor_round01.txt");
+        Assert.Single(LoadCommands(session));
+    }
+
+    /// <summary>
+    /// From a round's end to the next round's start, the engine applies a loaded backup's scores but
+    /// never restarts into its round, and stays loading: the load is refused from every path until the
+    /// next round has started.
+    /// </summary>
+    [Fact]
+    public void ALoadBetweenRoundsIsRefusedFromEveryPath()
+    {
+        var session = InRoundFour();
+        var match = session.Match;
+        session.EndRound(Side.T, 8);
+        session.Engine.RunNextFrame();
+        session.Sent.Clear();
+        Assert.True(match.BetweenRounds);
+        Assert.False(match.AtHalftime);
+
+        Assert.Equal(CommandResult.BetweenRounds, match.RestoreRound(2, "ankor/backups/ankor_round01.txt"));
+        Assert.False(match.BeforeBackupLoad());
+
+        Assert.Equal(MatchPhase.Live, match.Phase);
+        Assert.True(match.IsLive);
+        Assert.Empty(LoadCommands(session));
+        // The console load has no one to answer, so it is the one that logs.
+        Assert.Single(session.Sent.OfType<PluginLog>(), log => log.level == LogLevel.Warn && log.message.Contains("the round has ended"));
+
+        // The next round start opens the window again, and the same load goes through.
+        session.StartRound(5);
+        Assert.False(match.BetweenRounds);
+        Assert.Null(match.RestoreRound(2, "ankor/backups/ankor_round01.txt"));
         Assert.Single(LoadCommands(session));
     }
 

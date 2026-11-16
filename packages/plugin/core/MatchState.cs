@@ -718,6 +718,16 @@ public sealed class MatchState : IDisposable
     public bool AtHalftime => SidesSwapPending;
 
     /// <summary>
+    /// From a round's end to the next round's start. A backup loaded then has its scores applied, but
+    /// the engine never restarts into the restored round: the round end already under way absorbs the
+    /// restart, and the server is left loading for good. The next round start is seconds away.
+    /// </summary>
+    public bool BetweenRounds { get; private set; }
+
+    /// <summary>A round ended, live or not; the next round start clears it.</summary>
+    public void NoticeRoundEnded() => BetweenRounds = true;
+
+    /// <summary>
     /// Play on from one of this server's earlier rounds: the controller's <c>restore_round</c>, with the
     /// file the agent found. Null once the engine was asked to load it, otherwise the <see cref="CommandResult"/> refusal.
     /// </summary>
@@ -725,6 +735,7 @@ public sealed class MatchState : IDisposable
     {
         if (Ending || !IsLive) return CommandResult.NotLive;
         if (AtHalftime) return CommandResult.AtHalftime;
+        if (BetweenRounds) return CommandResult.BetweenRounds;
 
         WatchBackupLoad();
         _armedRestoreSide = _restoreSideByRound.TryGetValue(round, out var side) ? side : null;
@@ -752,6 +763,12 @@ public sealed class MatchState : IDisposable
         if (AtHalftime)
         {
             LogEvent(LogLevel.Warn, "a backup load was refused: the match is at halftime; load it once the next round has started");
+            return false;
+        }
+
+        if (BetweenRounds)
+        {
+            LogEvent(LogLevel.Warn, "a backup load was refused: the round has ended; load it once the next round has started");
             return false;
         }
 
@@ -1133,6 +1150,7 @@ public sealed class MatchState : IDisposable
     {
         // The round reset that started this round moved every player, whether or not anyone was on.
         SidesSwapPending = false;
+        BetweenRounds = false;
         if (Ending) return;
         if (_readyExpired && !_host.IsWarmup)
         {

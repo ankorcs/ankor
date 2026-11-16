@@ -43,10 +43,11 @@ pub fn s_command_refusal(p: &mut Payload) {
         || same(p.value.as_ref(), &json!("no_backup"))
         || same(p.value.as_ref(), &json!("not_live"))
         || same(p.value.as_ref(), &json!("at_halftime"))
+        || same(p.value.as_ref(), &json!("between_rounds"))
         || same(p.value.as_ref(), &json!("command_blocked"))
         || same(p.value.as_ref(), &json!("unsupported_request")))
     {
-        p.push(Issue::new(Code::InvalidValue, "Invalid option: expected one of \"no_match\"|\"not_in_warmup\"|\"team_empty\"|\"no_backup\"|\"not_live\"|\"at_halftime\"|\"command_blocked\"|\"unsupported_request\"", None));
+        p.push(Issue::new(Code::InvalidValue, "Invalid option: expected one of \"no_match\"|\"not_in_warmup\"|\"team_empty\"|\"no_backup\"|\"not_live\"|\"at_halftime\"|\"between_rounds\"|\"command_blocked\"|\"unsupported_request\"", None));
     }
 }
 

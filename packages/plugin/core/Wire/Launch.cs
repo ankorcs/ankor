@@ -158,7 +158,7 @@ public static class CfgNames
 /// <summary>The wire's version, the <c>major.minor</c> of <c>@ankorcs/protocol</c>, from <c>packages/protocol/src/paths.ts</c>.</summary>
 public static class Protocol
 {
-    public const string Version = "0.9";
+    public const string Version = "0.10";
     public const string Header = "Ankor-Protocol";
 }
 

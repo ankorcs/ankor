@@ -110,7 +110,7 @@ export type PluginBackup = z.infer<typeof PluginBackup>;
 /** Why a plugin did not carry out a command, as an {@link AgentErrorCode}. */
 export const CommandRefusal = z.enum([
   AGENT_ERRORS.noMatch, AGENT_ERRORS.notInWarmup, AGENT_ERRORS.teamEmpty,
-  AGENT_ERRORS.noBackup, AGENT_ERRORS.notLive, AGENT_ERRORS.atHalftime,
+  AGENT_ERRORS.noBackup, AGENT_ERRORS.notLive, AGENT_ERRORS.atHalftime, AGENT_ERRORS.betweenRounds,
   AGENT_ERRORS.commandBlocked, AGENT_ERRORS.unsupportedRequest,
 ]);
 

@@ -55,7 +55,7 @@ internal static class ContractConstants
             ["CommandRefusal"] = new[]
             {
                 CommandResult.NoMatch, CommandResult.NotInWarmup, CommandResult.TeamEmpty,
-                CommandResult.NoBackup, CommandResult.NotLive, CommandResult.AtHalftime, CommandResult.CommandBlocked,
+                CommandResult.NoBackup, CommandResult.NotLive, CommandResult.AtHalftime, CommandResult.BetweenRounds, CommandResult.CommandBlocked,
                 CommandResult.UnsupportedRequest,
             },
             ["MATCH_BLOCKED_COMMANDS"] = AgentControl.MatchBlockedCommands,
