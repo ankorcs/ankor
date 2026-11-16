@@ -4,9 +4,13 @@ description: Set up a Linux host as a game node with the setup script.
 slug: install
 ---
 
-You install a node with one command on the host. [Setup script](setup-script.md) describes what
-that command does. Each step below names the request that the controller sends. On
-[ankor.sh](https://ankor.sh), follow the [quick start](quickstart.md) instead.
+These steps turn a Linux host into a game node that your controller can launch CS2 servers on. You
+run one setup command on the host, and the controller does the rest through the agent's
+connection. [Setup script](setup-script.md) describes what that command does. Where a step happens
+in the controller, it names the request that the controller sends to the agent. If you're building
+your own controller, [A minimal controller](protocol/minimal-controller.md) covers the
+controller's side of these steps. If you use [ankor.sh](https://ankor.sh), follow the
+[quick start](quickstart.md) instead.
 
 ## Prerequisites
 
@@ -14,48 +18,63 @@ that command does. Each step below names the request that the controller sends. 
 
 ## Set up the node
 
-1. Prepare the host as its [distribution](#distributions) needs, usually by installing `curl` and CA
-   certificates.
-2. Add the node in the controller and copy its setup command and node token.
-3. Run the setup command on the host and paste the node token when it asks. Setup logs
-   `agent connected.` and prints a summary. If the agent has not connected within a minute, setup
-   warns that the agent keeps retrying. It still prints the summary. Follow the agent with
-   `docker logs -f ankor-agent`. [Setup script](setup-script.md) lists the options and unattended
-   installs.
-4. Add the node's slots in the controller, each with a game port, a GOTV port and a login token.
-   The controller sends them with [agent:set_config]. A node without slots connects and reports,
-   but cannot run a server.
-5. Open each slot's game port (UDP) in the firewall and router. Open its GOTV port as well if
-   matches on the slot are to be watched.
-6. Install CS2 from the controller, with [agent:update_cs2]. This is the large download that
-   [Capacity](requirements.md#capacity) sizes. From then on CS2
-   [updates itself](operations.md#update-cs2).
-7. [Launch a test server](operations.md#launch-a-test-server).
+1. On the host, install the packages that its [distribution](#distributions) needs. Usually that's
+   `curl` and CA certificates.
+2. In the controller, add the node. Copy its setup command and its node token.
+3. On the host, run the setup command and paste the node token when it asks for it. Setup then
+   installs Docker if needed and starts the agent. When the agent reaches the controller, setup
+   logs `agent connected.` and prints a summary.
+   - If the agent has not connected within a minute, setup warns that the agent keeps retrying.
+     Setup still prints the summary. Follow the agent's log with `docker logs -f ankor-agent` to
+     see why it hasn't connected.
+   - If the agent rejects its configuration or its token, setup stops with an error. A node that
+     was deleted in the controller has to be added again.
+   - [Setup script](setup-script.md) lists the options and explains unattended installs.
+4. In the controller, add the node's slots. A slot is room for one game server. Give each slot a
+   game port, a GOTV port and a [login token](requirements.md#game-server-login-tokens). The controller sends the slots to the agent with
+   [agent:set_config]. A node without slots still connects and reports to the controller, but it
+   cannot run a server.
+5. Open each slot's game port (UDP) in the host's firewall and in your router, so that players can
+   reach the server. If you want people to watch matches on the slot, open its GOTV port as well.
+   Setup leaves the firewall alone, so you have to do this yourself.
+   - For a test on your LAN, you can skip the router's port forwarding and connect to the node's
+     LAN IP. The host's firewall must still allow the ports. Players connect to the node's public
+     IPv4 address by default. To hand out the LAN address instead, set it as `pinned_ip` in the
+     node's [configuration](configuration.md#agentyml).
+6. In the controller, install CS2. The controller sends [agent:update_cs2], and the agent
+   downloads CS2. This is the large download that [Capacity](requirements.md#capacity) sizes. From
+   then on, the node [keeps CS2 up to date](operations.md#update-cs2) by itself.
+7. [Launch a test server](operations.md#launch-a-test-server) to check that players can join.
 
 ## Distributions
 
-Setup installs Docker with your distribution's package manager. Each distribution therefore has
-its own packages and quirks. Before you run setup, install the packages listed for yours and read
-its notes.
+Setup installs Docker with your distribution's package manager, so the packages and quirks differ
+between distributions. Before you run setup, install the packages listed for your distribution and
+read its notes.
 
-Setup checks the architecture, distribution, init system and LXC nesting before it changes
-anything. If the host is not ready, setup stops and explains why.
+Before it changes anything, setup checks the host's architecture, distribution, init system and
+LXC nesting. If the host is not ready, setup stops and explains why.
 
 ### Debian and Ubuntu
+
+Install the prerequisites:
 
 ```sh
 apt-get update && apt-get install -y curl ca-certificates
 ```
 
-- Docker comes from Docker's repository for the release's codename. Setup stops on a release
-  for which Docker publishes no packages. Docker lists its
+- Setup installs Docker from Docker's repository for your release's codename. If Docker publishes
+  no packages for your release, setup stops. Docker lists its
   [supported releases](https://docs.docker.com/engine/install/debian/).
-- Ubuntu derivatives such as Linux Mint and Pop!_OS use the Ubuntu release they track. Debian
-  derivatives with their own codename, such as Kali, are not in Docker's repository.
-- Remove Docker from the snap store first, with `snap remove docker`.
+- On an Ubuntu derivative, such as Linux Mint or Pop!_OS, setup uses the Ubuntu release that the
+  derivative tracks. Debian derivatives that have their own codename, such as Kali, are not in
+  Docker's repository.
+- If Docker is installed from the snap store, remove it first with `snap remove docker`.
   [Existing Docker](#existing-docker) explains why.
 
 ### Fedora, RHEL, Rocky, AlmaLinux, CentOS Stream
+
+Install the prerequisites:
 
 ```sh
 dnf install -y curl ca-certificates
@@ -63,21 +82,27 @@ dnf install -y curl ca-certificates
 
 - Setup refuses Fedora's `moby-engine`, because it runs with [SELinux labelling](#existing-docker).
 - On RHEL and its rebuilds, setup first removes Podman, runc and any package that depends on them,
-  as Docker's guide prescribes. Fedora keeps Podman and loses only `podman-docker`.
+  as Docker's install guide prescribes. On Fedora, setup keeps Podman and removes only
+  `podman-docker`.
 
 ### Arch
+
+Install the prerequisites:
 
 ```sh
 pacman -Syu --needed curl ca-certificates
 ```
 
-- Setup runs a full `pacman -Syu` before it installs Docker, because Arch supports no partial
+- Setup runs a full `pacman -Syu` before it installs Docker, because Arch does not support partial
   upgrades.
-- Proxmox's Arch template needs its keyring first: `pacman-key --init && pacman-key --populate archlinux`.
-- In LXC, pacman's download sandbox fails with "Landlock is not supported by the kernel". Turn it
-  off: `sed -i '/^\[options\]/a DisableSandbox' /etc/pacman.conf`.
+- On Proxmox's Arch template, initialise the keyring first:
+  `pacman-key --init && pacman-key --populate archlinux`.
+- In LXC, pacman's download sandbox fails with "Landlock is not supported by the kernel". Turn the
+  sandbox off with `sed -i '/^\[options\]/a DisableSandbox' /etc/pacman.conf`.
 
 ### openSUSE
+
+Install the prerequisites:
 
 ```sh
 zypper install -y curl ca-certificates
@@ -85,25 +110,33 @@ zypper install -y curl ca-certificates
 
 ### Alpine
 
+Install the prerequisites. Alpine also needs `bash`, because the setup script is a bash script:
+
 ```sh
 apk add bash curl ca-certificates
 ```
 
-- Docker comes from the community repository, which setup enables.
-- Alpine needs a VM, because in LXC OpenRC cannot hand the cgroup controllers to Docker.
+- Setup installs Docker from the community repository, and enables that repository if it's off.
+- Alpine must run in a VM. In an LXC container, OpenRC cannot hand the cgroup controllers to
+  Docker.
 
 ## Proxmox LXC
 
-- Enable nesting with `pct set <vmid> --features nesting=1`. keyctl is not needed.
+You can run a node in a Proxmox LXC container.
+
+- Enable nesting on the Proxmox host with `pct set <vmid> --features nesting=1`. You don't need
+  keyctl.
 - Unprivileged containers work.
-- The node reports the container's CPUs and memory, not the Proxmox host's.
+- The node reports the CPUs and memory of the LXC container, not those of the Proxmox host.
 
 ## Existing Docker
 
-Setup keeps a Docker Engine that runs as the system daemon on `/var/run/docker.sock`. It also
-enables that engine at boot. On any setting below, setup stops and names the setting at fault. By
-then it has installed the base packages and written `agent.yml`. Fix the setting and run setup
-again.
+If the host already runs Docker Engine as the system daemon on `/var/run/docker.sock`, setup keeps
+it and enables it at boot. Some Docker settings stop the agent's containers from working, though.
+If setup finds one of them, it stops and names the setting. By then, setup has installed the base
+packages and written `agent.yml`. Fix the setting and run setup again.
+
+Setup stops on these settings:
 
 - Docker Engine older than 25, because the agent needs Engine API 1.44.
 - Rootless Docker, because the agent container mounts the system daemon's socket and the game
@@ -114,18 +147,18 @@ again.
   Docker socket and to `/srv/ankor`.
 - Docker from the snap store, because its confinement cannot bind `/srv/ankor`.
 
-Setup replaces Podman's `docker` shim with Docker Engine.
+If the `docker` command on the host is Podman's shim, setup replaces it with Docker Engine.
 
 ## Remove a node
 
-A node exists in two places: on its host and as an entry in the controller. Deleting the entry
-only deauthorises the node. The agent stays installed but can no longer connect. The node
-therefore receives no new launches.
+A node exists in two places: as the agent on its host, and as an entry in the controller. When you
+delete the entry in the controller, the controller only deauthorises the node. The agent stays
+installed on the host, but it can no longer connect, so the node receives no new launches.
 
-To remove the node from its host as well, stop its servers and run the commands below. They remove
-every Ankor container, image and volume. They also remove the node's files, including events that
-it has not delivered. Docker stays installed. The node stops reporting to the controller, and you
-can then delete its entry.
+To remove the node from its host as well, stop its servers first. Then run the commands below on
+the host. They remove every Ankor container, image and volume. They also delete the node's files,
+including any events that the node has not delivered to the controller yet. Docker stays
+installed. Once the node stops reporting to the controller, you can delete its entry there.
 
 ```sh
 docker rm -f $(docker ps -aq --filter label=ankor.role)
@@ -134,5 +167,5 @@ docker volume rm ankor_cs2_data
 rm -rf /srv/ankor
 ```
 
-To move a node to another host, or to start a host over, remove the node and set the host up as a
-new one. [One host per node](operations.md#one-host-per-node) explains why.
+To move a node to another host, or to start a host over, remove the node and set up the host as a
+new node. [One host per node](operations.md#one-host-per-node) explains why.

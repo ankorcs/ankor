@@ -62,8 +62,8 @@ layout, setup, checks and the workstation scripts.
   `hello` when they name the message.
 - Label trade-offs with the overview's **Pros** / **Cons** labels (`choice-label`).
 - Include the commands or UI actions needed to do the task, with prerequisites and expected results.
-- Keep useful examples and recovery caveats. Cut obvious explanations, repeated warnings and
-  summaries that restate the steps above them.
+- Keep useful examples and recovery caveats. Cut repeated warnings and summaries that restate the
+  steps above them. An explanation that a newcomer needs is not obvious, so keep it.
 - Do not turn implementation details or conversation history into documentation by default.
 - Describe internal behaviour as an explanation, not instructions for the reader.
 - Link to source for field lists, flags and implementation details. Keep code rationale beside the code.
@@ -74,9 +74,49 @@ layout, setup, checks and the workstation scripts.
 - Link to other guides instead of repeating their contents.
 - Check commands and behaviour against the source. Keep historical research clearly labelled.
 
+## Writing for the reader
+
+[A minimal controller](docs/protocol/minimal-controller.md) is the reference for this style. The
+reader knows their own stack (HTTP, Node.js, Docker, Linux) but not Ankor, the protocol or Steam
+server administration. Write so that they can follow each step without reading the source.
+
+- Open a page with what the reader will build or achieve, not with a summary of the page.
+- Open a section of rules with a short paragraph that explains the concept and why the rules
+  exist, then list the rules. "A node keeps several logs, called sources. … The agent streams a
+  source only while your controller asks for it."
+- Address the reader as "you", and use an imperative when the reader acts. "The operator writes
+  this file" → "you'll have to write the `agent.yml` file". "Store a new allocation id" → "Create
+  and store a new allocation id". Contractions are fine.
+- Say who acts in each step: the operator on the node host, the agent, or your controller.
+- Name the specific thing instead of a generic noun. "the tokens" → "the GSLTs"; "the node's
+  version" → "the node's version header"; "explains the reports" → "explains the reports sent to
+  your controller during an update".
+- Write conditions and permissions as full sentences. "Without the endpoint, …" → "If you don't
+  have a setup endpoint on your controller (yet), …"; "`slots` may be empty" → "You can send an
+  empty `slots` array and populate it later."
+- Explain the reason a newcomer would miss, in a clause or a sentence. "Its session runs the
+  exchanges for you" → "…contains helper functions that run the exchange for you, since a
+  WebSocket does not have the normal request-response cycle an HTTP request does."
+- Rewrite a compressed sentence that leaves the reader to work out the scenario. Describe the
+  situation, then what happens. "A stop may arrive before the launch it ends." → "You can stop a
+  server while its launch is still in progress, before the `start_server` reply arrives."
+- Give concrete expectations and the practical options: how long a step usually takes, the
+  shortcut for local testing, the manual alternative to an automated path, and the recommended
+  choice ("prefer UUIDv7"). State only figures and behaviour that the source or the maintainers
+  confirm.
+- Introduce a code block with a sentence. "With the `ws` package:" → "With the `ws` package, it
+  would look like this:".
+- Comment example code step by step, saying what each branch does and why. "// Unknown token;
+  just reply 401 and close."
+- Show a request and its reply together as message cards (`message-cards`, `from-controller`,
+  `from-agent`), as in the [protocol overview](docs/protocol/index.md).
+- Keep every requirement and value when you reword a sentence. Clearer wording must not change
+  what the sentence means.
+
 ## Writing prose
 
-- Give each sentence one idea, in about 15 to 20 words, and split a sentence over 25 words. When a
+- Give each sentence one idea, in about 15 to 25 words. Split a sentence over about 30 words, but
+  keep the words that say who acts or why. When a
   sentence chains three facts with "and", "because", "so" or "which", make it two sentences or a
   list. When three or more items each carry their own description, list them as bullets. Put the
   point first and the reason after it. "A node with no free slot refuses the launch,
