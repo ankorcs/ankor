@@ -53,18 +53,18 @@ jobs:
             # Only the Rust agent's release reuses and refreshes the layer cache its pull requests read.
             [[ "$IMAGE" == agent && "$FRESH" != true ]] && echo "cache=type=gha,scope=agent-image"
             echo "description=$(sed -n 's/^LABEL org.opencontainers.image.description="\(.*\)"$/\1/p' "$dockerfile")"
-            # The Rust agent's Dockerfile labels the image with VERSION and refuses any other. A
-            # SwiftlyS2 release other than the pin goes in as build arguments and a label.
+            # Each Dockerfile labels its image with VERSION and REVISION. It refuses a VERSION other
+            # than its package's version.
+            # A SwiftlyS2 release other than the pin goes in as build arguments and a label.
             echo "build-args<<EOF"
             echo "VERSION=${VERSION}"
+            echo "REVISION=$(git rev-parse HEAD)"
             if [[ -n "$SWIFTLY_VERSION" ]]; then
               echo "SWIFTLY_VERSION=${SWIFTLY_VERSION}"
               echo "SWIFTLY_SHA256=${SWIFTLY_SHA256}"
             fi
             echo "EOF"
             echo "labels<<EOF"
-            echo "org.opencontainers.image.revision=$(git rev-parse HEAD)"
-            echo "org.opencontainers.image.version=${VERSION}"
             [[ -n "$SWIFTLY_VERSION" ]] && echo "ankor.swiftlys2.version=${SWIFTLY_VERSION}"
             echo "EOF"
           } >>"$GITHUB_OUTPUT"

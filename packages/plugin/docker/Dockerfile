@@ -3,7 +3,8 @@
 # CS2 dedicated server + SwiftlyS2 + the Ankor plugin. SwiftlyS2 is a standalone loader (see packages/plugin/docker/README.md).
 #
 # Build context is packages/plugin, whose .dockerignore leaves out build output:
-#   docker build --platform linux/amd64 -f packages/plugin/docker/Dockerfile -t ankor-cs2:dev packages/plugin
+#   docker build --platform linux/amd64 -f packages/plugin/docker/Dockerfile \
+#     --build-arg VERSION=<AnkorVersion> -t ankor-cs2:dev packages/plugin
 # or just packages/plugin/docker/build.sh
 #
 # The image contains no game files. CS2 is installed into a volume by running the image once with
@@ -33,6 +34,10 @@ ARG SWIFTLY_VERSION
 
 WORKDIR /src
 COPY Directory.Build.props ./
+# The image's version label must be the plugin's version, so the build refuses any other.
+ARG VERSION
+RUN grep -q "<AnkorVersion>${VERSION}</AnkorVersion>" Directory.Build.props \
+ || { echo "VERSION must be AnkorVersion in Directory.Build.props, not '${VERSION}'" >&2; exit 1; }
 COPY Ankor.slnx ./
 COPY Ankor.csproj ./
 COPY core/Ankor.Core.csproj core/
@@ -128,7 +133,7 @@ RUN mkdir -p /overlay/addons/swiftlys2/logs \
 FROM debian:trixie-slim
 # Read by the agent's image sweep: it outlives the tag, which a reload under the same name takes away.
 LABEL ankor.image=cs2
-# Shown on the registry's package page; the release workflow adds the revision and version.
+# Shown on the registry's package page.
 LABEL org.opencontainers.image.description="Ankor CS2 game server: Counter-Strike 2 with SwiftlyS2 and the Ankor match plugin."
 LABEL org.opencontainers.image.licenses="GPL-3.0-only"
 LABEL org.opencontainers.image.source="https://github.com/ankorcs/ankor"
@@ -218,4 +223,10 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
 USER steam
 WORKDIR /home/steam
 
+# These come last, because a changed build argument reruns every RUN after it. A new commit then
+# reruns none of this stage. The agent's auto-update reads the version label. REVISION is the
+# commit, which the build cannot read itself, and it is empty when none is passed.
+ARG VERSION
+ARG REVISION
+LABEL org.opencontainers.image.version="${VERSION}" org.opencontainers.image.revision="${REVISION}"
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - run: docker build --platform linux/amd64 -f packages/plugin/docker/Dockerfile -t ankor-cs2:review packages/plugin
+      - run: docker build --platform linux/amd64 -f packages/plugin/docker/Dockerfile --build-arg VERSION="$(scripts/nodes.sh version cs2)" -t ankor-cs2:review packages/plugin
 
   # The plugin copies the contract's env names, paths, cfg names, limits, protocol version and
   # refusal codes by hand; a change on either side that the other does not follow fails here.
