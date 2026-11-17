@@ -18,8 +18,8 @@
 # match — the plugin compiles against the managed assembly the release ships. See README, "Pinned
 # versions". .github/workflows/swiftlys2.yml does this for each patch release, and
 # .github/workflows/cs2-beta.yml overrides both build arguments with SwiftlyS2's newest beta.
-ARG SWIFTLY_VERSION=1.5.2
-ARG SWIFTLY_SHA256=95cbbd44bd2ef3ca62d0333d2cc7b730d78dcf89cf606143125313da00dd0ef1
+ARG SWIFTLY_VERSION=1.5.3
+ARG SWIFTLY_SHA256=e170e335fe531151dc108ce840e9112310c145b6b69b21f481edb0d0d3dc32fc
 
 # ---------------------------------------------------------------------------------------------
 # Stage 1: build the plugin
