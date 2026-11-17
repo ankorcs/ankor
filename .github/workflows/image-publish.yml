@@ -20,6 +20,10 @@ on:
         description: Tag the built commit agent-vX.Y.Z or cs2-vX.Y.Z after the push.
         type: boolean
         default: false
+    secrets:
+      DISCORD_WEBHOOK_URL:
+        description: With `tag`, a Discord webhook that each new release is posted to.
+        required: false
 
 jobs:
   publish:
@@ -72,3 +76,21 @@ jobs:
         run: |
           git tag "$TAG"
           git push origin "$TAG"
+
+      # A new release, never a rebuild or a beta, which push no tag. The image and its tag are out
+      # by now, so a failed post does not fail the release.
+      - if: inputs.tag
+        id: release
+        env:
+          IMAGE: ${{ matrix.image }}
+          VERSION: ${{ matrix.version }}
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/ankor-${IMAGE}:${VERSION}"
+          source="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/tree/${IMAGE}-v${VERSION}"
+          echo "message=**ankor-${IMAGE} ${VERSION}** is released: \`${image}\` (${source})" >>"$GITHUB_OUTPUT"
+      - if: inputs.tag
+        continue-on-error: true
+        uses: ./.github/actions/discord-post
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          content: ${{ steps.release.outputs.message }}

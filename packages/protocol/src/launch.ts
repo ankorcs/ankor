@@ -53,15 +53,13 @@ export type ReadyMode = z.infer<typeof ReadyMode>;
  * {@link RoundBackup | round_backup} always carry every rule.
  */
 export const LaunchRules = MatchRules.extend({
-  /** Rounds in regulation, as `mp_maxrounds`. When absent, 24. */
+  /** Rounds in regulation, as `mp_maxrounds`. */
   max_rounds: MatchRules.shape.max_rounds.default(24),
-  /**
-   * Whether a tie after regulation goes to overtime, as `mp_overtime_enable`. When absent, `true`.
-   */
+  /** Whether a tie after regulation goes to overtime, as `mp_overtime_enable`. */
   overtime: MatchRules.shape.overtime.default(true),
-  /** Rounds in one overtime, both halves together, as `mp_overtime_maxrounds`. When absent, 6. */
+  /** Rounds in one overtime, both halves together, as `mp_overtime_maxrounds`. */
   overtime_max_rounds: MatchRules.shape.overtime_max_rounds.default(6),
-  /** Whether bullets and melee hurt teammates. Grenades always do. When absent, `true`. */
+  /** Whether bullets and melee hurt teammates. Grenades always do. */
   friendly_fire: MatchRules.shape.friendly_fire.default(true),
 });
 
@@ -75,13 +73,12 @@ export type LaunchRules = z.infer<typeof LaunchRules>;
 export const MatchConfig = z.object({
   /**
    * The match's id, which names its demos and which {@link AgentSlotStatus | slot_status} and
-   * {@link ControllerGetServerStatus | get_server_status} report. Null for none, and when absent.
+   * {@link ControllerGetServerStatus | get_server_status} report. Null for none.
    */
   match_id: MatchId.nullable().default(null),
   /**
    * Whether the plugin sends the match's gameplay events, its {@link RoundBackup | round_backup}
-   * among them, which the agent uploads in an {@link EventBatch | event_batch}. When absent,
-   * `false`.
+   * among them, which the agent uploads in an {@link EventBatch | event_batch}.
    *
    * Every match reports its {@link AgentPhaseChange | phase_change} and {@link AgentScore | score}.
    * A match without statistics sends each {@link RoundBackup | round_backup} in
@@ -96,25 +93,19 @@ export const MatchConfig = z.object({
    * Seconds the knife winners' captain has to type `!stay`, `!swap`, `!ct` or `!t`, from 5 to 300.
    * The server stays in warmup meanwhile, with its clock counting these seconds down. An answer
    * starts the match immediately. Without one, the team stays on its side when the clock runs out.
-   * When absent, 60.
    */
   knife_decision_seconds: z.number().int().min(5).max(300).default(60),
-  /** How warmup ends. When absent, `auto`. */
+  /** How warmup ends. */
   ready_mode: ReadyMode.default('auto'),
   /**
    * Whether, under `manual`, the match also waits for every rostered spectator to connect and type
-   * `!ready`, and any of them can force-ready the spectators. When absent, `false`, so the match
-   * waits for the teams alone.
+   * `!ready`, and any of them can force-ready the spectators.
    */
   spectators_ready_up: z.boolean().default(false),
-  /**
-   * Whether, under `manual`, captains and rostered spectators may type `!forceready`. When absent,
-   * `false`, so the match waits for every rostered player's `!ready`.
-   */
+  /** Whether, under `manual`, captains and rostered spectators may type `!forceready`. */
   allow_force_ready: z.boolean().default(false),
   /**
-   * Seconds from warmup until both teams must be ready, up to 1800. Null for no time limit, and
-   * when absent.
+   * Seconds from warmup until both teams must be ready, up to 1800. Null for no time limit.
    *
    * When the time passes, the server kicks every player and the map ends with
    * {@link MapEnd | map_end}, which says who was connected and ready. The controller decides what
@@ -128,19 +119,16 @@ export const MatchConfig = z.object({
   record_demo: z.boolean(),
   /**
    * Whether the plugin records a development capture of its callbacks. Only a match that sends
-   * statistics records one. When absent, `false`.
+   * statistics records one.
    *
    * @internal
    */
   debug_capture: z.boolean().default(false),
-  /**
-   * The rules the match is played under, applied over those of the game mode. When absent, every
-   * rule takes its default.
-   */
+  /** The rules the match is played under, applied over those of the game mode. */
   rules: LaunchRules.prefault({}),
   /**
    * A live round to play on from, taken from the {@link RoundBackup | round_backup} that reported
-   * it. Null for a match that plays the map from its start, and when absent.
+   * it. Null for a match that plays the map from its start.
    *
    * With a restore, the server skips the knife round and the side choice whatever `sides` says, and
    * after warmup it loads the backup instead of going live. Team 1 takes the restore's
@@ -171,7 +159,7 @@ const cfgText = z.string().refine((value) => !CFG_CONTROL_CHARS.test(value), CFG
 export const GamePassword = z.string().max(128).regex(/^[!#-:<-~]*$/, 'must be printable ASCII without spaces, quotes or semicolons');
 
 /** A Steam Web API key, which the server needs to download workshop maps. */
-export const SteamWebApiKey = z.string().regex(/^[A-Za-z0-9]{1,64}$/, 'a Steam Web API key is letters and digits');
+export const SteamWebApiKey = z.string().regex(/^[A-Za-z0-9]{0,64}$/, 'a Steam Web API key is letters and digits');
 
 /** The name of a stock map, such as `de_mirage`. A name of all digits would be a workshop id. */
 export const StockMapName = z.string().regex(/^(?!\d+$)[A-Za-z0-9_-]{1,64}$/, 'must be a stock map name');
@@ -200,10 +188,10 @@ export type ChatColor = z.infer<typeof ChatColor>;
 export const ChatTag = z.object({
   /**
    * The tag's text, without brackets or control characters. Brackets would end the tag early in
-   * SwiftlyS2's colour markup. When absent, `Ankor`.
+   * SwiftlyS2's colour markup.
    */
   text: z.string().min(1).max(24).regex(/^[^[\]\p{Cc}]+$/u, 'must not contain brackets or control characters').default('Ankor'),
-  /** The tag's colour. When absent, `blue`. */
+  /** The tag's colour. */
   color: ChatColor.default('blue'),
 });
 
@@ -250,29 +238,27 @@ const MATCH_GAME_MODES: readonly GameMode[] = ['casual', 'competitive', 'wingman
 export const ServerLaunchConfig = z.object({
   /**
    * The server's name, which players see in game, such as on the scoreboard. It is up to 128
-   * characters. Null or empty leaves the game's own name, and null is the value when absent.
-   * Rejected when it holds an ASCII control character, such as a line break.
+   * characters. Null or empty leaves the game's own name. Rejected when it holds an ASCII control
+   * character, such as a line break.
    */
   hostname: cfgText.pipe(z.string().max(128)).nullable().default(null),
   /**
-   * The Steam Web API key that workshop downloads need. Null or empty skips them, and null is the
-   * value when absent. **Whoever runs the node can read the key.**
+   * The Steam Web API key that workshop downloads need. Null or empty skips them. **Whoever runs
+   * the node can read the key.**
    */
-  steam_web_api_key: SteamWebApiKey.or(z.literal('')).nullable().default(null),
-  /** The password players type to join. Null or empty for none, and null when absent. */
+  steam_web_api_key: SteamWebApiKey.nullable().default(null),
+  /** The password players type to join. Null or empty for none. */
   game_password: GamePassword.nullable().default(null),
-  /**
-   * The tag in front of the plugin's chat lines. When absent, each of its fields takes its default.
-   */
+  /** The tag in front of the plugin's chat lines. */
   chat_tag: ChatTag.prefault({}),
-  /** The game mode, which sets the game's rules. When absent, `competitive`. */
+  /** The game mode, which sets the game's rules. */
   game_mode: GameMode.default('competitive'),
   /**
    * The player capacity of the server, as `-maxplayers`. A match's roster, players and spectators
    * together, must fit.
    */
   max_players: MaxPlayers,
-  /** A workshop map to play. Null for a stock map, and when absent. A match plays a stock map. */
+  /** A workshop map to play. Null for a stock map. A match plays a stock map. */
   workshop_id: WorkshopId.nullable().default(null),
   /**
    * The stock map to play, required without `workshop_id`. With a `workshop_id`, the server boots
@@ -280,17 +266,16 @@ export const ServerLaunchConfig = z.object({
    */
   map_name: StockMapName.nullable(),
   /**
-   * GOTV that spectators can watch. Null for none, and null when absent. A match that
-   * records a demo still runs GOTV then, because demos are recorded through it. That GOTV runs with
-   * `tv_delay 0` and a random `tv_password` that the agent sends nowhere, so no spectator can join.
+   * GOTV that spectators can watch. Null for none. A match that records a demo still runs GOTV
+   * then, because demos are recorded through it. That GOTV runs with `tv_delay 0` and a random
+   * `tv_password` that the agent sends nowhere, so no spectator can join.
    *
    * Whether GOTV runs is set on the command line, because GOTV starts with the map. The other
    * settings apply on every map load and when a match goes live, never while a demo records.
    */
   gotv: z.object({
     /**
-     * The GOTV password, as `tv_password`, apart from `game_password`. Null or empty for none, and
-     * null when absent.
+     * The GOTV password, as `tv_password`, apart from `game_password`. Null or empty for none.
      */
     password: GamePassword.nullable().default(null),
     /** Seconds GOTV runs behind the game. */
@@ -313,12 +298,13 @@ export const ServerLaunchConfig = z.object({
    * Console lines that the server runs after `exec`, in order and at the same moments, so they
    * override `exec` and `rules`. A match server leaves out a line that names a command of
    * {@link MATCH_BLOCKED_COMMANDS}. Rejected when a line holds an ASCII control character, such as
-   * a line break, which would end the console line.
+   * a line break, which would end the console line. See
+   * [When the cfgs run](/protocol/#when-the-cfgs-run).
    */
   commands: z.array(cfgText.pipe(z.string().min(1).max(256))).max(128),
   /**
-   * The match Ankor's plugin plays. Null runs a plain CS2 server, and is the value when absent. The
-   * plugin then runs no match, and the map, `exec`, `commands` and the node's plugins set the game.
+   * The match Ankor's plugin plays. Null runs a plain CS2 server. The plugin then runs no match,
+   * and the map, `exec`, `commands` and the node's plugins set the game.
    */
   match: MatchConfig.nullable().default(null),
 }).superRefine((launch, ctx) => {

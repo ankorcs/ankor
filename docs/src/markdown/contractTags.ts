@@ -3,7 +3,7 @@ import * as contract from '@ankorcs/protocol';
 import { AGENT_BUDGETS, type BudgetName, type Rate } from '@ankorcs/protocol';
 import { defineMdastPlugin, markdownToHtml, type MdastPluginEntry } from 'satteri';
 import type { JsonSchema } from '../reference/model.ts';
-import { contractHref } from '../reference/schema.ts';
+import { contractHref, defaultOf } from '../reference/schema.ts';
 import { configAnchor } from './configTags.ts';
 import { protocolFile } from './plugins.ts';
 
@@ -131,8 +131,12 @@ function rules(schema: JsonSchema): string[] {
     sentences.push(`At most ${maxItems} entries.`);
   }
 
-  if (schema['default'] !== undefined) {
-    sentences.push(`Default \`${String(schema['default'])}\`.`);
+  const fallback = defaultOf(schema);
+
+  if (fallback === 'fields') {
+    sentences.push('Each field takes its default.');
+  } else if (fallback !== undefined) {
+    sentences.push(`Default \`${fallback.json}\`.`);
   }
 
   return sentences;

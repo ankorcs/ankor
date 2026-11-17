@@ -162,6 +162,8 @@ jobs:
     with:
       builds: ${{ needs.plan.outputs.builds }}
       tag: true
+    secrets:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
   publish-npm:
     name: Publish to npm
@@ -186,3 +188,13 @@ jobs:
           node-version-file: .nvmrc
           registry-url: https://registry.npmjs.org
       - run: npm publish -w @ankorcs/protocol
+      # Published by now, so a failed post does not fail the release.
+      - id: release
+        run: |
+          version="$(jq -r .version packages/protocol/package.json)"
+          echo "message=**@ankorcs/protocol ${version}** is published: https://www.npmjs.com/package/@ankorcs/protocol/v/${version}" >>"$GITHUB_OUTPUT"
+      - continue-on-error: true
+        uses: ./.github/actions/discord-post
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          content: ${{ steps.release.outputs.message }}

@@ -32,18 +32,15 @@ trap 'rm -rf "$work"' EXIT
 build_protocol "$work"
 version="$(node -p "require('$ANKOR_PROTOCOL_DIR/package.json').version")"
 
-# What codegen writes, the crate versions included, which name the contract a build compiles.
+# What codegen writes. The protocol crate has no version of its own (0.0.0): the agent's version
+# names a release, and PROTOCOL_VERSION in constants.rs is the contract's major.minor.
 generated=(
   crates/protocol/src/types.rs crates/protocol/src/schemas.rs crates/protocol/src/constants.rs
   crates/agent/src/contract/types.rs crates/agent/src/contract/schemas.rs crates/agent/src/contract/constants.rs
-  codegen/hooks.md crates/protocol/Cargo.toml crates/agent/Cargo.toml crates/conformance/Cargo.toml
-  crates/fake-plugin/Cargo.toml
+  codegen/hooks.md
 )
 
 regenerate() {
-  sed -i "s/^version = \".*\"$/version = \"$version\"/" crates/protocol/Cargo.toml
-  sed -i "s/^ankor-protocol = { version = \"[^\"]*\"/ankor-protocol = { version = \"$version\"/" \
-    crates/agent/Cargo.toml crates/conformance/Cargo.toml crates/fake-plugin/Cargo.toml
   (cd codegen && npm ci --ignore-scripts --no-audit --no-fund --no-update-notifier >/dev/null && npm run generate >/dev/null)
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "@ankorcs/protocol",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "The wire protocol between Ankor game-host agents and the controller that runs them: zod schemas, constants, types, an agent.yml renderer and a session that pairs requests with their typed replies on any WebSocket server; the interface between the agent and its game containers; and node-setup.sh, which installs a game node.",
   "keywords": ["ankor", "cs2", "counter", "strike"],
   "license": "Apache-2.0",

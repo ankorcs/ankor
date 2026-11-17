@@ -59,9 +59,9 @@ static RE_14: LazyLock<Regex> = LazyLock::new(|| Regex::new("^[A-Za-z0-9_-]{1,32
 /// `/^\d{17}$/`
 #[allow(clippy::expect_used, reason = "a fixed pattern, which the tests compile")]
 static RE_15: LazyLock<Regex> = LazyLock::new(|| Regex::new("^[0-9]{17}$").expect("valid pattern"));
-/// `/^[A-Za-z0-9]{1,64}$/`
+/// `/^[A-Za-z0-9]{0,64}$/`
 #[allow(clippy::expect_used, reason = "a fixed pattern, which the tests compile")]
-static RE_16: LazyLock<Regex> = LazyLock::new(|| Regex::new("^[A-Za-z0-9]{1,64}$").expect("valid pattern"));
+static RE_16: LazyLock<Regex> = LazyLock::new(|| Regex::new("^[A-Za-z0-9]{0,64}$").expect("valid pattern"));
 /// `/^(?!\d+$)[A-Za-z0-9_-]{1,64}$/`
 #[allow(clippy::expect_used, reason = "a fixed pattern, which the tests compile")]
 static RE_17: LazyLock<Regex> = LazyLock::new(|| Regex::new("^(?![0-9]+$)[A-Za-z0-9_-]{1,64}$").expect("valid pattern"));
@@ -9390,7 +9390,7 @@ pub fn s_server_launch_config__hostname__inner(p: &mut Payload) {
 #[doc(hidden)]
 pub fn s_server_launch_config__steam_web_api_key__inner(p: &mut Payload) {
     if !matches!(p.value, Some(Value::Null)) {
-        s_server_launch_config__steam_web_api_key__inner__inner(p);
+        s_steam_web_api_key(p);
     }
 }
 
@@ -9991,12 +9991,6 @@ pub fn s_server_launch_config__hostname__inner__inner(p: &mut Payload) {
     }
 }
 
-/// `ServerLaunchConfig.steam_web_api_key.inner.inner`
-#[doc(hidden)]
-pub fn s_server_launch_config__steam_web_api_key__inner__inner(p: &mut Payload) {
-    union(p, &[s_steam_web_api_key, s_server_launch_config__steam_web_api_key__inner__inner__1], "Invalid input");
-}
-
 /// `ServerLaunchConfig.gotv.inner.inner`
 #[doc(hidden)]
 pub fn s_server_launch_config__gotv__inner__inner(p: &mut Payload) {
@@ -10123,14 +10117,6 @@ pub fn s_server_launch_config__hostname__inner__inner__out(p: &mut Payload) {
         }
     }
     let _ = stopped;
-}
-
-/// `ServerLaunchConfig.steam_web_api_key.inner.inner.1`
-#[doc(hidden)]
-pub fn s_server_launch_config__steam_web_api_key__inner__inner__1(p: &mut Payload) {
-    if !(same(p.value.as_ref(), &json!(""))) {
-        p.push(Issue::new(Code::InvalidValue, "Invalid input: expected \"\"", None));
-    }
 }
 
 /// `ServerLaunchConfig.gotv.inner.inner.password`

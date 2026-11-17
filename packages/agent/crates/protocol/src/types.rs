@@ -11,7 +11,6 @@ use serde_json::Value;
 
 use crate::literal;
 
-literal!(LitEmpty, "");
 literal!(LitEventIntegrityError, "event_integrity_error");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

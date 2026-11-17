@@ -7,7 +7,7 @@ rust-version.workspace = true
 publish = false
 
 [dependencies]
-ankor-protocol = { version = "0.10.0", path = "../protocol" }
+ankor-protocol = { path = "../protocol" }
 anyhow = "1.0.104"
 axum = { version = "0.8.9", features = ["ws"] }
 base64 = "0.23.1"
