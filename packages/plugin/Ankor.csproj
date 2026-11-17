@@ -37,7 +37,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <SwiftlyVersion Condition="'$(SwiftlyVersion)' == ''">1.5.2</SwiftlyVersion>
+    <SwiftlyVersion Condition="'$(SwiftlyVersion)' == ''">1.5.3</SwiftlyVersion>
   </PropertyGroup>
 
   <ItemGroup>
