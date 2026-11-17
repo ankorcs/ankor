@@ -19,6 +19,3 @@ const load = (file) => import(pathToFileURL(path.join(dir, file)).href);
 export const protocol = await load('dist/index.js');
 export const container = await load('dist/container.js');
 export const { z } = await import(pathToFileURL(createRequire(path.join(dir, 'package.json')).resolve('zod')).href);
-
-/** The package's sources, whose JSDoc codegen carries over to the Rust. */
-export const sourcesDir = path.join(dir, 'src');

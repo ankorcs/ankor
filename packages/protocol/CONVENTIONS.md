@@ -4,8 +4,8 @@
 
 The JSDoc is the only definition of what each message and field means, and the reference renders
 it as a small markdown that the [docs site's README](../../docs/src/README.md) describes. The
-container contract follows the same rules. The prose rules in
-[AGENTS.md](../../AGENTS.md) apply to every docblock.
+container contract follows the same rules. The
+[prose rules](../../docs/src/README.md#writing-prose) of the docs apply to every docblock.
 
 Shape:
 

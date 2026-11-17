@@ -2,7 +2,9 @@
 // Generated from @ankorcs/protocol, licensed under Apache-2.0 (LICENSE-APACHE).
 #![allow(clippy::all, clippy::pedantic, unused_imports, reason = "generated")]
 //! The parsed form of each schema. Deserialize only values that the matching validator in
-//! [`crate::schemas`] accepted; the types do not repeat its checks.
+//! [`crate::schemas`] accepted; the types do not repeat its checks. The type of an exported
+//! schema keeps the name of that schema in `@ankorcs/protocol`, whose JSDoc and
+//! <https://docs.ankor.sh/reference/> say what it means.
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -12,10 +14,6 @@ use crate::literal;
 literal!(LitEmpty, "");
 literal!(LitEventIntegrityError, "event_integrity_error");
 
-/// A playing side, for a field that never holds `spec`.
-///
-/// - `t`: terrorists.
-/// - `ct`: counter-terrorists.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PlayingSide {
     #[serde(rename = "t")]
@@ -29,22 +27,11 @@ impl PlayingSide {
     pub const ALL: &'static [Self] = &[Self::T, Self::Ct];
 }
 
-/// The rules of a match, as a launch asks for them and as `going_live` and
-/// `round_backup` report the server playing them.
-///
-/// The plugin reads the round settings off the server's cvars. `friendly_fire` comes from the
-/// launch, and Ankor applies it through the damage reductions instead of `mp_friendlyfire`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MatchRules {
-    /// Rounds in regulation, as `mp_maxrounds`, up to `MAX_ROUNDS`. MR12 is 24 and MR15 is
-    /// 30.
     pub max_rounds: i64,
-    /// Whether a tie after regulation goes to overtime, as `mp_overtime_enable`.
     pub overtime: bool,
-    /// Rounds in one overtime, both halves together, as `mp_overtime_maxrounds`. The bound is 60, ten
-    /// times the stock 6.
     pub overtime_max_rounds: i64,
-    /// Whether bullets and melee hurt teammates. Grenades always do.
     pub friendly_fire: bool,
 }
 
@@ -53,14 +40,9 @@ impl MatchRules {
     pub const FIELDS: &'static [&'static str] = &["max_rounds", "overtime", "overtime_max_rounds", "friendly_fire"];
 }
 
-/// One team of a `Roster`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RosterTeam {
-    /// The team name that players see, up to `MAX_TEAM_NAME_LENGTH` characters. Rejected when it
-    /// is blank, or when it holds a NUL or a lone UTF-16 surrogate.
     pub name: String,
-    /// The players of the team, captain first. The captain may use `!forceready` and picks the side
-    /// after the knife round. A team has at least one player, so it always has a captain.
     pub players: Vec<String>,
 }
 
@@ -69,19 +51,10 @@ impl RosterTeam {
     pub const FIELDS: &'static [&'static str] = &["name", "players"];
 }
 
-/// The teams and spectators of a match. Each player holds one place on the server, whichever team or
-/// list the player is in.
-///
-/// Rejected when a SteamID appears twice across both teams and `spectators`, or when they hold more
-/// than `MAX_SERVER_PLAYERS` together.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Roster {
-    /// Team 1, which events number `1`.
     pub team1: RosterTeam,
-    /// Team 2, which events number `2`.
     pub team2: RosterTeam,
-    /// Players allowed in as spectators, who watch with the game's free camera, up to
-    /// `MAX_SPECTATORS`. When `ready_mode` is `manual`, they ready up too.
     pub spectators: Vec<String>,
 }
 
@@ -90,38 +63,16 @@ impl Roster {
     pub const FIELDS: &'static [&'static str] = &["team1", "team2", "spectators"];
 }
 
-/// Sent as each live round starts. The newest one of a map, with the launch of that map, holds
-/// everything that a restore needs on another node.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoundBackup {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// Team 1's side in that round. On a launch, the plugin seats players by it through warmup, before
-    /// the load.
     pub team1_side: PlayingSide,
-    /// The rules that the map was played under. A restore plays on under these rules instead of the
-    /// rules of its launch.
     pub rules: MatchRules,
-    /// The backup file as the engine wrote it, up to `MAX_BACKUP_FILE_CHARS` characters. The
-    /// file holds the money and equipment of every player, keyed by account, and only
-    /// `mp_backup_restore_load_file` reads it.
-    ///
-    /// The file is text with tabs and line breaks, so a file at the length cap stays within the frame
-    /// limits once JSON escapes it. Rejected when it holds a lone UTF-16 surrogate.
     pub file: String,
-    /// The one-based round that the backup starts. The file numbers rounds from zero, one lower.
     pub round: i64,
-    /// Team 1's score before that round.
     pub team1_score: i64,
-    /// Team 2's score before that round.
     pub team2_score: i64,
-    /// The teams and spectators that the map is played with.
     pub roster: Roster,
 }
 
@@ -141,20 +92,9 @@ fn write_round_backup_tagged<S: serde::Serializer>(value: &RoundBackup, serializ
     value.serialize(serializer)
 }
 
-/// The `round_backup` of a match that sends no statistics, which a match with
-/// statistics carries in its `event_batch` instead. Keep the newest of each match
-/// to restore it on a new server.
-///
-/// The message wraps the complete event, unchanged, so code that reads a `round_backup` from the
-/// event stream reads `backup` the same way. The wrapper adds only the server that sent it.
-///
-/// Like `phase_change`, it is sent once, so a backup is lost if the plugin
-/// or the agent is not connected when the round starts. The next round's backup replaces it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentBackup {
-    /// The server whose match the backup is of.
     pub allocation_id: String,
-    /// The `round_backup` event, as the event stream would carry it.
     #[serde(serialize_with = "write_round_backup_tagged")]
     pub backup: RoundBackup,
 }
@@ -164,22 +104,11 @@ impl AgentBackup {
     pub const FIELDS: &'static [&'static str] = &["type", "allocation_id", "backup"];
 }
 
-/// Where the agent dials the controller.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerFields {
-    /// The controller's host with an optional port, without scheme or path, such as
-    /// `cs.example.com`, `192.168.0.10:3000` or `[fd00::1]`. The agent may dial over IPv6, but players
-    /// need IPv4.
-    ///
-    /// Rejected when it contains whitespace, a control character, `/`, `\`, `?` or `#`. It is also
-    /// rejected unless `http://` followed by the value parses as a URL that has a host, an optional
-    /// port and nothing else, such as a user name.
     pub host: String,
-    /// Whether the agent dials `wss://` and `https://` rather than `ws://` and `http://`.
     pub tls: bool,
-    /// The agent socket's path on `host`, a `/` followed by URL path characters.
     pub socket_path: String,
-    /// The path on `host` that event batches are posted to, a `/` followed by URL path characters.
     pub events_path: String,
 }
 
@@ -188,20 +117,11 @@ impl ControllerFields {
     pub const FIELDS: &'static [&'static str] = &["host", "tls", "socket_path", "events_path"];
 }
 
-/// A slot as `agent.yml` holds it, with its full token.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConfiguredSlot {
-    /// The slot's id, 1 to 32 letters, digits, `_` and `-`. It is unique on its node.
     pub id: String,
-    /// The game port, UDP. Every `port` and `tv_port` on a node is different, free on the host, and
-    /// not `EVENT_RELAY_PORT`, the port the agent listens on for plugins.
-    /// [Host networking](/how-it-works/#host-networking) explains why.
     pub port: i64,
-    /// The GOTV port, UDP, under the same rules as `port`.
     pub tv_port: i64,
-    /// The slot's Game Server Login Token, which every server in the slot logs in with. It is 10 to 64
-    /// letters and digits. [Game Server Login Tokens](/requirements/#game-server-login-tokens)
-    /// explains them.
     pub gslt: String,
 }
 
@@ -210,15 +130,9 @@ impl ConfiguredSlot {
     pub const FIELDS: &'static [&'static str] = &["id", "port", "tv_port", "gslt"];
 }
 
-/// One header sent with every demo upload, verbatim: any name the target expects, such as an API key
-/// header or `Authorization: Basic …`, except the `RESERVED_DEMO_HEADERS`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DemoUploadHeader {
-    /// The header's name, up to 64 letters, digits and `-`. Rejected when it is, in any case, one of
-    /// `RESERVED_DEMO_HEADERS`, which the agent sets itself or which change how the request is
-    /// framed.
     pub name: String,
-    /// The header's value, sent verbatim, without line breaks.
     pub value: String,
 }
 
@@ -227,18 +141,11 @@ impl DemoUploadHeader {
     pub const FIELDS: &'static [&'static str] = &["name", "value"];
 }
 
-/// Where finished demos are uploaded. Without it, demos stay on the node.
-/// [Demo uploads](/protocol/demos/) describes the request.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DemoUploadFields {
-    /// The `http` or `https` URL finished demos are posted to. Rejected when it carries a user name or a
-    /// password, which belong in `header`.
     pub url: String,
-    /// One header sent with every upload.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub header: Option<DemoUploadHeader>,
-    /// Megabits a second an upload may send while a game server runs on the node. Without it, uploads
-    /// run at full speed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub limit_mbit: Option<i64>,
 }
@@ -248,58 +155,19 @@ impl DemoUploadFields {
     pub const FIELDS: &'static [&'static str] = &["url", "header", "limit_mbit"];
 }
 
-/// The node's `agent.yml` as the agent reads it. It is `RawAgentConfigSchema` with the checks
-/// that span slots, and it fills in `pinned_ip` and `demo_upload` as null when absent.
-///
-/// Rejected when two `slots` share an `id` or a `gslt`, or when two ports are equal. Every slot's
-/// `port` and `tv_port` count, so a slot's two ports differ too. It is also rejected when a port is
-/// `EVENT_RELAY_PORT`, where the agent listens for plugins.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RawAgentConfig {
-    /// The node token from the controller, 32 to 128 letters and digits. [Node
-    /// tokens](/protocol/#node-tokens) explains how one is made. **Keep the file secret.**
     pub token: String,
-    /// Where the agent dials the controller.
     pub controller: ControllerFields,
-    /// The IPv4 address players connect to, in place of the one the agent looks up. Rejected unless it
-    /// is four numbers from 0 to 255 joined by dots, each without leading zeros.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pinned_ip: Option<String>,
-    /// The `ankor-cs2` image future game servers run, as a Docker image reference.
     pub cs2_image: String,
-    /// The agent's image, which `node-setup.sh --update` runs and the agent replaces itself from, as
-    /// a Docker image reference.
     pub agent_image: String,
-    /// MiB of memory each game container may use. Without it, game containers are not capped. CS2
-    /// installs and updates are exempt.
-    ///
-    /// Rejected when it is not a whole number from `MIN_MEMORY_MB` to `MAX_MEMORY_MB`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub memory_mb: Option<i64>,
-    /// Whether the agent keeps the node up to date on its own. It updates CS2 to the newest public
-    /// build and refuses launches while it is behind that build. It also moves `cs2_image` and
-    /// `agent_image` to the newest release or rebuild on their release line. An image tagged `latest`
-    /// stays `latest` and follows every release, across lines. It reads their tags from the
-    /// registry every `IMAGE_UPDATE_POLL_INTERVAL_MS`, and leaves an image named by digest or
-    /// by a custom tag alone. When false, only `update_cs2`,
-    /// `update_cs2_image` and `update_agent` change
-    /// the build and the images.
     pub auto_update: bool,
-    /// Whether the node runs only the official images: `agent_image` from
-    /// `OFFICIAL_IMAGES.agent` and `cs2_image` from `OFFICIAL_IMAGES.cs2`, with any tag or
-    /// digest. While it is on, the agent refuses an `update_agent` or
-    /// `update_cs2_image` to any other image with
-    /// `image_not_allowed`, and `node-setup.sh` refuses to run one.
-    ///
-    /// Only the node's operator can turn it off, by setting it to false in the file, to run images of
-    /// their own. `set_config` cannot change it. If the `agent.yml` that
-    /// `node-setup.sh` fetches from the controller turns it off, the script stops.
     pub official_images_only: bool,
-    /// The node's game server slots. Empty for a node that runs no servers yet. Such a node connects
-    /// and reports, but accepts no launch.
     pub slots: Vec<ConfiguredSlot>,
-    /// Where finished demos are uploaded. Without it, demos stay on the node.
-    /// [Demo uploads](/protocol/demos/) describes the request.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub demo_upload: Option<DemoUploadFields>,
 }
@@ -310,16 +178,10 @@ impl RawAgentConfig {
         &["token", "controller", "pinned_ip", "cs2_image", "agent_image", "memory_mb", "auto_update", "official_images_only", "slots", "demo_upload"];
 }
 
-/// Progress of a CS2 install or update while it runs. `cs2.update` in
-/// `node_status` says how it ended.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentCs2UpdateProgress {
-    /// The update it reports on, as `cs2.update.id`. A frame can arrive before the
-    /// `node_status` that names the update.
     pub update_id: String,
-    /// Percent done, as `steamcmd` reports it. Null when `steamcmd` reports none.
     pub percent: Option<f64>,
-    /// What the install is doing, up to `CS2_UPDATE_MESSAGE_MAX_CHARS` characters.
     pub message: String,
 }
 
@@ -328,29 +190,14 @@ impl AgentCs2UpdateProgress {
     pub const FIELDS: &'static [&'static str] = &["type", "update_id", "percent", "message"];
 }
 
-/// One demo as it is now, sent when it appears or changes: its file, its upload starting or
-/// stopping, or its `upload_error`. It replaces the demo with the same `slot_id` and `file_name`, or
-/// adds it. `hello` lists the newest `MAX_REPORTED_DEMOS`. A demo that
-/// appears after the `hello` is added, however many the node keeps.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentDemo {
-    /// The slot whose directory holds it.
     pub slot_id: String,
-    /// The file's name.
     pub file_name: String,
-    /// Bytes in the file.
     pub size_bytes: i64,
-    /// Unix milliseconds when the file was last written.
     pub modified_at: i64,
-    /// Whether its server is still recording it. While it is, the demo grows with each report and is
-    /// neither uploaded nor deleted.
     pub recording: bool,
-    /// Whether it is uploading now. `demo_progress` reports how far, and a
-    /// node uploads one demo at a time.
     pub uploading: bool,
-    /// Why its upload failed or why it waits, up to `DEMO_UPLOAD_ERROR_MAX_CHARS` characters: a
-    /// failure being retried, a refusal as invalid, or every demo held while the target refuses the
-    /// node or has failed for a day. Null once an upload works again or the target changes.
     pub upload_error: Option<String>,
 }
 
@@ -359,17 +206,11 @@ impl AgentDemo {
     pub const FIELDS: &'static [&'static str] = &["slot_id", "file_name", "size_bytes", "modified_at", "recording", "uploading", "upload_error", "type"];
 }
 
-/// How far the uploading demo is, at most once a second while it uploads.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentDemoProgress {
-    /// The slot whose directory holds it.
     pub slot_id: String,
-    /// The file's name.
     pub file_name: String,
-    /// Bytes sent so far.
     pub sent_bytes: i64,
-    /// Bytes a second since the previous `demo_progress` of this upload, or
-    /// since it began.
     pub bytes_per_second: i64,
 }
 
@@ -378,10 +219,6 @@ impl AgentDemoProgress {
     pub const FIELDS: &'static [&'static str] = &["type", "slot_id", "file_name", "sent_bytes", "bytes_per_second"];
 }
 
-/// Why a demo is no longer on the node.
-///
-/// - `uploaded`: the target took it and the agent removed it.
-/// - `deleted`: `delete_demo` or anything else removed it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum DemoRemovedReason {
     #[serde(rename = "uploaded")]
@@ -395,14 +232,10 @@ impl DemoRemovedReason {
     pub const ALL: &'static [Self] = &[Self::Uploaded, Self::Deleted];
 }
 
-/// A demo that the controller knows of is no longer on the node.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentDemoRemoved {
-    /// The slot whose directory held it.
     pub slot_id: String,
-    /// The file's name.
     pub file_name: String,
-    /// Why it is no longer on the node.
     pub reason: DemoRemovedReason,
 }
 
@@ -411,7 +244,6 @@ impl AgentDemoRemoved {
     pub const FIELDS: &'static [&'static str] = &["type", "slot_id", "file_name", "reason"];
 }
 
-/// The `code` of a failed reply, one of the values of `AGENT_ERRORS`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AgentErrorCode {
     #[serde(rename = "no_free_slot")]
@@ -518,13 +350,9 @@ impl AgentErrorCode {
     ];
 }
 
-/// Why a request failed. Branch on `code`. `detail` is for people.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentError {
-    /// What went wrong. Branch on it.
     pub code: AgentErrorCode,
-    /// The rest of the reason, such as Docker's message, up to `AGENT_ERROR_DETAIL_MAX_CHARS`
-    /// characters.
     pub detail: String,
 }
 
@@ -533,12 +361,9 @@ impl AgentError {
     pub const FIELDS: &'static [&'static str] = &["code", "detail"];
 }
 
-/// A server whose events wait on the node.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StuckServer {
-    /// The server whose plugin sent them.
     pub allocation_id: String,
-    /// Events of the server still queued on the node.
     pub pending: i64,
 }
 
@@ -547,20 +372,11 @@ impl StuckServer {
     pub const FIELDS: &'static [&'static str] = &["allocation_id", "pending"];
 }
 
-/// The node's `EventBacklog` now, replacing the backlog of the last `hello`
-/// or `event_backlog`. Sent when it changes: after each failed upload, as
-/// its counts grow, and once, with nothing stuck, when uploads work again. Rejected when it breaks a
-/// rule of `EventBacklog`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentEventBacklog {
-    /// The servers with the oldest stuck events, oldest first, up to `MAX_REPORTED_BACKLOGS`.
     pub servers: Vec<StuckServer>,
-    /// Servers with stuck events on the node, those past `servers` too.
     pub server_count: i64,
-    /// Events that every stuck server holds together.
     pub event_count: i64,
-    /// Why the last upload failed, up to `EVENT_BACKLOG_REASON_MAX_CHARS` characters. Null when
-    /// nothing is stuck, and only then.
     pub reason: Option<String>,
 }
 
@@ -569,14 +385,10 @@ impl AgentEventBacklog {
     pub const FIELDS: &'static [&'static str] = &["type", "servers", "server_count", "event_count", "reason"];
 }
 
-/// The running agent.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentInfo {
-    /// The agent package version.
     pub version: String,
-    /// The image this agent's container was created from.
     pub image: String,
-    /// The id Docker holds for that image. Two builds of one tag differ here.
     pub image_id: String,
 }
 
@@ -585,15 +397,10 @@ impl AgentInfo {
     pub const FIELDS: &'static [&'static str] = &["version", "image", "image_id"];
 }
 
-/// The machine the agent runs on.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HostInfo {
-    /// Logical CPUs the agent can use.
     pub cpu_count: i64,
-    /// The host's os-release `PRETTY_NAME`, up to `OS_NAME_MAX_CHARS` characters. Null when
-    /// unreadable.
     pub os_name: Option<String>,
-    /// The kernel release, which the agent's container shares with the host.
     pub kernel: String,
 }
 
@@ -602,18 +409,11 @@ impl HostInfo {
     pub const FIELDS: &'static [&'static str] = &["cpu_count", "os_name", "kernel"];
 }
 
-/// A slot as the agent reports it, with the last ten characters of its token in place of the token.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReportedSlot {
-    /// The slot's id, 1 to 32 letters, digits, `_` and `-`. It is unique on its node.
     pub id: String,
-    /// The game port, UDP. Every `port` and `tv_port` on a node is different, free on the host, and
-    /// not `EVENT_RELAY_PORT`, the port the agent listens on for plugins.
-    /// [Host networking](/how-it-works/#host-networking) explains why.
     pub port: i64,
-    /// The GOTV port, UDP, under the same rules as `port`.
     pub tv_port: i64,
-    /// The last ten characters of the slot's token.
     pub gslt_hint: String,
 }
 
@@ -622,19 +422,11 @@ impl ReportedSlot {
     pub const FIELDS: &'static [&'static str] = &["id", "port", "tv_port", "gslt_hint"];
 }
 
-/// Where a node dials the controller: a host with an optional port, whether it encrypts, and the
-/// paths it reaches there.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerAddress {
-    /// The controller's host with an optional port.
     pub host: String,
-    /// Whether the agent dials over TLS.
     pub tls: bool,
-    /// The path of the agent socket. It is `DEFAULT_SOCKET_PATH` unless `agent.yml` sets
-    /// `controller.socket_path`.
     pub socket_path: String,
-    /// The path event batches are posted to. It is `DEFAULT_EVENTS_PATH` unless `agent.yml` sets
-    /// `controller.events_path`.
     pub events_path: String,
 }
 
@@ -643,15 +435,9 @@ impl ControllerAddress {
     pub const FIELDS: &'static [&'static str] = &["host", "tls", "socket_path", "events_path"];
 }
 
-/// The header sent with each upload. Null for none.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReportedDemoUploadHeader {
-    /// The header's name, up to 64 letters, digits and `-`. Rejected when it is, in any case, one of
-    /// `RESERVED_DEMO_HEADERS`, which the agent sets itself or which change how the request is
-    /// framed.
     pub name: String,
-    /// The lowercase hex SHA-256 of the value's UTF-8 bytes, to compare with the value the controller
-    /// set.
     pub value_sha256: String,
 }
 
@@ -660,15 +446,10 @@ impl ReportedDemoUploadHeader {
     pub const FIELDS: &'static [&'static str] = &["name", "value_sha256"];
 }
 
-/// A demo upload as the node reports it, with the header's value replaced by its hash, because the
-/// value is a credential that the controller set.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReportedDemoUpload {
-    /// The upload target.
     pub url: String,
-    /// The header sent with each upload. Null for none.
     pub header: Option<ReportedDemoUploadHeader>,
-    /// Megabits a second an upload may send while a game server runs on the node. Null for no limit.
     pub limit_mbit: Option<i64>,
 }
 
@@ -677,31 +458,13 @@ impl ReportedDemoUpload {
     pub const FIELDS: &'static [&'static str] = &["url", "header", "limit_mbit"];
 }
 
-/// The part of `agent.yml` that the controller may edit, as `hello` reports it
-/// applied.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NodeSettings {
-    /// The slots servers run in.
     pub slots: Vec<ReportedSlot>,
-    /// The address players connect to. Null for the node's `public_ip`. Servers already running keep
-    /// the address their launch announced.
     pub pinned_ip: Option<String>,
-    /// Where the agent dials the controller. It redials when any part of it changes.
     pub controller: ControllerAddress,
-    /// Whether the node keeps itself up to date: CS2 on `cs2.latest_build_id`, and its agent and cs2
-    /// images on the newest release of their major. When false, the node stays on `cs2.build_id` until
-    /// an `update_cs2`, and accepts launches while it is behind
-    /// `cs2.latest_build_id`, so players on a newer client cannot join its servers. Its images then
-    /// change only with `update_agent` and
-    /// `update_cs2_image`.
     pub auto_update: bool,
-    /// Where the agent uploads demos. Null for no uploads, which keeps demos on the node. The header's
-    /// value is reported as its SHA-256.
     pub demo_upload: Option<ReportedDemoUpload>,
-    /// MiB of memory each game container may use. Null for no cap. A change applies to servers launched
-    /// afterwards, and CS2 installs and updates are exempt.
-    ///
-    /// Rejected when it is not a whole number from `MIN_MEMORY_MB` to `MAX_MEMORY_MB`.
     pub memory_mb: Option<i64>,
 }
 
@@ -710,13 +473,6 @@ impl NodeSettings {
     pub const FIELDS: &'static [&'static str] = &["slots", "pinned_ip", "controller", "auto_update", "demo_upload", "memory_mb"];
 }
 
-/// What a slot is doing.
-///
-/// - `idle`: the slot has no server.
-/// - `starting`: the slot holds a server that its plugin has not yet reported ready for players with
-///   a `server_status` with `ready`. A server that a restarted agent took over starts here too.
-/// - `running`: the plugin has reported the server ready.
-/// - `stopping`: the server is being stopped.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SlotState {
     #[serde(rename = "idle")]
@@ -734,12 +490,6 @@ impl SlotState {
     pub const ALL: &'static [Self] = &[Self::Idle, Self::Starting, Self::Running, Self::Stopping];
 }
 
-/// Whether Steam accepts a slot's token.
-///
-/// - `ok`: a logon with the token succeeded, either the agent's own or that of a server that
-///   turned `ready`.
-/// - `invalid`: Steam refused the token.
-/// - `unchecked`: the agent has seen neither since the token was set.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum GsltState {
     #[serde(rename = "ok")]
@@ -755,35 +505,15 @@ impl GsltState {
     pub const ALL: &'static [Self] = &[Self::Ok, Self::Invalid, Self::Unchecked];
 }
 
-/// One slot as the agent sees it.
-///
-/// Rejected when an `idle` slot names an `allocation_id`, a `match_id` or a `server_steam_id`, or
-/// when a slot in any other state has no `allocation_id`. It is also rejected when a slot that is
-/// not `idle` is `reserved`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SlotStatus {
-    /// The slot this describes.
     pub slot_id: String,
-    /// What the slot is doing.
     pub state: SlotState,
-    /// The server on the slot. Null when the slot is `idle`.
     pub allocation_id: Option<String>,
-    /// The server's match id. Null for a server without a match or a match launched without one.
     pub match_id: Option<String>,
-    /// Whether the server's plugin is connected to the agent.
-    /// `get_server_status`, `console_command`,
-    /// `restore_round` and `start_match` reach it only
-    /// while it is.
     pub plugin_online: bool,
-    /// Whether Steam accepts the slot's token. `start_server` never picks a
-    /// slot whose token is `invalid`.
     pub gslt_state: GsltState,
-    /// Whether the idle slot is kept from launches, while the controller replaces its token with
-    /// `reserve_slot` or while the agent logs its token on to Steam.
     pub reserved: bool,
-    /// The `server_steam_id` that the server's plugin reported. The agent sends a
-    /// `slot_status` as soon as it learns the ID. Null when the slot is `idle`
-    /// or until the server is `ready`.
     pub server_steam_id: Option<String>,
 }
 
@@ -793,11 +523,6 @@ impl SlotStatus {
         &["slot_id", "state", "allocation_id", "match_id", "plugin_online", "gslt_state", "reserved", "server_steam_id"];
 }
 
-/// How thoroughly a CS2 install or update runs.
-///
-/// - `update`: downloads what changed.
-/// - `verify`: also re-hashes every file.
-/// - `reinstall`: wipes the install volume first and downloads all of it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Cs2UpdateMode {
     #[serde(rename = "update")]
@@ -813,17 +538,6 @@ impl Cs2UpdateMode {
     pub const ALL: &'static [Self] = &[Self::Update, Self::Verify, Self::Reinstall];
 }
 
-/// How a CS2 install or update ended.
-///
-/// - `completed`: the game files are installed.
-/// - `pull_failed`: the cs2 image could not be pulled.
-/// - `overlay_failed`: its addon overlay could not be extracted.
-/// - `failed`: any other failure, such as the update container exiting with an error.
-/// - `unobserved`: an update container that an earlier agent process started exited, and the agent
-///   did not see the exit.
-///
-/// An update container that an earlier agent process started reports progress again until it exits.
-/// It ends `completed` or `failed` by its exit code, or `unobserved`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Cs2UpdateOutcome {
     #[serde(rename = "completed")]
@@ -843,20 +557,12 @@ impl Cs2UpdateOutcome {
     pub const ALL: &'static [Self] = &[Self::Completed, Self::PullFailed, Self::OverlayFailed, Self::Failed, Self::Unobserved];
 }
 
-/// A CS2 install or update on the node: one running, or the last one to end since the agent started.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Cs2Update {
-    /// Identifies the update and its output, the `cs2_update` `LogSource` with this `update_id`.
     pub id: String,
-    /// How the update runs.
     pub mode: Cs2UpdateMode,
-    /// Whether the agent started the update on its own, to reach the newest public build. When false,
-    /// an `update_cs2` started it.
     pub automatic: bool,
-    /// How the update ended. Null while it runs.
     pub outcome: Option<Cs2UpdateOutcome>,
-    /// Why the update failed, up to `CS2_UPDATE_DETAIL_MAX_CHARS` characters. Null unless it
-    /// failed.
     pub detail: Option<String>,
 }
 
@@ -865,13 +571,6 @@ impl Cs2Update {
     pub const FIELDS: &'static [&'static str] = &["id", "mode", "automatic", "outcome", "detail"];
 }
 
-/// Where an `update_agent` or `update_cs2_image`
-/// is.
-///
-/// - `pulling`: the image is being pulled.
-/// - `switching`: the image is on the node and is put into use. A switch of the agent replaces its
-///   container, so the node goes offline and comes back. A switch of the cs2 image extracts its
-///   plugin files for future launches.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ImageUpdateStep {
     #[serde(rename = "pulling")]
@@ -885,12 +584,6 @@ impl ImageUpdateStep {
     pub const ALL: &'static [Self] = &[Self::Pulling, Self::Switching];
 }
 
-/// How an `update_cs2_image` ended.
-///
-/// - `completed`: future launches use the image.
-/// - `pull_failed`: the image could not be pulled.
-/// - `overlay_failed`: its addon overlay could not be extracted.
-/// - `failed`: anything else, such as the agent not saving the image setting.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Cs2ImageUpdateOutcome {
     #[serde(rename = "completed")]
@@ -908,17 +601,11 @@ impl Cs2ImageUpdateOutcome {
     pub const ALL: &'static [Self] = &[Self::Completed, Self::PullFailed, Self::OverlayFailed, Self::Failed];
 }
 
-/// A switch of the cs2 image: the one running now, or the last one to end since the agent started.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Cs2ImageUpdate {
-    /// The image the switch is to.
     pub image: String,
-    /// Where the switch is while it runs. Null once it ended.
     pub step: Option<ImageUpdateStep>,
-    /// How the switch ended. Null while it runs.
     pub outcome: Option<Cs2ImageUpdateOutcome>,
-    /// Why the switch failed, up to `CS2_UPDATE_DETAIL_MAX_CHARS` characters. Null unless it
-    /// failed.
     pub detail: Option<String>,
 }
 
@@ -927,25 +614,13 @@ impl Cs2ImageUpdate {
     pub const FIELDS: &'static [&'static str] = &["image", "step", "outcome", "detail"];
 }
 
-/// The node's game install and image.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Cs2State {
-    /// The installed game build. Null before the first install.
     pub build_id: Option<String>,
-    /// The newest public CS2 build the agent read from Steam. Null until its first successful read.
-    /// The agent updates an installed node to it on its own once every slot is idle, unless the
-    /// node's `auto_update` is `false`.
     pub latest_build_id: Option<String>,
-    /// The cs2 image set in `agent.yml`, which future launches use.
     pub image: String,
-    /// The local id that `image` resolves to on the node. Null until the image is there.
     pub image_id: Option<String>,
-    /// The install or update that runs now, or else the last one to end since the agent started. Null
-    /// before any. An agent that starts while an update that it started earlier still runs reports
-    /// that update.
     pub update: Option<Cs2Update>,
-    /// The switch of `image` that runs now, or else the last one to end since the agent started. Null
-    /// before any.
     pub image_update: Option<Cs2ImageUpdate>,
 }
 
@@ -954,7 +629,6 @@ impl Cs2State {
     pub const FIELDS: &'static [&'static str] = &["build_id", "latest_build_id", "image", "image_id", "update", "image_update"];
 }
 
-/// Why a node cannot run servers, one of the values of `NODE_UNAVAILABLE`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum NodeUnavailableCode {
     #[serde(rename = "maintenance")]
@@ -970,13 +644,6 @@ impl NodeUnavailableCode {
     pub const ALL: &'static [Self] = &[Self::Maintenance, Self::EventStorage, Self::DiskSpace];
 }
 
-/// The maintenance operation that runs on the node.
-///
-/// - `cs2_update`: a CS2 install or update, also one an earlier agent started.
-/// - `agent_update`: an `update_agent`, until its replacement has proved it
-///   stays up.
-/// - `cs2_image_update`: an `update_cs2_image`.
-/// - `image_cleanup`: the agent's removal of replaced images when it starts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MaintenanceOperation {
     #[serde(rename = "cs2_update")]
@@ -994,18 +661,10 @@ impl MaintenanceOperation {
     pub const ALL: &'static [Self] = &[Self::Cs2Update, Self::AgentUpdate, Self::Cs2ImageUpdate, Self::ImageCleanup];
 }
 
-/// Why the node cannot run servers now, with `maintenance` first while it lasts. Meanwhile
-/// `start_server` is refused with `maintenance_running` for `maintenance` and
-/// `node_unavailable` otherwise. Everything else works.
-///
-/// Rejected when `operation` is null while `code` is `maintenance`, or set while `code` is another
-/// value.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NodeUnavailable {
     pub code: NodeUnavailableCode,
-    /// The maintenance operation that runs when `code` is `maintenance`. Null for any other `code`.
     pub operation: Option<MaintenanceOperation>,
-    /// The agent's message, up to `NODE_UNAVAILABLE_DETAIL_MAX_CHARS` characters.
     pub detail: String,
 }
 
@@ -1014,26 +673,14 @@ impl NodeUnavailable {
     pub const FIELDS: &'static [&'static str] = &["code", "operation", "detail"];
 }
 
-/// A demo kept on the node.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DemoFile {
-    /// The slot whose directory holds it.
     pub slot_id: String,
-    /// The file's name.
     pub file_name: String,
-    /// Bytes in the file.
     pub size_bytes: i64,
-    /// Unix milliseconds when the file was last written.
     pub modified_at: i64,
-    /// Whether its server is still recording it. While it is, the demo grows with each report and is
-    /// neither uploaded nor deleted.
     pub recording: bool,
-    /// Whether it is uploading now. `demo_progress` reports how far, and a
-    /// node uploads one demo at a time.
     pub uploading: bool,
-    /// Why its upload failed or why it waits, up to `DEMO_UPLOAD_ERROR_MAX_CHARS` characters: a
-    /// failure being retried, a refusal as invalid, or every demo held while the target refuses the
-    /// node or has failed for a day. Null once an upload works again or the target changes.
     pub upload_error: Option<String>,
 }
 
@@ -1042,14 +689,6 @@ impl DemoFile {
     pub const FIELDS: &'static [&'static str] = &["slot_id", "file_name", "size_bytes", "modified_at", "recording", "uploading", "upload_error"];
 }
 
-/// Why a server ended: one of the `AgentStopReason` values when the agent stopped it on its
-/// own, or one of these.
-///
-/// - `requested`: a `stop_server` from the controller stopped it.
-/// - `clean_exit`: it ended on its own with exit code `0`, as after its match or a console `quit`.
-/// - `crashed`: it ended on its own with another exit code.
-/// - `launch_failed`: its container never started.
-/// - `lost`: it ended and the agent did not see how, such as a container removed by hand.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ServerExitReason {
     #[serde(rename = "idle_empty")]
@@ -1090,20 +729,12 @@ impl ServerExitReason {
     ];
 }
 
-/// A server whose container is gone, and why.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ServerExit {
-    /// The slot it ran in.
     pub slot_id: String,
-    /// The server that ended.
     pub allocation_id: String,
-    /// Why it ended.
     pub reason: ServerExitReason,
-    /// The container's exit code. Null when the agent did not see one.
     pub exit_code: Option<i64>,
-    /// What the reason does not say, up to `SERVER_EXIT_DETAIL_MAX_CHARS` characters: the
-    /// plugin's `config_error` for `config_rejected`, and Docker's message for `launch_failed`. Null
-    /// for every other reason.
     pub detail: Option<String>,
 }
 
@@ -1112,24 +743,11 @@ impl ServerExit {
     pub const FIELDS: &'static [&'static str] = &["slot_id", "allocation_id", "reason", "exit_code", "detail"];
 }
 
-/// The events that wait on the node because uploading them fails, as the agent read them. While
-/// uploads work, nothing is stuck, so `servers` is empty, the counts are zero and `reason` is
-/// `null`.
-///
-/// Rejected unless `servers` holds as many entries as `server_count`, or
-/// `MAX_REPORTED_BACKLOGS` when `server_count` is larger. It is also rejected when
-/// `event_count` is below the sum of `pending` over `servers`. A `reason` is rejected when
-/// `server_count` is zero, and a null `reason` when it is not.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EventBacklog {
-    /// The servers with the oldest stuck events, oldest first, up to `MAX_REPORTED_BACKLOGS`.
     pub servers: Vec<StuckServer>,
-    /// Servers with stuck events on the node, those past `servers` too.
     pub server_count: i64,
-    /// Events that every stuck server holds together.
     pub event_count: i64,
-    /// Why the last upload failed, up to `EVENT_BACKLOG_REASON_MAX_CHARS` characters. Null when
-    /// nothing is stuck, and only then.
     pub reason: Option<String>,
 }
 
@@ -1138,12 +756,6 @@ impl EventBacklog {
     pub const FIELDS: &'static [&'static str] = &["servers", "server_count", "event_count", "reason"];
 }
 
-/// How an `update_agent` ended.
-///
-/// - `completed`: the replacement agent stayed up and the old container is removed.
-/// - `unchanged`: the node already ran that image, so nothing was swapped.
-/// - `pull_failed`: the image could not be pulled, so the node never tried it.
-/// - `failed`: the swap did not hold and the old agent was put back, or its helper did not start.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AgentUpdateOutcome {
     #[serde(rename = "completed")]
@@ -1161,18 +773,11 @@ impl AgentUpdateOutcome {
     pub const ALL: &'static [Self] = &[Self::Completed, Self::Unchanged, Self::PullFailed, Self::Failed];
 }
 
-/// An agent update: the one in progress, one this agent saw end, or the last one to fail.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentUpdate {
-    /// The agent image the update was to.
     pub image: String,
-    /// Where the update is while it runs, with the replacement still on trial in `switching`. Null
-    /// once it ended.
     pub step: Option<ImageUpdateStep>,
-    /// How the update ended. Null while it runs.
     pub outcome: Option<AgentUpdateOutcome>,
-    /// Why the update failed, up to `AGENT_UPDATE_DETAIL_MAX_CHARS` characters. Null unless it
-    /// failed.
     pub detail: Option<String>,
 }
 
@@ -1181,51 +786,19 @@ impl AgentUpdate {
     pub const FIELDS: &'static [&'static str] = &["image", "step", "outcome", "detail"];
 }
 
-/// The agent's first message on every connection, and sent only then. An applied
-/// `set_config` answers with the settings instead.
-///
-/// Answer an accepted `hello` with `welcome`. Until then the
-/// agent sends only replies, or a `shutdown` when it stops. Runtime changes
-/// use status messages. Reconnecting never changes the node's configuration.
-///
-/// Rejected unless `slot_status` names each slot of `config.slots` once and names no other slot.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentHello {
-    /// The agent sending this.
     pub agent: AgentInfo,
-    /// The host the agent runs on.
     pub host: HostInfo,
-    /// The node's public IPv4 address as the agent looked it up at start. Null when the lookup failed,
-    /// and players then reach the node only at `config.pinned_ip`. Players connect to
-    /// `config.pinned_ip` whenever it is set. The agent looks again only when it restarts.
     pub public_ip: Option<String>,
-    /// Where the node's address is, as a geolocation lookup reports it when the agent starts. Null
-    /// when that lookup failed. The agent tries again only when it restarts.
     pub country: Option<String>,
-    /// The configuration the agent runs with.
     pub config: NodeSettings,
-    /// One per configured slot.
     pub slot_status: Vec<SlotStatus>,
-    /// The game install and image.
     pub cs2: Cs2State,
-    /// Why the node cannot run servers. Null when it can. Changes arrive as
-    /// `node_status`.
     pub unavailable: Option<NodeUnavailable>,
-    /// The demos kept on the node, up to `MAX_REPORTED_DEMOS`. `demo` reports
-    /// each change afterwards.
     pub demos: Vec<DemoFile>,
-    /// Servers that ended while no connection was welcomed, oldest first, each with its reason. Their
-    /// slots already show idle here, so a `server_exited` after the
-    /// `welcome` would come too late. It carries the oldest `MAX_SLOTS` at
-    /// most, and the rest follow as `server_exited` after the
-    /// `welcome`.
     pub server_exits: Vec<ServerExit>,
-    /// The node's event backlog when the `hello` was built.
-    /// `event_backlog` replaces it.
     pub event_backlog: EventBacklog,
-    /// The swap in progress, or else the one this agent saw end, or else the last that failed. A
-    /// failure is kept, across agent restarts, until a swap holds or `node-setup.sh` starts the agent.
-    /// Null when there is none of these. A swap that held shows in `agent.image`.
     pub agent_update: Option<AgentUpdate>,
 }
 
@@ -1258,7 +831,6 @@ impl LogSourceAgent {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LogSourceCs2Update {
-    /// The install or update that printed it, the `id` of its `cs2.update`.
     pub update_id: String,
 }
 
@@ -1269,7 +841,6 @@ impl LogSourceCs2Update {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LogSourceServer {
-    /// The server that printed it.
     pub allocation_id: String,
 }
 
@@ -1278,7 +849,6 @@ impl LogSourceServer {
     pub const FIELDS: &'static [&'static str] = &["kind", "allocation_id"];
 }
 
-/// One log of a node: the agent's log, one CS2 install or update's output, or one server's output.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum LogSource {
@@ -1295,7 +865,6 @@ impl LogSource {
     pub const TAGS: &'static [&'static str] = &["agent", "cs2_update", "server"];
 }
 
-/// How serious an agent log line is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AgentLogLevel {
     #[serde(rename = "info")]
@@ -1311,17 +880,10 @@ impl AgentLogLevel {
     pub const ALL: &'static [Self] = &[Self::Info, Self::Warn, Self::Error];
 }
 
-/// One log line.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LogLine {
-    /// Unix milliseconds when the agent logged or read the line.
     pub at: i64,
-    /// How serious the agent rated the line. Null for server and CS2 update output.
     pub level: Option<AgentLogLevel>,
-    /// The line without its newline. The agent's lines carry the prefix of the component that logged
-    /// them. A line keeps its ANSI colour escapes: SGR, `ESC[` with digits and `;`, then `m`. The agent
-    /// removes every other escape, every control character but tab, and the Unicode characters that
-    /// reorder text or break a line. The length limit may cut the last escape short.
     pub line: String,
 }
 
@@ -1330,20 +892,11 @@ impl LogLine {
     pub const FIELDS: &'static [&'static str] = &["at", "level", "line"];
 }
 
-/// One source's lines, sent only while a `watch_logs` holds the lease of that
-/// source. A replay of the source starts with `reset` and may span several frames. Between replays,
-/// new lines follow in batches. A replay larger than the remaining log budget of the agent leaves
-/// out the oldest lines.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentLogBatch {
-    /// The log these lines belong to.
     pub source: LogSource,
-    /// The `watch_logs` replay these frames answer, for that watcher alone. Null
-    /// for new lines and for a replay sent to every watcher.
     pub replay_id: Option<String>,
-    /// Whether a replay starts, so the controller drops every line it holds of this source first.
     pub reset: bool,
-    /// The lines, oldest first.
     pub lines: Vec<LogLine>,
 }
 
@@ -1352,17 +905,11 @@ impl AgentLogBatch {
     pub const FIELDS: &'static [&'static str] = &["type", "source", "replay_id", "reset", "lines"];
 }
 
-/// One source the agent keeps.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LogSourceSummary {
-    /// Which log.
     pub source: LogSource,
-    /// Lines kept of it.
     pub line_count: i64,
-    /// Unix milliseconds of the newest line kept of it. Null for a source with no lines kept.
     pub last_line_at: Option<i64>,
-    /// Whether the source has ended, as a server whose slot went idle or a CS2 install or update that
-    /// ended. Always `false` for the agent's log.
     pub ended: bool,
 }
 
@@ -1371,18 +918,8 @@ impl LogSourceSummary {
     pub const FIELDS: &'static [&'static str] = &["source", "line_count", "last_line_at", "ended"];
 }
 
-/// Every source the agent keeps, whole every time: its log, each CS2 install or update running or
-/// among the last `ENDED_UPDATE_LOGS` ended, and each server with output, running or among the
-/// last `ENDED_SERVER_LOGS` ended.
-///
-/// Sent while any log lease runs, with each lease that starts and each replay asked for. Also sent
-/// when an update starts or ends, a server's first line arrives, a server ends, or a source's output
-/// is dropped, and every `LOG_INDEX_REFRESH_MS` while lines arrive. Counts and `last_line_at`
-/// are as of that frame. A source missing from it is no longer kept.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentLogIndex {
-    /// The agent's log first, then CS2 updates in the order they started, then servers in the order
-    /// their output began.
     pub sources: Vec<LogSourceSummary>,
 }
 
@@ -1391,25 +928,10 @@ impl AgentLogIndex {
     pub const FIELDS: &'static [&'static str] = &["type", "sources"];
 }
 
-/// Replaces `cs2`, `unavailable` and `agent_update` of the last `hello`.
-///
-/// Sent when they change:
-///
-/// - When a maintenance operation starts or ends, so also when a CS2 install or update finishes,
-///   whoever started it, or `update_cs2_image` has switched the image.
-/// - When `agent_update` or `cs2.image_update` moves from `pulling` to `switching`.
-/// - When the newest public build changes.
-/// - When an agent swap that is still proving its replacement ends.
-///
-/// Each frame is the node's state when it was read, not a step in a history, so a change that is
-/// over before its report reads the state may go unreported.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentNodeStatus {
-    /// The game install and image.
     pub cs2: Cs2State,
-    /// Why the node cannot run servers. Null when it can.
     pub unavailable: Option<NodeUnavailable>,
-    /// The last agent swap, as `hello` has it.
     pub agent_update: Option<AgentUpdate>,
 }
 
@@ -1418,17 +940,6 @@ impl AgentNodeStatus {
     pub const FIELDS: &'static [&'static str] = &["type", "cs2", "unavailable", "agent_update"];
 }
 
-/// Where a match is.
-///
-/// - `loading`: its map is loading.
-/// - `warmup`: warmup.
-/// - `pending_restore`: a launch with a restore went here from warmup while the engine loads the
-///   backup, and goes to `live` once the restored round starts. A load that fails leaves the match
-///   here, where the plugin reports nothing, until a load is tried again or the server is stopped.
-/// - `knife`: the knife round.
-/// - `side_choice`: the side choice.
-/// - `live`: live play.
-/// - `post_live`: after the last round.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MatchPhase {
     #[serde(rename = "loading")]
@@ -1452,18 +963,9 @@ impl MatchPhase {
     pub const ALL: &'static [Self] = &[Self::Loading, Self::Warmup, Self::PendingRestore, Self::Knife, Self::SideChoice, Self::Live, Self::PostLive];
 }
 
-/// A match moved to another phase, as its plugin reports it, whether or not the match sends
-/// statistics. An `event_batch` carries the events behind it, such as
-/// `going_live` and `map_end`.
-///
-/// The agent sends it once. If the plugin is not connected to the agent, or the controller has not
-/// welcomed the agent's `hello`, it is lost, and
-/// `get_server_status` reads the phase again.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentPhaseChange {
-    /// The server whose match changed phase.
     pub allocation_id: String,
-    /// The phase the match is in now.
     pub phase: MatchPhase,
 }
 
@@ -1472,12 +974,9 @@ impl AgentPhaseChange {
     pub const FIELDS: &'static [&'static str] = &["type", "allocation_id", "phase"];
 }
 
-/// The server that started, and the slot the agent picked for it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StartServerReply {
-    /// The allocation the request launched.
     pub allocation_id: String,
-    /// The slot the server runs in.
     pub slot_id: String,
 }
 
@@ -1488,9 +987,7 @@ impl StartServerReply {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentReplySuccessStartServer {
-    /// The `id` of the request this answers.
     pub reply_to: String,
-    /// What the request returns, which names the object it acted on.
     pub data: StartServerReply,
 }
 
@@ -1499,10 +996,8 @@ impl AgentReplySuccessStartServer {
     pub const FIELDS: &'static [&'static str] = &["type", "reply_to", "request", "ok", "data"];
 }
 
-/// The server that stopped.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StopServerReply {
-    /// The allocation the request stopped.
     pub allocation_id: String,
 }
 
@@ -1513,9 +1008,7 @@ impl StopServerReply {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentReplySuccessStopServer {
-    /// The `id` of the request this answers.
     pub reply_to: String,
-    /// What the request returns, which names the object it acted on.
     pub data: StopServerReply,
 }
 
@@ -1524,23 +1017,13 @@ impl AgentReplySuccessStopServer {
     pub const FIELDS: &'static [&'static str] = &["type", "reply_to", "request", "ok", "data"];
 }
 
-/// The loaded match and its team state. Null on a server without a match or after a refused
-/// config.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GetServerStatusReplyMatch {
-    /// The `match_id` the server was launched with. Null for a match without one. The launch's
-    /// config is the controller's to keep, so it is not echoed.
     pub match_id: Option<String>,
-    /// Where the match is.
     pub phase: MatchPhase,
-    /// Team 1's current side.
     pub team1_side: PlayingSide,
-    /// Team 2's current side, always the other side, sent so a reader shows each team without
-    /// deriving it.
     pub team2_side: PlayingSide,
-    /// Team 1's score.
     pub team1_score: i64,
-    /// Team 2's score.
     pub team2_score: i64,
 }
 
@@ -1549,11 +1032,6 @@ impl GetServerStatusReplyMatch {
     pub const FIELDS: &'static [&'static str] = &["match_id", "phase", "team1_side", "team2_side", "team1_score", "team2_score"];
 }
 
-/// The side a player is on.
-///
-/// - `t`: terrorists, a playing side.
-/// - `ct`: counter-terrorists, a playing side.
-/// - `spec`: spectators and players on no team.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Side {
     #[serde(rename = "t")]
@@ -1569,14 +1047,10 @@ impl Side {
     pub const ALL: &'static [Self] = &[Self::T, Self::Ct, Self::Spec];
 }
 
-/// Everyone connected, up to `MAX_SERVER_PLAYERS`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GetServerStatusReplyPlayers {
-    /// The player's SteamID64.
     pub steam_id: String,
-    /// The player's name.
     pub name: String,
-    /// The player's side.
     pub side: Side,
 }
 
@@ -1585,32 +1059,14 @@ impl GetServerStatusReplyPlayers {
     pub const FIELDS: &'static [&'static str] = &["steam_id", "name", "side"];
 }
 
-/// The server asked about, and its state as its plugin reports it now.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GetServerStatusReply {
-    /// The map the server is on, up to `MAP_NAME_MAX_CHARS` characters.
     pub map_name: String,
-    /// The loaded match and its team state. Null on a server without a match or after a refused
-    /// config.
     pub r#match: Option<GetServerStatusReplyMatch>,
-    /// Everyone connected, up to `MAX_SERVER_PLAYERS`.
     pub players: Vec<GetServerStatusReplyPlayers>,
-    /// Why the plugin could not read or use the match config it was launched with, up to
-    /// `CONFIG_ERROR_MAX_CHARS` characters. Null when the server has no match config or the
-    /// plugin accepted it.
     pub config_error: Option<String>,
-    /// Whether players can join. When `true`, the server is logged on to Steam and has loaded the map
-    /// that its launch asked for, the workshop map when it has one. It stays `true` once set.
-    ///
-    /// CS2 does not fall back to an anonymous logon when Steam refuses its token, so `true` also
-    /// indicates that Steam accepted the GSLT and that its last use can be updated.
     pub ready: bool,
-    /// The SteamID64 that Steam gave the server when it logged on with its GSLT. Each token keeps
-    /// one SteamID across logons, so a controller can look the server up in Steam's server list by
-    /// it. The plugin also adds the `allocation_id` without its dashes to `sv_tags`, which that list
-    /// shows. Null until `ready`.
     pub server_steam_id: Option<String>,
-    /// The allocation the request asked about.
     pub allocation_id: String,
 }
 
@@ -1621,9 +1077,7 @@ impl GetServerStatusReply {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentReplySuccessGetServerStatus {
-    /// The `id` of the request this answers.
     pub reply_to: String,
-    /// What the request returns, which names the object it acted on.
     pub data: GetServerStatusReply,
 }
 
@@ -1632,11 +1086,8 @@ impl AgentReplySuccessGetServerStatus {
     pub const FIELDS: &'static [&'static str] = &["type", "reply_to", "request", "ok", "data"];
 }
 
-/// The update an accepted `update_cs2` started.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UpdateCs2Reply {
-    /// The update's id, as `cs2.update.id`, `cs2_update_progress` and
-    /// its log source carry it.
     pub update_id: String,
 }
 
@@ -1647,9 +1098,7 @@ impl UpdateCs2Reply {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentReplySuccessUpdateCs2 {
-    /// The `id` of the request this answers.
     pub reply_to: String,
-    /// What the request returns, which names the object it acted on.
     pub data: UpdateCs2Reply,
 }
 
@@ -1658,12 +1107,9 @@ impl AgentReplySuccessUpdateCs2 {
     pub const FIELDS: &'static [&'static str] = &["type", "reply_to", "request", "ok", "data"];
 }
 
-/// The demo that was removed.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DeleteDemoReply {
-    /// The slot whose directory held it.
     pub slot_id: String,
-    /// The file removed.
     pub file_name: String,
 }
 
@@ -1674,9 +1120,7 @@ impl DeleteDemoReply {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentReplySuccessDeleteDemo {
-    /// The `id` of the request this answers.
     pub reply_to: String,
-    /// What the request returns, which names the object it acted on.
     pub data: DeleteDemoReply,
 }
 
@@ -1685,10 +1129,8 @@ impl AgentReplySuccessDeleteDemo {
     pub const FIELDS: &'static [&'static str] = &["type", "reply_to", "request", "ok", "data"];
 }
 
-/// The slot that is reserved.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReserveSlotReply {
-    /// The slot reserved.
     pub slot_id: String,
 }
 
@@ -1699,9 +1141,7 @@ impl ReserveSlotReply {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentReplySuccessReserveSlot {
-    /// The `id` of the request this answers.
     pub reply_to: String,
-    /// What the request returns, which names the object it acted on.
     pub data: ReserveSlotReply,
 }
 
@@ -1712,9 +1152,7 @@ impl AgentReplySuccessReserveSlot {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentReplySuccessSetConfig {
-    /// The `id` of the request this answers.
     pub reply_to: String,
-    /// What the request returns, which names the object it acted on.
     pub data: NodeSettings,
 }
 
@@ -1723,7 +1161,6 @@ impl AgentReplySuccessSetConfig {
     pub const FIELDS: &'static [&'static str] = &["type", "reply_to", "request", "ok", "data"];
 }
 
-/// The next step.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum UpdateAgentReplyStep {
     #[serde(rename = "pulling")]
@@ -1739,14 +1176,9 @@ impl UpdateAgentReplyStep {
     pub const ALL: &'static [Self] = &[Self::Pulling, Self::Switching, Self::Unchanged];
 }
 
-/// What follows an accepted `update_agent`: the update's first
-/// `ImageUpdateStep`, or `unchanged` when the node runs that image already, as the registry or
-/// the local image says, and nothing more happens.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UpdateAgentReply {
-    /// The agent image the update is to.
     pub image: String,
-    /// The next step.
     pub step: UpdateAgentReplyStep,
 }
 
@@ -1757,9 +1189,7 @@ impl UpdateAgentReply {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentReplySuccessUpdateAgent {
-    /// The `id` of the request this answers.
     pub reply_to: String,
-    /// What the request returns, which names the object it acted on.
     pub data: UpdateAgentReply,
 }
 
@@ -1768,13 +1198,9 @@ impl AgentReplySuccessUpdateAgent {
     pub const FIELDS: &'static [&'static str] = &["type", "reply_to", "request", "ok", "data"];
 }
 
-/// What follows an accepted `update_cs2_image`: its first
-/// `ImageUpdateStep`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UpdateCs2ImageReply {
-    /// The cs2 image the switch is to.
     pub image: String,
-    /// The next step.
     pub step: ImageUpdateStep,
 }
 
@@ -1785,9 +1211,7 @@ impl UpdateCs2ImageReply {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentReplySuccessUpdateCs2Image {
-    /// The `id` of the request this answers.
     pub reply_to: String,
-    /// What the request returns, which names the object it acted on.
     pub data: UpdateCs2ImageReply,
 }
 
@@ -1796,10 +1220,8 @@ impl AgentReplySuccessUpdateCs2Image {
     pub const FIELDS: &'static [&'static str] = &["type", "reply_to", "request", "ok", "data"];
 }
 
-/// The server the command was handed to.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConsoleCommandReply {
-    /// The allocation the command went to.
     pub allocation_id: String,
 }
 
@@ -1810,9 +1232,7 @@ impl ConsoleCommandReply {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentReplySuccessConsoleCommand {
-    /// The `id` of the request this answers.
     pub reply_to: String,
-    /// What the request returns, which names the object it acted on.
     pub data: ConsoleCommandReply,
 }
 
@@ -1821,12 +1241,9 @@ impl AgentReplySuccessConsoleCommand {
     pub const FIELDS: &'static [&'static str] = &["type", "reply_to", "request", "ok", "data"];
 }
 
-/// The server and round the restore was handed to.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RestoreRoundReply {
-    /// The allocation the restore went to.
     pub allocation_id: String,
-    /// The round it loads.
     pub round: i64,
 }
 
@@ -1837,9 +1254,7 @@ impl RestoreRoundReply {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentReplySuccessRestoreRound {
-    /// The `id` of the request this answers.
     pub reply_to: String,
-    /// What the request returns, which names the object it acted on.
     pub data: RestoreRoundReply,
 }
 
@@ -1848,10 +1263,8 @@ impl AgentReplySuccessRestoreRound {
     pub const FIELDS: &'static [&'static str] = &["type", "reply_to", "request", "ok", "data"];
 }
 
-/// The server the start was handed to.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StartMatchReply {
-    /// The allocation the start went to.
     pub allocation_id: String,
 }
 
@@ -1862,9 +1275,7 @@ impl StartMatchReply {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentReplySuccessStartMatch {
-    /// The `id` of the request this answers.
     pub reply_to: String,
-    /// What the request returns, which names the object it acted on.
     pub data: StartMatchReply,
 }
 
@@ -1873,9 +1284,6 @@ impl AgentReplySuccessStartMatch {
     pub const FIELDS: &'static [&'static str] = &["type", "reply_to", "request", "ok", "data"];
 }
 
-/// A request that succeeded. `request` names the request, so `data` can be read without the request
-/// that `reply_to` answers. The settings in a `set_config` reply are the
-/// node's, whichever edit asked.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "request")]
 pub enum AgentReplySuccess {
@@ -1923,8 +1331,6 @@ impl AgentReplySuccess {
     ];
 }
 
-/// The `type` of each request the controller sends, which its `reply` repeats as
-/// `request`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RequestType {
     #[serde(rename = "start_server")]
@@ -1971,14 +1377,10 @@ impl RequestType {
     ];
 }
 
-/// A request that failed.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentReplyFailure {
-    /// The `id` of the request this answers.
     pub reply_to: String,
-    /// The `type` of the request this answers. Null when the agent did not know it.
     pub request: Option<RequestType>,
-    /// Why it failed.
     pub error: AgentError,
 }
 
@@ -1987,8 +1389,6 @@ impl AgentReplyFailure {
     pub const FIELDS: &'static [&'static str] = &["type", "reply_to", "request", "ok", "error"];
 }
 
-/// The answer to a request, in any order. A success carries the request's data, and a failure its
-/// reason.
 #[derive(Debug, Clone, PartialEq)]
 pub enum AgentReply {
     Success(AgentReplySuccess),
@@ -2019,12 +1419,9 @@ impl<'de> Deserialize<'de> for AgentReply {
     }
 }
 
-/// A capacity and how much of it is in use, in bytes.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ResourceUsage {
-    /// Bytes of capacity.
     pub cap: i64,
-    /// Bytes in use.
     pub used: i64,
 }
 
@@ -2033,12 +1430,9 @@ impl ResourceUsage {
     pub const FIELDS: &'static [&'static str] = &["cap", "used"];
 }
 
-/// How busy the node's CPUs are, in percent of all the CPUs it may use. Null in the first tick.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ResourceTickCpu {
-    /// Percent busy at the busiest moment of the tick.
     pub max: i64,
-    /// Percent busy on average over the tick.
     pub average: i64,
 }
 
@@ -2047,17 +1441,11 @@ impl ResourceTickCpu {
     pub const FIELDS: &'static [&'static str] = &["max", "average"];
 }
 
-/// One sample of the node's disk, memory and CPU, taken every `RESOURCE_TICK_MS`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ResourceTick {
-    /// Unix milliseconds when the tick was taken.
     pub at: i64,
-    /// The filesystem holding the node's data directory, as `df` counts it. Null when it could not be
-    /// read.
     pub disk: Option<ResourceUsage>,
-    /// The memory the node may use, and how much it uses. Cache the kernel can free counts as free.
     pub memory: ResourceUsage,
-    /// How busy the node's CPUs are, in percent of all the CPUs it may use. Null in the first tick.
     pub cpu: Option<ResourceTickCpu>,
 }
 
@@ -2066,18 +1454,9 @@ impl ResourceTick {
     pub const FIELDS: &'static [&'static str] = &["at", "disk", "memory", "cpu"];
 }
 
-/// The agent's resource ticks, oldest first. A `watch_resources` lease
-/// that starts receives every tick the agent holds, then each new tick while it runs. The agent
-/// sends nothing while nobody watches, and nothing is stored.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentResourceBatch {
-    /// The ticks, oldest first: every tick the agent holds, up to the last
-    /// `RESOURCE_TICKS_HELD`, or the ticks since the previous frame.
     pub ticks: Vec<ResourceTick>,
-    /// Whether `ticks` is every tick the agent holds and replaces the ticks the controller holds. It
-    /// is `true` when a `watch_resources` starts the lease or asks for a
-    /// replay, and on the first tick after each accepted `hello` while the lease
-    /// runs. When false, `ticks` adds to them.
     pub reset: bool,
 }
 
@@ -2086,20 +1465,10 @@ impl AgentResourceBatch {
     pub const FIELDS: &'static [&'static str] = &["type", "ticks", "reset"];
 }
 
-/// A match's score changed, as its plugin reads it off the scoreboard, whether or not the match
-/// sends statistics: after a round, when going live resets it, or after a restore. An
-/// `event_batch` carries the rounds behind it as `round_end`
-/// and `match_restored`.
-///
-/// Like `phase_change`, it is sent once, and
-/// `get_server_status` reads the score again.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentScore {
-    /// The server whose match scored.
     pub allocation_id: String,
-    /// Team 1's score.
     pub team1_score: i64,
-    /// Team 2's score.
     pub team2_score: i64,
 }
 
@@ -2108,34 +1477,12 @@ impl AgentScore {
     pub const FIELDS: &'static [&'static str] = &["type", "allocation_id", "team1_score", "team2_score"];
 }
 
-/// A server has ended and its container is gone. Sent ahead of the `idle`
-/// `slot_status` of its slot, also for a launch that failed before or while
-/// its container started.
-///
-/// A server that ended while no connection was welcomed goes in `server_exits` of the next
-/// `hello` instead. If it ended after that `hello` went out,
-/// it is sent after the `welcome`, ahead of the slot statuses.
-///
-/// The agent keeps a `server_exited` until the socket takes its write,
-/// across its restarts, for up to `EVENT_SPOOL_RETENTION_MS`, so one may also come again after
-/// a restart. One the socket took is not sent again, even if the connection drops before the
-/// controller reads it. The agent does not keep them while it cannot open that store, which it reports as
-/// `unavailable` with `event_storage`. While the store does not answer, the agent keeps one only
-/// once the store answers again. A server that ends while the agent is not running is missing
-/// from its next `hello`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentServerExited {
-    /// The slot it ran in.
     pub slot_id: String,
-    /// The server that ended.
     pub allocation_id: String,
-    /// Why it ended.
     pub reason: ServerExitReason,
-    /// The container's exit code. Null when the agent did not see one.
     pub exit_code: Option<i64>,
-    /// What the reason does not say, up to `SERVER_EXIT_DETAIL_MAX_CHARS` characters: the
-    /// plugin's `config_error` for `config_rejected`, and Docker's message for `launch_failed`. Null
-    /// for every other reason.
     pub detail: Option<String>,
 }
 
@@ -2144,7 +1491,6 @@ impl AgentServerExited {
     pub const FIELDS: &'static [&'static str] = &["slot_id", "allocation_id", "reason", "exit_code", "detail", "type"];
 }
 
-/// The signal that stopped the agent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AgentShutdownSignal {
     #[serde(rename = "SIGINT")]
@@ -2160,17 +1506,8 @@ impl AgentShutdownSignal {
     pub const ALL: &'static [Self] = &[Self::Sigint, Self::Sigterm, Self::Sigquit];
 }
 
-/// The agent is stopping cleanly and starts no new work. It answers a request that arrives after
-/// this frame with `shutting_down` at once. Replies to the requests it is running may still follow
-/// for up to `SHUTDOWN_REQUEST_WAIT_MS`, and then it closes with code `1000`.
-///
-/// Send no new requests after it. A request without a reply when the socket closes may or may not
-/// have run; the node's reports after it reconnects say which. Its servers keep running, and the
-/// agent takes them over when it returns. It is sent whether or not the controller has welcomed the
-/// `hello`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentShutdown {
-    /// The signal that stopped the agent.
     pub signal: AgentShutdownSignal,
 }
 
@@ -2179,33 +1516,15 @@ impl AgentShutdown {
     pub const FIELDS: &'static [&'static str] = &["type", "signal"];
 }
 
-/// A slot's status changed since the last `hello` or
-/// `slot_status` for it. Rejected when it breaks a rule of
-/// `SlotStatus`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentSlotStatus {
-    /// The slot this describes.
     pub slot_id: String,
-    /// What the slot is doing.
     pub state: SlotState,
-    /// The server on the slot. Null when the slot is `idle`.
     pub allocation_id: Option<String>,
-    /// The server's match id. Null for a server without a match or a match launched without one.
     pub match_id: Option<String>,
-    /// Whether the server's plugin is connected to the agent.
-    /// `get_server_status`, `console_command`,
-    /// `restore_round` and `start_match` reach it only
-    /// while it is.
     pub plugin_online: bool,
-    /// Whether Steam accepts the slot's token. `start_server` never picks a
-    /// slot whose token is `invalid`.
     pub gslt_state: GsltState,
-    /// Whether the idle slot is kept from launches, while the controller replaces its token with
-    /// `reserve_slot` or while the agent logs its token on to Steam.
     pub reserved: bool,
-    /// The `server_steam_id` that the server's plugin reported. The agent sends a
-    /// `slot_status` as soon as it learns the ID. Null when the slot is `idle`
-    /// or until the server is `ready`.
     pub server_steam_id: Option<String>,
 }
 
@@ -2215,16 +1534,6 @@ impl AgentSlotStatus {
         &["type", "slot_id", "state", "allocation_id", "match_id", "plugin_online", "gslt_state", "reserved", "server_steam_id"];
 }
 
-/// Why the agent stopped a server on its own.
-///
-/// - `idle_empty`: the server stayed empty for its launch's `idle_shutdown_seconds`.
-/// - `config_rejected`: the plugin refused its match config, as `config_error` says.
-/// - `start_timeout`: the server was still `starting` `START_TIMEOUT_SECONDS` after its
-///   launch, or after a restarted agent took it over.
-/// - `quit_timeout`: the server was still running `QUIT_TIMEOUT_SECONDS` after its plugin sent
-///   `quitting`.
-/// - `slot_removed`: a restarted agent found the server running on a slot that `agent.yml` no longer
-///   has.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AgentStopReason {
     #[serde(rename = "idle_empty")]
@@ -2244,10 +1553,6 @@ impl AgentStopReason {
     pub const ALL: &'static [Self] = &[Self::IdleEmpty, Self::ConfigRejected, Self::StartTimeout, Self::QuitTimeout, Self::SlotRemoved];
 }
 
-/// What the agent sends: its `hello`, one `reply` to each
-/// request, and reports of the node as it changes. Until a `welcome` answers the
-/// `hello`, only replies follow it, and a `shutdown` if the
-/// agent stops.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum AgentToControllerMessage {
@@ -2310,18 +1615,12 @@ impl AgentToControllerMessage {
     ];
 }
 
-/// Where a player stood, as a `WorldPos`, and where the player looked.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PlayerPosition {
-    /// Engine units along the map's x axis.
     pub x: f64,
-    /// Engine units along the map's y axis.
     pub y: f64,
-    /// Engine units along the map's z axis, the height.
     pub z: f64,
-    /// Degrees of eye pitch. A positive pitch looks down.
     pub pitch: f64,
-    /// Degrees of eye yaw, counter-clockwise from the +x axis.
     pub yaw: f64,
 }
 
@@ -2330,19 +1629,12 @@ impl PlayerPosition {
     pub const FIELDS: &'static [&'static str] = &["x", "y", "z", "pitch", "yaw"];
 }
 
-/// The player who stopped defusing.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BombAbortDefusePlayer {
-    /// The player's SteamID64.
     pub steam_id: String,
-    /// The player's name when the event happened.
     pub name: String,
-    /// The side that the player was on.
     pub side: Side,
-    /// The roster team of the player, which the plugin looks up in its roster. Null for spectators and
-    /// unknown players.
     pub team: Option<i64>,
-    /// Where the player stood and looked.
     pub position: PlayerPosition,
 }
 
@@ -2351,22 +1643,12 @@ impl BombAbortDefusePlayer {
     pub const FIELDS: &'static [&'static str] = &["steam_id", "name", "side", "team", "position"];
 }
 
-/// Sent when a player abandons a defuse.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BombAbortDefuse {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
-    /// The player who stopped defusing.
     pub player: BombAbortDefusePlayer,
 }
 
@@ -2375,7 +1657,6 @@ impl BombAbortDefuse {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "round", "round_time", "player"];
 }
 
-/// The bombsite. Null when the engine's target index did not resolve to a `func_bomb_target`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum BombAbortPlantSite {
     #[serde(rename = "a")]
@@ -2389,24 +1670,13 @@ impl BombAbortPlantSite {
     pub const ALL: &'static [Self] = &[Self::A, Self::B];
 }
 
-/// Sent when a player abandons a plant.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BombAbortPlant {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
-    /// The player who stopped planting.
     pub player: BombAbortDefusePlayer,
-    /// The bombsite. Null when the engine's target index did not resolve to a `func_bomb_target`.
     pub site: Option<BombAbortPlantSite>,
 }
 
@@ -2415,24 +1685,13 @@ impl BombAbortPlant {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "round", "round_time", "player", "site"];
 }
 
-/// Sent when a player begins to defuse the bomb.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BombBeginDefuse {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
-    /// The player defusing.
     pub player: BombAbortDefusePlayer,
-    /// Whether the defuser has a kit.
     pub has_kit: bool,
 }
 
@@ -2441,7 +1700,6 @@ impl BombBeginDefuse {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "round", "round_time", "player", "has_kit"];
 }
 
-/// The bombsite. Null when the engine's target index did not resolve to a `func_bomb_target`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum BombBeginPlantSite {
     #[serde(rename = "a")]
@@ -2455,24 +1713,13 @@ impl BombBeginPlantSite {
     pub const ALL: &'static [Self] = &[Self::A, Self::B];
 }
 
-/// Sent when a player begins to plant the bomb.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BombBeginPlant {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
-    /// The player planting.
     pub player: BombAbortDefusePlayer,
-    /// The bombsite. Null when the engine's target index did not resolve to a `func_bomb_target`.
     pub site: Option<BombBeginPlantSite>,
 }
 
@@ -2481,26 +1728,14 @@ impl BombBeginPlant {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "round", "round_time", "player", "site"];
 }
 
-/// Sent when the bomb is defused.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BombDefused {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
-    /// The player who defused.
     pub player: BombAbortDefusePlayer,
-    /// Seconds left on the bomb, up to 90, the most that `mp_c4timer` allows.
     pub time_remaining: f64,
-    /// Whether the defuser has a kit.
     pub has_kit: bool,
 }
 
@@ -2509,20 +1744,11 @@ impl BombDefused {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "round", "round_time", "player", "time_remaining", "has_kit"];
 }
 
-/// Sent when the bomb explodes.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BombExploded {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
 }
 
@@ -2531,7 +1757,6 @@ impl BombExploded {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "round", "round_time"];
 }
 
-/// The bombsite. Null when the engine's target index did not resolve to a `func_bomb_target`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum BombPlantedSite {
     #[serde(rename = "a")]
@@ -2545,24 +1770,13 @@ impl BombPlantedSite {
     pub const ALL: &'static [Self] = &[Self::A, Self::B];
 }
 
-/// Sent when the bomb is planted.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BombPlanted {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
-    /// The player who planted.
     pub player: BombAbortDefusePlayer,
-    /// The bombsite. Null when the engine's target index did not resolve to a `func_bomb_target`.
     pub site: Option<BombPlantedSite>,
 }
 
@@ -2571,8 +1785,6 @@ impl BombPlanted {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "round", "round_time", "player", "site"];
 }
 
-/// A chat colour name from
-/// [SwiftlyS2's chat styling](https://swiftlys2.net/docs/guides/chat-and-html-styling).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ChatColor {
     #[serde(rename = "white")]
@@ -2643,13 +1855,9 @@ impl ChatColor {
     ];
 }
 
-/// The bracketed tag in front of every plugin chat line.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ChatTag {
-    /// The tag's text, without brackets or control characters. Brackets would end the tag early in
-    /// SwiftlyS2's colour markup. When absent, `Ankor`.
     pub text: String,
-    /// The tag's colour. When absent, `blue`.
     pub color: ChatColor,
 }
 
@@ -2658,9 +1866,6 @@ impl ChatTag {
     pub const FIELDS: &'static [&'static str] = &["text", "color"];
 }
 
-/// Why the controller closed a node's socket, as the close reason. `SOCKET_CLOSES` lists the
-/// code of each and the agent's response. `frame_too_large` is the controller's record of a `1009`
-/// close, which carries no reason.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CloseReason {
     #[serde(rename = "rate_limited")]
@@ -2695,13 +1900,6 @@ impl CloseReason {
     ];
 }
 
-/// Read the newest public CS2 build from Steam now instead of at the next scheduled read, which
-/// comes every `CS2_BUILD_POLL_INTERVAL_MS`.
-///
-/// It receives no reply. The agent handles at most one per `CS2_BUILD_CHECK_INTERVAL_MS` and
-/// drops any sooner one. One sent during a scheduled read shares it. Neither busy slots nor
-/// maintenance stop it. A changed build arrives as `node_status`, and an
-/// installed node updates to it once every slot is idle, as it always does.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerCheckCs2Build {}
 
@@ -2710,29 +1908,10 @@ impl ControllerCheckCs2Build {
     pub const FIELDS: &'static [&'static str] = &["type"];
 }
 
-/// Run a console command on a server through its plugin.
-///
-/// The reply comes once the plugin has handed the command to the engine, which reports nothing
-/// back, so the reply cannot say that it worked. Refused with:
-///
-/// - `unknown_allocation` when the node does not run the server.
-/// - `plugin_offline` while the slot's `plugin_online` is `false`.
-/// - `plugin_status_timeout` when the plugin does not answer.
-/// - `command_blocked` when the server runs a match and the line names a command of
-///   `MATCH_BLOCKED_COMMANDS`. The plugin then runs none of the line.
-///
-/// The output of the command joins the server's log, which `log_batch` streams
-/// while a `watch_logs` lease covers it and replays when one starts.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerConsoleCommand {
-    /// Chosen by the controller and unique among its open requests. The reply repeats it as
-    /// `reply_to`. The agent ignores a request whose id is still running on the connection.
     pub id: String,
-    /// The server to run it on.
     pub allocation_id: String,
-    /// The console command line, up to `CONSOLE_COMMAND_MAX_CHARS` characters, handed to the
-    /// engine as it is, so a newline or `;` runs more than one command. It must not be blank, and tabs
-    /// and newlines are its only control characters.
     pub command: String,
 }
 
@@ -2741,24 +1920,10 @@ impl ControllerConsoleCommand {
     pub const FIELDS: &'static [&'static str] = &["type", "id", "allocation_id", "command"];
 }
 
-/// Delete one demo by slot and file name.
-///
-/// The reply comes once the file is removed. Refused with:
-///
-/// - `unknown_slot` when the node has no directory for the slot.
-/// - `unknown_demo` when the slot has no demo of that name.
-/// - `demo_recording` while its server records the demo.
-/// - `demo_uploading` while the demo uploads.
-/// - `invalid_request` when the name is outside the slot's `demos/` directory.
-/// - `failed` when the removal fails.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerDeleteDemo {
-    /// Chosen by the controller and unique among its open requests. The reply repeats it as
-    /// `reply_to`. The agent ignores a request whose id is still running on the connection.
     pub id: String,
-    /// The slot whose directory holds it.
     pub slot_id: String,
-    /// The file to delete.
     pub file_name: String,
 }
 
@@ -2767,20 +1932,9 @@ impl ControllerDeleteDemo {
     pub const FIELDS: &'static [&'static str] = &["type", "id", "slot_id", "file_name"];
 }
 
-/// Read a server's state as its plugin reports it now.
-///
-/// The reply comes within `SERVER_STATUS_TIMEOUT_MS`. Refused with:
-///
-/// - `unknown_allocation` when the node does not run the server.
-/// - `plugin_offline` while the slot's `plugin_online` is `false` or when the plugin leaves before
-///   answering.
-/// - `plugin_status_timeout` after `SERVER_STATUS_TIMEOUT_MS`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerGetServerStatus {
-    /// Chosen by the controller and unique among its open requests. The reply repeats it as
-    /// `reply_to`. The agent ignores a request whose id is still running on the connection.
     pub id: String,
-    /// The server to ask.
     pub allocation_id: String,
 }
 
@@ -2789,9 +1943,6 @@ impl ControllerGetServerStatus {
     pub const FIELDS: &'static [&'static str] = &["type", "id", "allocation_id"];
 }
 
-/// Why the controller refused a `hello`: `invalid_hello`, the
-/// `hello` fails its schema. A controller refuses nothing else at hello: an agent
-/// on a version it does not support connects, so it can still be updated, and receives no launches.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum HelloRefusedReason {
     #[serde(rename = "invalid_hello")]
@@ -2803,13 +1954,9 @@ impl HelloRefusedReason {
     pub const ALL: &'static [Self] = &[Self::InvalidHello];
 }
 
-/// The controller's answer to a `hello` it will not accept, followed by a close
-/// with code `1008` and reason `hello_refused`. The agent stops dialling until it is restarted,
-/// because the same `hello` would be refused again.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerHelloRefused {
     pub reason: HelloRefusedReason,
-    /// A reason for the operator reading the agent's log, such as the field that failed.
     pub detail: String,
 }
 
@@ -2818,23 +1965,9 @@ impl ControllerHelloRefused {
     pub const FIELDS: &'static [&'static str] = &["type", "reason", "detail"];
 }
 
-/// Keep an idle slot from launches while the controller replaces its token, so that no server
-/// starts on a token that the controller is about to revoke at Steam.
-///
-/// The agent marks the slot `reserved` before it replies, the same way a launch marks its slot
-/// `starting`, so no `start_server` can take the slot once the reply is sent.
-/// The reply comes immediately. Refused with `slot_held` for a slot holding a server, and with
-/// `unknown_slot` for a slot the node does not have.
-///
-/// The reservation ends with the `set_config` that gives the slot a new token,
-/// with the slot's removal, after `SLOT_RESERVATION_SECONDS`, or with the agent's restart.
-/// Asking again restarts the wait.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerReserveSlot {
-    /// Chosen by the controller and unique among its open requests. The reply repeats it as
-    /// `reply_to`. The agent ignores a request whose id is still running on the connection.
     pub id: String,
-    /// The slot to reserve.
     pub slot_id: String,
 }
 
@@ -2843,32 +1976,10 @@ impl ControllerReserveSlot {
     pub const FIELDS: &'static [&'static str] = &["type", "id", "slot_id"];
 }
 
-/// Play a running match on from one of its earlier rounds, on the same server, without a new
-/// launch. The engine writes a backup as each live round starts, and the node keeps the backups for
-/// the server's life. This request loads the one for `round`.
-///
-/// The reply comes once the plugin has asked the engine to load the backup. The
-/// `match_restored` event, which the plugin sends ahead of the restored
-/// round's `round_start`, confirms that the engine did. Refused with:
-///
-/// - `unknown_allocation` when the node does not run the server.
-/// - `no_backup` when the node has no backup of that round, as in a game mode without backups
-///   (`GameMode`).
-/// - `plugin_offline` while the slot's `plugin_online` is `false`.
-/// - `plugin_status_timeout` when the plugin does not answer.
-/// - A `CommandRefusal` code when the plugin refuses the restore.
-///
-/// The node keeps the backup of every round it has played, including rounds after one it was
-/// restored to. If `round` is past the current round, the server loads play that the match has
-/// since left. Whether to allow that is the controller's rule.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerRestoreRound {
-    /// Chosen by the controller and unique among its open requests. The reply repeats it as
-    /// `reply_to`. The agent ignores a request whose id is still running on the connection.
     pub id: String,
-    /// The server whose match to restore.
     pub allocation_id: String,
-    /// The one-based round to play on from, whose backup the engine wrote as the round started.
     pub round: i64,
 }
 
@@ -2877,24 +1988,11 @@ impl ControllerRestoreRound {
     pub const FIELDS: &'static [&'static str] = &["type", "id", "allocation_id", "round"];
 }
 
-/// A slot as `set_config` asks for it.
-///
-/// `gslt` is a new token, which may replace the token of a slot that runs a server. That server
-/// keeps the token it started with, and no other slot may use that token until the server ends
-/// (`slot_held`). Without `gslt` the slot keeps its current token, so a slot the node does not have
-/// yet needs one (`slot_token_required`), and a slot from a `hello` can be sent
-/// back unchanged.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SlotEdit {
-    /// The slot's id, 1 to 32 letters, digits, `_` and `-`. It is unique on its node.
     pub id: String,
-    /// The game port, UDP. Every `port` and `tv_port` on a node is different, free on the host, and
-    /// not `EVENT_RELAY_PORT`, the port the agent listens on for plugins.
-    /// [Host networking](/how-it-works/#host-networking) explains why.
     pub port: i64,
-    /// The GOTV port, UDP, under the same rules as `port`.
     pub tv_port: i64,
-    /// The slot's new token. Without one, the slot keeps the token it has.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub gslt: Option<String>,
 }
@@ -2904,16 +2002,9 @@ impl SlotEdit {
     pub const FIELDS: &'static [&'static str] = &["id", "port", "tv_port", "gslt"];
 }
 
-/// A header to send with each upload. Null for none. Without `value`, the header keeps the value
-/// of the node's current header of that name, so the `demo_upload` of a `hello`
-/// can be sent back unchanged.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DemoUploadEditHeader {
-    /// The header's name, up to 64 letters, digits and `-`. Rejected when it is, in any case, one of
-    /// `RESERVED_DEMO_HEADERS`, which the agent sets itself or which change how the request is
-    /// framed.
     pub name: String,
-    /// The header's value, sent verbatim, without line breaks.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
 }
@@ -2923,17 +2014,10 @@ impl DemoUploadEditHeader {
     pub const FIELDS: &'static [&'static str] = &["name", "value"];
 }
 
-/// A demo upload as `set_config` sets it. A header without its value keeps the
-/// value the node has.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DemoUploadEdit {
-    /// The upload target.
     pub url: String,
-    /// A header to send with each upload. Null for none. Without `value`, the header keeps the value
-    /// of the node's current header of that name, so the `demo_upload` of a `hello`
-    /// can be sent back unchanged.
     pub header: Option<DemoUploadEditHeader>,
-    /// Megabits a second an upload may send while a game server runs on the node. Null for no limit.
     pub limit_mbit: Option<i64>,
 }
 
@@ -2942,42 +2026,18 @@ impl DemoUploadEdit {
     pub const FIELDS: &'static [&'static str] = &["url", "header", "limit_mbit"];
 }
 
-/// `NodeSettings` as `set_config` asks for them. A missing field keeps
-/// the node's value. Null is a value, as `NodeSettings` describes. `slots`, when present, is
-/// the whole layout.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NodeSettingsEdit {
-    /// The slots servers run in. `SlotEdit` describes their tokens.
-    ///
-    /// Rejected when two slots share an `id` or a `gslt`, or when two ports are equal. Every slot's
-    /// `port` and `tv_port` count, so a slot's two ports differ too. It is also rejected when a port
-    /// is `EVENT_RELAY_PORT`, where the agent listens for plugins. The agent fills in the kept
-    /// tokens and refuses a layout in which two slots then share one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub slots: Option<Vec<SlotEdit>>,
-    /// The address players connect to. Null for the node's `public_ip`. Servers already running keep
-    /// the address their launch announced.
     #[serde(default, skip_serializing_if = "Option::is_none", with = "crate::support::double_option")]
     pub pinned_ip: Option<Option<String>>,
-    /// Where the agent dials the controller. It redials when any part of it changes.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub controller: Option<ControllerAddress>,
-    /// Whether the node keeps itself up to date: CS2 on `cs2.latest_build_id`, and its agent and cs2
-    /// images on the newest release of their major. When false, the node stays on `cs2.build_id` until
-    /// an `update_cs2`, and accepts launches while it is behind
-    /// `cs2.latest_build_id`, so players on a newer client cannot join its servers. Its images then
-    /// change only with `update_agent` and
-    /// `update_cs2_image`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auto_update: Option<bool>,
-    /// Where the agent uploads demos. Null for no uploads, which keeps demos on the node.
-    /// `DemoUploadEdit` describes its header.
     #[serde(default, skip_serializing_if = "Option::is_none", with = "crate::support::double_option")]
     pub demo_upload: Option<Option<DemoUploadEdit>>,
-    /// MiB of memory each game container may use. Null for no cap. A change applies to servers launched
-    /// afterwards, and CS2 installs and updates are exempt.
-    ///
-    /// Rejected when it is not a whole number from `MIN_MEMORY_MB` to `MAX_MEMORY_MB`.
     #[serde(default, skip_serializing_if = "Option::is_none", with = "crate::support::double_option")]
     pub memory_mb: Option<Option<i64>>,
 }
@@ -2987,34 +2047,9 @@ impl NodeSettingsEdit {
     pub const FIELDS: &'static [&'static str] = &["slots", "pinned_ip", "controller", "auto_update", "demo_upload", "memory_mb"];
 }
 
-/// Apply an edit to `agent.yml`, or refuse it without saving any part. Nothing is queued.
-///
-/// The reply comes once the edit is saved and applied, and carries the node's current settings, the
-/// `NodeSettings` that `hello.config` reports. An edit that changes nothing is not saved
-/// again. A slot missing from the reply's `slots` has been removed. Refused with:
-///
-/// - `slot_held` when the edit would remove or re-port a held slot, or give its server's token to
-///   another slot.
-/// - `slots_held` when the edit changes any key under `controller` (its address, TLS or paths) while any
-///   slot is held.
-/// - `slot_token_required` or `demo_header_value_required` when the edit keeps a value that the
-///   node does not have.
-/// - `invalid_request` when two slots have one token or anything else fails validation.
-///
-/// After the reply, the agent sends a `slot_status` for each slot that the
-/// edit added or gave a new token. The slot reads `unchecked` until the agent has logged the new
-/// token on to Steam, which the agent starts then unless a server on the node is using the token. A
-/// change to `controller` closes the socket with `1000` once the reply has gone, and the agent sends its
-/// `hello` to the new address.
-///
-/// Required of a controller that hands nodes an `agent.yml` without slots, because it is how they
-/// receive any.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerSetConfig {
-    /// Chosen by the controller and unique among its open requests. The reply repeats it as
-    /// `reply_to`. The agent ignores a request whose id is still running on the connection.
     pub id: String,
-    /// The settings to change.
     pub config: NodeSettingsEdit,
 }
 
@@ -3023,24 +2058,9 @@ impl ControllerSetConfig {
     pub const FIELDS: &'static [&'static str] = &["type", "id", "config"];
 }
 
-/// Start a match in warmup whatever its `ready_mode`, without waiting for anyone to be ready. An
-/// admin can always start the match this way, and under `external` it is the only way to.
-///
-/// The reply comes once the plugin has started the countdown to the knife round or live play.
-/// Refused with:
-///
-/// - `unknown_allocation` when the node does not run the server.
-/// - `plugin_offline` while the slot's `plugin_online` is `false`.
-/// - `plugin_status_timeout` when the plugin does not answer.
-/// - `no_match`, `not_in_warmup` or `team_empty` when the plugin refuses the start.
-///
-/// A repeat while the countdown runs is accepted and changes nothing.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerStartMatch {
-    /// Chosen by the controller and unique among its open requests. The reply repeats it as
-    /// `reply_to`. The agent ignores a request whose id is still running on the connection.
     pub id: String,
-    /// The server whose match to start.
     pub allocation_id: String,
 }
 
@@ -3049,15 +2069,6 @@ impl ControllerStartMatch {
     pub const FIELDS: &'static [&'static str] = &["type", "id", "allocation_id"];
 }
 
-/// The game mode a server runs, which sets the game's rules. The engine runs the mode's cfg, such
-/// as `gamemode_competitive` or `gamemode_competitive2v2` for `wingman`, on every map load, and the
-/// plugin runs it again when a match goes live.
-///
-/// `custom` is Valve's mode for community content. Its cfg sets little, so the launch's `exec` and
-/// `commands` set the game.
-///
-/// A match plays only in `casual`, `competitive` or `wingman`. A server without a match runs in any
-/// mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum GameMode {
     #[serde(rename = "casual")]
@@ -3084,18 +2095,9 @@ impl GameMode {
         &[Self::Casual, Self::Competitive, Self::Wingman, Self::Rush, Self::ArmsRace, Self::Demolition, Self::Deathmatch, Self::Custom];
 }
 
-/// GOTV that spectators can watch. Null for none, and null when absent. A match that
-/// records a demo still runs GOTV then, because demos are recorded through it. That GOTV runs with
-/// `tv_delay 0` and a random `tv_password` that the agent sends nowhere, so no spectator can join.
-///
-/// Whether GOTV runs is set on the command line, because GOTV starts with the map. The other
-/// settings apply on every map load and when a match goes live, never while a demo records.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ServerLaunchConfigGotv {
-    /// The GOTV password, as `tv_password`, apart from `game_password`. Null or empty for none, and
-    /// null when absent.
     pub password: Option<String>,
-    /// Seconds GOTV runs behind the game.
     pub delay_seconds: i64,
 }
 
@@ -3104,11 +2106,6 @@ impl ServerLaunchConfigGotv {
     pub const FIELDS: &'static [&'static str] = &["password", "delay_seconds"];
 }
 
-/// How starting sides are decided.
-///
-/// - `knife`: a knife round decides them.
-/// - `team1_ct`: team 1 starts as CT.
-/// - `team1_t`: team 1 starts as T.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SidesMode {
     #[serde(rename = "knife")]
@@ -3124,17 +2121,6 @@ impl SidesMode {
     pub const ALL: &'static [Self] = &[Self::Knife, Self::Team1Ct, Self::Team1T];
 }
 
-/// How warmup ends.
-///
-/// - `auto`: counts down once every rostered player is connected. Players have no ready commands.
-/// - `manual`: also waits for each rostered player and each rostered spectator to type `!ready`,
-///   which `!unready` withdraws. With `allow_force_ready`, a captain's `!forceready` readies the
-///   captain's team with whichever of its players are connected, and any rostered spectator's
-///   `!forceready` readies the spectators.
-/// - `external`: only `start_match` from the controller starts the match, and
-///   players have no commands for it.
-///
-/// In every mode, `start_match` from the controller starts the match.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ReadyMode {
     #[serde(rename = "auto")]
@@ -3150,18 +2136,11 @@ impl ReadyMode {
     pub const ALL: &'static [Self] = &[Self::Auto, Self::Manual, Self::External];
 }
 
-/// `MatchRules` as a launch asks for them, where each rule left out takes the value of a
-/// typical competitive match. The reports of `going_live` and
-/// `round_backup` always carry every rule.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LaunchRules {
-    /// Rounds in regulation, as `mp_maxrounds`. When absent, 24.
     pub max_rounds: i64,
-    /// Whether a tie after regulation goes to overtime, as `mp_overtime_enable`. When absent, `true`.
     pub overtime: bool,
-    /// Rounds in one overtime, both halves together, as `mp_overtime_maxrounds`. When absent, 6.
     pub overtime_max_rounds: i64,
-    /// Whether bullets and melee hurt teammates. Grenades always do. When absent, `true`.
     pub friendly_fire: bool,
 }
 
@@ -3170,25 +2149,10 @@ impl LaunchRules {
     pub const FIELDS: &'static [&'static str] = &["max_rounds", "overtime", "overtime_max_rounds", "friendly_fire"];
 }
 
-/// What a server needs to play on from the backup of a live round. That is the engine's backup file,
-/// which holds the round, the scores and the money and equipment of every player, and the two things
-/// that the file does not hold.
-///
-/// A launch carries one as `match.restore`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RestoreFile {
-    /// Team 1's side in that round. On a launch, the plugin seats players by it through warmup, before
-    /// the load.
     pub team1_side: PlayingSide,
-    /// The rules that the map was played under. A restore plays on under these rules instead of the
-    /// rules of its launch.
     pub rules: MatchRules,
-    /// The backup file as the engine wrote it, up to `MAX_BACKUP_FILE_CHARS` characters. The
-    /// file holds the money and equipment of every player, keyed by account, and only
-    /// `mp_backup_restore_load_file` reads it.
-    ///
-    /// The file is text with tabs and line breaks, so a file at the length cap stays within the frame
-    /// limits once JSON escapes it. Rejected when it holds a lone UTF-16 surrogate.
     pub file: String,
 }
 
@@ -3197,63 +2161,20 @@ impl RestoreFile {
     pub const FIELDS: &'static [&'static str] = &["team1_side", "rules", "file"];
 }
 
-/// The match a server is launched with, which covers one map. Each server plays one match. A restore
-/// launches the same `match_id` again under a new `allocation_id`, from a
-/// `round_backup` that the first server sent.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MatchConfig {
-    /// The match's id, which names its demos and which `slot_status` and
-    /// `get_server_status` report. Null for none, and when absent.
     pub match_id: Option<String>,
-    /// Whether the plugin sends the match's gameplay events, its `round_backup`
-    /// among them, which the agent uploads in an `event_batch`. When absent,
-    /// `false`.
-    ///
-    /// Every match reports its `phase_change` and `score`.
-    /// A match without statistics sends each `round_backup` in
-    /// `backup` instead, and a match with statistics only in its events.
     pub send_statistics: bool,
-    /// Who may join, and on which team.
     pub roster: Roster,
-    /// How starting sides are decided.
     pub sides: SidesMode,
-    /// Seconds the knife winners' captain has to type `!stay`, `!swap`, `!ct` or `!t`, from 5 to 300.
-    /// The server stays in warmup meanwhile, with its clock counting these seconds down. An answer
-    /// starts the match immediately. Without one, the team stays on its side when the clock runs out.
-    /// When absent, 60.
     pub knife_decision_seconds: i64,
-    /// How warmup ends. When absent, `auto`.
     pub ready_mode: ReadyMode,
-    /// Whether, under `manual`, the match also waits for every rostered spectator to connect and type
-    /// `!ready`, and any of them can force-ready the spectators. When absent, `false`, so the match
-    /// waits for the teams alone.
     pub spectators_ready_up: bool,
-    /// Whether, under `manual`, captains and rostered spectators may type `!forceready`. When absent,
-    /// `false`, so the match waits for every rostered player's `!ready`.
     pub allow_force_ready: bool,
-    /// Seconds from warmup until both teams must be ready, up to 1800. Null for no time limit, and
-    /// when absent.
-    ///
-    /// When the time passes, the server kicks every player and the map ends with
-    /// `map_end`, which says who was connected and ready. The controller decides what
-    /// that means for the match. Must be null with `external`, where only the controller starts the
-    /// match.
     pub ready_timeout_seconds: Option<i64>,
-    /// Whether GOTV records the live match as a demo.
     pub record_demo: bool,
-    /// Whether the plugin records a development capture of its callbacks. Only a match that sends
-    /// statistics records one. When absent, `false`.
     pub debug_capture: bool,
-    /// The rules the match is played under, applied over those of the game mode. When absent, every
-    /// rule takes its default.
     pub rules: LaunchRules,
-    /// A live round to play on from, taken from the `round_backup` that reported
-    /// it. Null for a match that plays the map from its start, and when absent.
-    ///
-    /// With a restore, the server skips the knife round and the side choice whatever `sides` says, and
-    /// after warmup it loads the backup instead of going live. Team 1 takes the restore's
-    /// `team1_side`, the round and the scores come from the file, and the restore's `rules` replace
-    /// the match's `rules`. The agent writes `file` to the slot for `mp_backup_restore_load_file`.
     pub restore: Option<RestoreFile>,
 }
 
@@ -3276,61 +2197,20 @@ impl MatchConfig {
     ];
 }
 
-/// What a game server is launched with: any CS2 server, and the match Ankor's plugin plays on it, if
-/// any.
-///
-/// Rejected when both `workshop_id` and `map_name` are null. With a `match`, it is also rejected:
-///
-/// - when `workshop_id` is set, because a match plays a stock map.
-/// - when the roster's players and spectators together outnumber `max_players`.
-/// - when `game_mode` is not `casual`, `competitive` or `wingman`.
-/// - when `ready_mode` is `external` and `ready_timeout_seconds` is set.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ServerLaunchConfig {
-    /// The server's name, which players see in game, such as on the scoreboard. It is up to 128
-    /// characters. Null or empty leaves the game's own name, and null is the value when absent.
-    /// Rejected when it holds an ASCII control character, such as a line break.
     pub hostname: Option<String>,
-    /// The Steam Web API key that workshop downloads need. Null or empty skips them, and null is the
-    /// value when absent. **Whoever runs the node can read the key.**
     pub steam_web_api_key: Option<String>,
-    /// The password players type to join. Null or empty for none, and null when absent.
     pub game_password: Option<String>,
-    /// The tag in front of the plugin's chat lines. When absent, each of its fields takes its default.
     pub chat_tag: ChatTag,
-    /// The game mode, which sets the game's rules. When absent, `competitive`.
     pub game_mode: GameMode,
-    /// The player capacity of the server, as `-maxplayers`. A match's roster, players and spectators
-    /// together, must fit.
     pub max_players: i64,
-    /// A workshop map to play. Null for a stock map, and when absent. A match plays a stock map.
     pub workshop_id: Option<String>,
-    /// The stock map to play, required without `workshop_id`. With a `workshop_id`, the server boots
-    /// this map before it switches to the workshop map. Null for `de_dust2` in that case.
     pub map_name: Option<String>,
-    /// GOTV that spectators can watch. Null for none, and null when absent. A match that
-    /// records a demo still runs GOTV then, because demos are recorded through it. That GOTV runs with
-    /// `tv_delay 0` and a random `tv_password` that the agent sends nowhere, so no spectator can join.
-    ///
-    /// Whether GOTV runs is set on the command line, because GOTV starts with the map. The other
-    /// settings apply on every map load and when a match goes live, never while a demo records.
     pub gotv: Option<ServerLaunchConfigGotv>,
-    /// Seconds the server may stay empty once its slot is `running` before the agent stops it,
-    /// reporting `idle_empty` as its `ServerExitReason`. Null for a server that runs until
-    /// stopped.
-    /// Hibernation must stay off. See [When the cfgs run](/protocol/#when-the-cfgs-run).
     pub idle_shutdown_seconds: Option<i64>,
-    /// Cfgs the server runs in order, after the game mode's cfg and the match's `rules`. A server
-    /// without a match runs them 1 second after every map load, and a match server runs them at warmup
-    /// and when the match goes live. Warmup and the knife round run Ankor's cfgs over them.
     pub exec: Vec<String>,
-    /// Console lines that the server runs after `exec`, in order and at the same moments, so they
-    /// override `exec` and `rules`. A match server leaves out a line that names a command of
-    /// `MATCH_BLOCKED_COMMANDS`. Rejected when a line holds an ASCII control character, such as
-    /// a line break, which would end the console line.
     pub commands: Vec<String>,
-    /// The match Ankor's plugin plays. Null runs a plain CS2 server, and is the value when absent. The
-    /// plugin then runs no match, and the map, `exec`, `commands` and the node's plugins set the game.
     pub r#match: Option<MatchConfig>,
 }
 
@@ -3353,30 +2233,10 @@ impl ServerLaunchConfig {
     ];
 }
 
-/// Launch a server on an idle slot the agent picks. The server logs in with the slot's token. The
-/// agent reports the slot `starting` before any container work, so two launches never share one.
-///
-/// The reply comes once the container has started, before the server is up, and
-/// `slot_status` reports it `running` later. The agent pulls no image here.
-/// A launch on a `cs2_image` whose plugin files the agent has not extracted yet waits while it does.
-/// Refused with:
-///
-/// - A `StartRefusal` when the node cannot take the launch.
-/// - `allocation_in_use` when the node is already launching the allocation or its server holds a
-///   slot.
-/// - `allocation_reused` when the node launched the allocation before.
-/// - `failed` when Docker fails the launch, once its container is gone, after a
-///   `server_exited` with `launch_failed`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerStartServer {
-    /// Chosen by the controller and unique among its open requests. The reply repeats it as
-    /// `reply_to`. The agent ignores a request whose id is still running on the connection.
     pub id: String,
-    /// Identifies the server from now on. Every launch needs a new one, a relaunch too, because the
-    /// node files the server's events and demos under it. A launch that a `StartRefusal` turned
-    /// away used nothing, so the same id may be sent again. Any other failure uses it up.
     pub allocation_id: String,
-    /// What to launch.
     pub launch: ServerLaunchConfig,
 }
 
@@ -3385,24 +2245,9 @@ impl ControllerStartServer {
     pub const FIELDS: &'static [&'static str] = &["type", "id", "allocation_id", "launch"];
 }
 
-/// Stop an allocation's server. Once asked, the agent stops it: a stop that Docker fails is answered
-/// with `failed`, and the agent tries it again until the server is gone. The slot stays held until
-/// then.
-///
-/// The reply comes once its container has stopped: up to `STOP_TIMEOUT_SECONDS` before the kill, then up
-/// to `STOP_REPLY_MARGIN_SECONDS` seconds for the kill and the reply. A stop during a launch
-/// of the allocation first waits for the launch's current step to end. That step can take minutes on
-/// the first launch after an image switch, which extracts the overlay, so the reply can come after
-/// the session's wait. If the launch is stopped between its steps, it starts no server and its
-/// `start_server` fails. If it is stopped while Docker starts its container, its `start_server`
-/// succeeds and the server is then stopped. Refused with `unknown_allocation` for an allocation the
-/// node does not run.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerStopServer {
-    /// The server to stop.
     pub allocation_id: String,
-    /// Chosen by the controller and unique among its open requests. The reply repeats it as
-    /// `reply_to`. The agent ignores a request whose id is still running on the connection.
     pub id: String,
 }
 
@@ -3411,26 +2256,9 @@ impl ControllerStopServer {
     pub const FIELDS: &'static [&'static str] = &["type", "allocation_id", "id"];
 }
 
-/// Install or update CS2 on the node's shared volume. The first install happens only through this
-/// request.
-///
-/// The reply comes immediately with the update's id, as `UpdateCs2Reply`, and the update runs
-/// after it, which can take tens of minutes. Refused with `slots_held` while any slot is held and
-/// `maintenance_running` while a maintenance operation runs.
-///
-/// `cs2.update` in `node_status` reports the update from `outcome: null` to
-/// how it ended, a failed pull of the cs2 image included. Meanwhile
-/// `cs2_update_progress` and `log_batch` report
-/// on it, each naming it by that id.
-///
-/// An installed node also updates itself to `cs2.latest_build_id` once every slot is idle, unless
-/// its `auto_update` is `false`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerUpdateCs2 {
-    /// Chosen by the controller and unique among its open requests. The reply repeats it as
-    /// `reply_to`. The agent ignores a request whose id is still running on the connection.
     pub id: String,
-    /// How thoroughly to update.
     pub mode: Cs2UpdateMode,
 }
 
@@ -3439,25 +2267,10 @@ impl ControllerUpdateCs2 {
     pub const FIELDS: &'static [&'static str] = &["type", "id", "mode"];
 }
 
-/// Replace the agent container with another image. Running servers keep running.
-///
-/// The reply comes immediately with what happens next, as `UpdateAgentReply`, and
-/// `agent_update` reports the rest: its `step` while it runs, then how it ended. Refused with
-/// `maintenance_running` while a maintenance operation runs, with `image_missing` for an image the
-/// node lacks without `pull`, and with `image_not_allowed` for an image outside the official agent
-/// repository while the node's `official_images_only` is on.
-///
-/// Switching stops this agent, and the agent that comes up, the new one or the old one put back,
-/// reports how it went. The update counts as a maintenance operation until it ends, and a switch
-/// until its replacement has proved it stays up.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerUpdateAgent {
-    /// Chosen by the controller and unique among its open requests. The reply repeats it as
-    /// `reply_to`. The agent ignores a request whose id is still running on the connection.
     pub id: String,
-    /// The agent image to run.
     pub image: String,
-    /// Whether to pull the image. When false, the agent uses an image already on the node.
     pub pull: bool,
 }
 
@@ -3466,26 +2279,10 @@ impl ControllerUpdateAgent {
     pub const FIELDS: &'static [&'static str] = &["type", "id", "image", "pull"];
 }
 
-/// Switch future launches to another cs2 image. Running servers keep theirs, and so does a launch
-/// that took its slot before the switch.
-///
-/// The reply comes immediately with what happens next, as `UpdateCs2ImageReply`. Refused with
-/// `maintenance_running` while a maintenance operation runs, with `image_missing` for an image the
-/// node lacks without `pull`, and with `image_not_allowed` for an image outside the official cs2
-/// repository while the node's `official_images_only` is on.
-///
-/// The agent then pulls the image when asked to, extracts its plugin files and removes the images
-/// it supersedes. `cs2.image_update` in `node_status` reports its `step`
-/// while it runs, then how it ended, in the same `node_status` as the new
-/// `cs2.image`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerUpdateCs2Image {
-    /// Chosen by the controller and unique among its open requests. The reply repeats it as
-    /// `reply_to`. The agent ignores a request whose id is still running on the connection.
     pub id: String,
-    /// The cs2 image future launches use.
     pub image: String,
-    /// Whether to pull the image. When false, the agent uses an image already on the node.
     pub pull: bool,
 }
 
@@ -3494,13 +2291,8 @@ impl ControllerUpdateCs2Image {
     pub const FIELDS: &'static [&'static str] = &["type", "id", "image", "pull"];
 }
 
-/// Start or renew the resource lease, which lasts `WATCH_LEASE_MS`. It receives no reply.
-///
-/// While the lease runs, the agent streams `resource_batch`. A lease that
-/// starts first sends every tick the agent holds.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerWatchResources {
-    /// Whether to send every tick the agent holds now, also while the lease runs.
     pub replay: bool,
 }
 
@@ -3509,19 +2301,9 @@ impl ControllerWatchResources {
     pub const FIELDS: &'static [&'static str] = &["type", "replay"];
 }
 
-/// Start or renew the lease of one log source, which lasts `WATCH_LEASE_MS`. It receives no
-/// reply.
-///
-/// While the lease runs, the agent streams the source's `log_batch` frames.
-/// While any source's lease runs, the agent also sends `log_index`. A lease
-/// that starts replays the source, to every watcher unless a `replay_id` names the one that asked.
-/// Any number of sources can be watched together, each on a lease of its own.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerWatchLogs {
-    /// The log to stream. A source the agent does not keep streams nothing until it prints.
     pub source: LogSource,
-    /// The id that the replay frames carry, for the watcher that asked for the replay. Null for no
-    /// replay, as in a renewal. A lease that starts still replays the source, to every watcher.
     pub replay_id: Option<String>,
 }
 
@@ -3530,13 +2312,6 @@ impl ControllerWatchLogs {
     pub const FIELDS: &'static [&'static str] = &["type", "source", "replay_id"];
 }
 
-/// The controller's answer to a `hello` it accepted, before anything else on the
-/// socket. Without one the agent redials after `AGENT_WELCOME_TIMEOUT_MS`.
-///
-/// After each `welcome` the agent sends what changed since the
-/// `hello`, its pending `server_exited` first and then
-/// the changed statuses, demos, backlog and watched streams. It sends each state once, so a slot
-/// that went from `starting` to `running` arrives as `running`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControllerWelcome {}
 
@@ -3545,13 +2320,6 @@ impl ControllerWelcome {
     pub const FIELDS: &'static [&'static str] = &["type"];
 }
 
-/// What the controller sends:
-///
-/// - The `welcome` that accepts a `hello`, or the
-///   `hello_refused` that refuses it.
-/// - Requests, which carry an `id` and receive one `reply` each.
-/// - The watches that start or renew a stream of logs or resource samples.
-/// - `check_cs2_build`, which receives no answer.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum ControllerToAgentMessage {
@@ -3614,15 +2382,6 @@ impl ControllerToAgentMessage {
     ];
 }
 
-/// What caused damage or a death.
-///
-/// - `player`: another player dealt it, with a weapon or a grenade.
-/// - `bomb`: the planted bomb exploded.
-/// - `fall`: the victim fell.
-/// - `self`: the victim's own grenade or fire.
-/// - `disconnect`: the victim left the server, which kills a living player.
-/// - `other`: anything else, such as a map's damage trigger or the plugin moving a player to the
-///   spectators.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum DamageCause {
     #[serde(rename = "player")]
@@ -3644,14 +2403,10 @@ impl DamageCause {
     pub const ALL: &'static [Self] = &[Self::Player, Self::Bomb, Self::Fall, Self::SelfValue, Self::Disconnect, Self::Other];
 }
 
-/// Where finished demos go. The header, when set, is sent verbatim and is the only credential.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DemoUpload {
-    /// The upload target.
     pub url: String,
-    /// A header to send with each upload. Null for none.
     pub header: Option<DemoUploadHeader>,
-    /// Megabits a second an upload may send while a game server runs on the node. Null for no limit.
     pub limit_mbit: Option<i64>,
 }
 
@@ -3660,7 +2415,6 @@ impl DemoUpload {
     pub const FIELDS: &'static [&'static str] = &["url", "header", "limit_mbit"];
 }
 
-/// What the agent reads of a batch frame: its position. The controller validates the event itself.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EventFrame {
     pub seq: i64,
@@ -3673,24 +2427,9 @@ impl EventFrame {
     pub const FIELDS: &'static [&'static str] = &["seq"];
 }
 
-/// The body of an event upload: 1 to `EVENT_BATCH_MAX_FRAMES` frames of the server that
-/// `allocation_id` names, with consecutive `seq`. Store frames idempotently by `allocation_id` and
-/// `seq`, because a lost receipt means the same frames arrive again.
-///
-/// This schema checks only each frame's position, so one bad event cannot fail the batch. Parse each
-/// frame on its own with `EventBatchFrame`, and quarantine a frame that fails by listing it in
-/// `rejected` of the `EventBatchReceipt`.
-///
-/// A server plays the one match of its launch, so the match of a batch is the match that the controller
-/// launched `allocation_id` with. The frames come to at most `EVENT_BATCH_MAX_BYTES`
-/// together.
-///
-/// Rejected unless each frame's `seq` is one above the `seq` of the frame before it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EventBatch {
-    /// The server that sent every event of the batch.
     pub allocation_id: String,
-    /// The frames, in `seq` order.
     pub frames: Vec<EventFrame>,
 }
 
@@ -3699,15 +2438,9 @@ impl EventBatch {
     pub const FIELDS: &'static [&'static str] = &["allocation_id", "frames"];
 }
 
-/// One frame of an event batch: an event and its position among the events of the server that the
-/// batch names. A node runs each allocation once and refuses to launch one it has run before, so the
-/// batch's `allocation_id` and the frame's `seq` identify the event. Parse each frame of a batch on
-/// its own with this schema.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EventBatchFrame {
-    /// The event's position among the events of its server.
     pub seq: i64,
-    /// The gameplay event, one of `PluginToControllerMessage`.
     pub event: Value,
 }
 
@@ -3716,12 +2449,9 @@ impl EventBatchFrame {
     pub const FIELDS: &'static [&'static str] = &["seq", "event"];
 }
 
-/// Frames quarantined instead of stored.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EventBatchReceiptRejected {
-    /// The quarantined frame.
     pub seq: i64,
-    /// Why it was quarantined.
     pub reason: String,
 }
 
@@ -3730,12 +2460,8 @@ impl EventBatchReceiptRejected {
     pub const FIELDS: &'static [&'static str] = &["seq", "reason"];
 }
 
-/// The controller's answer to a batch it holds. Every frame of the batch is either canonical
-/// history or quarantined under one of the `rejected` entries, and the agent may delete them all.
-/// Resending a quarantined frame would fail the same way.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EventBatchReceipt {
-    /// Frames quarantined instead of stored.
     pub rejected: Vec<EventBatchReceiptRejected>,
 }
 
@@ -3744,14 +2470,9 @@ impl EventBatchReceipt {
     pub const FIELDS: &'static [&'static str] = &["rejected"];
 }
 
-/// The body of a `409` answer to an event upload. The controller could not read the identities of
-/// the batch, so it refuses the whole batch. The agent retries that server with a backoff of its
-/// own, and the node's other servers upload meanwhile.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EventBatchRejection {
-    /// Always `event_integrity_error`.
     pub code: LitEventIntegrityError,
-    /// What made the batch untrustworthy.
     pub detail: String,
 }
 
@@ -3760,11 +2481,6 @@ impl EventBatchRejection {
     pub const FIELDS: &'static [&'static str] = &["code", "detail"];
 }
 
-/// How a fire ended.
-///
-/// - `expired`: the fire burned out, or the round closed on it.
-/// - `extinguished`: a smoke put the fire out.
-/// - `smothered`: the fire grenade landed inside a smoke.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FireEnd {
     #[serde(rename = "expired")]
@@ -3780,28 +2496,14 @@ impl FireEnd {
     pub const ALL: &'static [Self] = &[Self::Expired, Self::Extinguished, Self::Smothered];
 }
 
-/// Sent when the match goes live, with the round settings that it plays under.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GoingLive {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// Team 1's side for the first half.
     pub team1_side: PlayingSide,
-    /// Rounds in regulation, as `mp_maxrounds`, up to `MAX_ROUNDS`. MR12 is 24 and MR15 is
-    /// 30.
     pub max_rounds: i64,
-    /// Whether a tie after regulation goes to overtime, as `mp_overtime_enable`.
     pub overtime: bool,
-    /// Rounds in one overtime, both halves together, as `mp_overtime_maxrounds`. The bound is 60, ten
-    /// times the stock 6.
     pub overtime_max_rounds: i64,
-    /// Whether bullets and melee hurt teammates. Grenades always do.
     pub friendly_fire: bool,
 }
 
@@ -3810,17 +2512,11 @@ impl GoingLive {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "team1_side", "max_rounds", "overtime", "overtime_max_rounds", "friendly_fire"];
 }
 
-/// The player who threw the grenade, as its `grenade_throw` saw them.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GrenadeDetonatePlayer {
-    /// The player's SteamID64.
     pub steam_id: String,
-    /// The player's name when the event happened.
     pub name: String,
-    /// The side that the player was on.
     pub side: Side,
-    /// The roster team of the player, which the plugin looks up in its roster. Null for spectators and
-    /// unknown players.
     pub team: Option<i64>,
 }
 
@@ -3829,14 +2525,10 @@ impl GrenadeDetonatePlayer {
     pub const FIELDS: &'static [&'static str] = &["steam_id", "name", "side", "team"];
 }
 
-/// A point in the world, in engine units.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct WorldPos {
-    /// Engine units along the map's x axis.
     pub x: f64,
-    /// Engine units along the map's y axis.
     pub y: f64,
-    /// Engine units along the map's z axis, the height.
     pub z: f64,
 }
 
@@ -3845,27 +2537,14 @@ impl WorldPos {
     pub const FIELDS: &'static [&'static str] = &["x", "y", "z"];
 }
 
-/// Sent when a grenade detonates or a fire grenade lights. A grenade that is removed before then
-/// sends none.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GrenadeDetonate {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
-    /// The grenade, as its `grenade_throw` identifies it.
     pub grenade_id: i64,
-    /// The player who threw the grenade, as its `grenade_throw` saw them.
     pub player: GrenadeDetonatePlayer,
-    /// Where the engine reported the detonation. Null for a fire that lit without reporting one.
     pub detonate_pos: Option<WorldPos>,
 }
 
@@ -3874,35 +2553,15 @@ impl GrenadeDetonate {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "round", "round_time", "grenade_id", "player", "detonate_pos"];
 }
 
-/// Sent when the effect of a grenade is over, because its last entity was removed or the round
-/// closed or reset on it. Every grenade that sent a `grenade_throw` sends one
-/// before the `round_complete` of its round. A grenade whose round a restore
-/// cut off sends none; the `match_restored` replaces that round.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GrenadeEnd {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the grenade was thrown in.
     pub round: i64,
-    /// The grenade, as its `grenade_throw` identifies it.
     pub grenade_id: i64,
-    /// The player who threw the grenade, as its `grenade_throw` saw them.
     pub player: GrenadeDetonatePlayer,
-    /// Seconds since the round started, at the moment the effect ended. A fire ends when it goes out.
-    /// When the round closed on the grenade, the value is the round length plus the restart delay,
-    /// which is when the engine clears the entities.
     pub end_round_time: f64,
-    /// How the fire ended. Null for a grenade that was not a fire, and for a fire projectile removed
-    /// before it lit.
     pub fire_end: Option<FireEnd>,
-    /// The smoke whose cloud put this fire out, credited to the nearest live smoke. Null when no smoke
-    /// put the fire out.
     pub extinguished_by: Option<i64>,
 }
 
@@ -3912,7 +2571,6 @@ impl GrenadeEnd {
         &["type", "timestamp", "tick", "round", "grenade_id", "player", "end_round_time", "fire_end", "extinguished_by"];
 }
 
-/// The engine class name of a grenade.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum GrenadeKind {
     #[serde(rename = "flashbang")]
@@ -3934,28 +2592,14 @@ impl GrenadeKind {
     pub const ALL: &'static [Self] = &[Self::Flashbang, Self::Hegrenade, Self::Smokegrenade, Self::Molotov, Self::Incgrenade, Self::Decoy];
 }
 
-/// Sent when a grenade leaves a player's hand. Its `grenade_id` identifies the grenade in the events
-/// that follow: its `grenade_detonate` and `grenade_end`,
-/// and the `player_hurt` and `player_blind` that it causes.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GrenadeThrow {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
-    /// The grenade's id, unique within the server.
     pub grenade_id: i64,
-    /// The player who threw the grenade, placed where they stood when the projectile spawned.
     pub player: BombAbortDefusePlayer,
-    /// The kind of grenade thrown.
     pub grenade: GrenadeKind,
 }
 
@@ -3964,15 +2608,10 @@ impl GrenadeThrow {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "round", "round_time", "grenade_id", "player", "grenade"];
 }
 
-/// One kind of item that a player holds: the engine's item definition index as `weapon`, a quantity,
-/// and the unit price in this game build.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct InventoryItem {
-    /// The engine's item definition index.
     pub weapon: i64,
-    /// Items of this kind that the player holds, up to ten times the stock limit of 2 flashbangs.
     pub quantity: i64,
-    /// Dollars that one item costs, up to ten times the dearest stock item, the M249 at 5,200.
     pub unit_value: i64,
 }
 
@@ -3981,32 +2620,15 @@ impl InventoryItem {
     pub const FIELDS: &'static [&'static str] = &["weapon", "quantity", "unit_value"];
 }
 
-/// Sent when the knife round ends. When both teams survive, the counts in this event decide the
-/// winner.
-///
-/// Rejected when a team's health is above `MAX_HEALTH` times its players alive.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct KnifeEnd {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The team that won the knife round.
     pub winner_team: i64,
-    /// The side that the winning team won on.
     pub winner_side: PlayingSide,
-    /// Players of team 1 alive at the end.
     pub team1_alive: i64,
-    /// Players of team 2 alive at the end.
     pub team2_alive: i64,
-    /// Health points left to team 1, summed over its players alive, each at most
-    /// `MAX_HEALTH`.
     pub team1_health: i64,
-    /// Health points left to team 2, summed like `team1_health`.
     pub team2_health: i64,
 }
 
@@ -4016,16 +2638,9 @@ impl KnifeEnd {
         &["type", "timestamp", "tick", "winner_team", "winner_side", "team1_alive", "team2_alive", "team1_health", "team2_health"];
 }
 
-/// Sent when the knife round begins.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct KnifeStart {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
 }
 
@@ -4034,8 +2649,6 @@ impl KnifeStart {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick"];
 }
 
-/// The close reasons after which the controller answers upgrades with `429` for
-/// `AGENT_LIMIT_COOLDOWN_MS`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum LimitCloseReason {
     #[serde(rename = "rate_limited")]
@@ -4049,14 +2662,6 @@ impl LimitCloseReason {
     pub const ALL: &'static [Self] = &[Self::RateLimited, Self::FrameTooLarge];
 }
 
-/// Why a map ended:
-///
-/// - `played`: the map was played out.
-/// - `ready_timeout`: `ready_timeout_seconds` passed in warmup, before the match started.
-/// - `abandoned`: every rostered player left after the match began, in the knife round, the side
-///   choice or live play.
-///
-/// Only a `played` map has a winner. The controller decides what any other end means for the match.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MapEndReason {
     #[serde(rename = "played")]
@@ -4072,12 +2677,9 @@ impl MapEndReason {
     pub const ALL: &'static [Self] = &[Self::Played, Self::ReadyTimeout, Self::Abandoned];
 }
 
-/// A team's players when the ready deadline passed.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReadyTeam {
-    /// Rostered players of the team on the server.
     pub connected: i64,
-    /// Whether the team counted as ready, its captain's force-ready included.
     pub ready: bool,
 }
 
@@ -4086,12 +2688,10 @@ impl ReadyTeam {
     pub const FIELDS: &'static [&'static str] = &["connected", "ready"];
 }
 
-/// Who was on the server and ready when `ready_timeout_seconds` passed. Null for any other end.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MapEndTeams {
     pub team1: ReadyTeam,
     pub team2: ReadyTeam,
-    /// The rostered spectators, as one group. Null unless the match has them ready up.
     pub spectators: Option<ReadyTeam>,
 }
 
@@ -4100,32 +2700,14 @@ impl MapEndTeams {
     pub const FIELDS: &'static [&'static str] = &["team1", "team2", "spectators"];
 }
 
-/// Sent when the map is over. After a `played` map, the scoreboard stays up for 60 seconds, then the
-/// server kicks the players, sends its remaining events and quits. After a `ready_timeout`, the
-/// server kicks the players at once.
-///
-/// Rejected unless `winner_team` is the team with the higher score of a `played` map, or null when
-/// the scores are equal or the map was not played out. Rejected unless `teams` is set for a
-/// `ready_timeout`, with both scores 0, and null otherwise.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MapEnd {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// Why the map ended.
     pub reason: MapEndReason,
-    /// The team with the higher score of a `played` map. Null for a draw, and for any other end.
     pub winner_team: Option<i64>,
-    /// Team 1's score when the map ended.
     pub team1_score: i64,
-    /// Team 2's score when the map ended.
     pub team2_score: i64,
-    /// Who was on the server and ready when `ready_timeout_seconds` passed. Null for any other end.
     pub teams: Option<MapEndTeams>,
 }
 
@@ -4134,27 +2716,13 @@ impl MapEnd {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "reason", "winner_team", "team1_score", "team2_score", "teams"];
 }
 
-/// Sent when a map has loaded on the server, as the first event of the map's history.
-///
-/// The plugin sends one on every load. A workshop map loads twice, and an admin's `changelevel`
-/// loads another map.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MapStart {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The version of the Ankor plugin, up to `MAX_VERSION_CHARS` characters. Rejected when it holds a NUL or a lone UTF-16 surrogate.
     pub plugin_version: String,
-    /// The version of SwiftlyS2, up to `MAX_VERSION_CHARS` characters. Rejected when it holds a NUL or a lone UTF-16 surrogate.
     pub framework_version: String,
-    /// The version of the CS2 server, up to `MAX_VERSION_CHARS` characters. Rejected when it holds a NUL or a lone UTF-16 surrogate.
     pub server_version: String,
-    /// The map that loaded, as the engine names it.
     pub map_name: String,
 }
 
@@ -4163,34 +2731,13 @@ impl MapStart {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "plugin_version", "framework_version", "server_version", "map_name"];
 }
 
-/// Sent when the server has loaded a round backup, from the `restore` of its launch, from a
-/// `restore_round`, or from an `mp_backup_restore_load_file` that someone
-/// ran by hand.
-///
-/// The `round_start` that follows plays `round` again. From that
-/// `round_start` on, the events of the server replace everything that it sent
-/// for that round and the rounds after it.
-///
-/// The plugin reads the scores and the side from the engine once the engine has loaded the file. The
-/// plugin refuses a load during the knife round, the side choice, the halftime break and after the
-/// match has ended.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MatchRestored {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The one-based round that the match plays on from.
     pub round: i64,
-    /// Team 1's side in that round.
     pub team1_side: PlayingSide,
-    /// Team 1's score before that round.
     pub team1_score: i64,
-    /// Team 2's score before that round.
     pub team2_score: i64,
 }
 
@@ -4199,20 +2746,12 @@ impl MatchRestored {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "round", "team1_side", "team1_score", "team2_score"];
 }
 
-/// The player who threw the flashbang, placed where they were when it went off. The
-/// `grenade_throw` gives where they threw from.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PlayerBlindAttacker {
-    /// The player's SteamID64.
     pub steam_id: String,
-    /// The player's name when the event happened.
     pub name: String,
-    /// The side that the player was on.
     pub side: Side,
-    /// The roster team of the player, which the plugin looks up in its roster. Null for spectators and
-    /// unknown players.
     pub team: Option<i64>,
-    /// Where the player stood and looked. Null when the player had no body in the world.
     pub position: Option<PlayerPosition>,
 }
 
@@ -4221,32 +2760,16 @@ impl PlayerBlindAttacker {
     pub const FIELDS: &'static [&'static str] = &["steam_id", "name", "side", "team", "position"];
 }
 
-/// Sent when a flashbang blinds a player.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PlayerBlind {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
-    /// The player blinded.
     pub victim: BombAbortDefusePlayer,
-    /// The player who threw the flashbang, placed where they were when it went off. The
-    /// `grenade_throw` gives where they threw from.
     pub attacker: PlayerBlindAttacker,
-    /// Seconds that the blind lasts.
     pub duration: f64,
-    /// Whether the thrower and the victim are on the same roster team.
     pub friendly_fire: bool,
-    /// The flashbang, as its `grenade_throw` identifies it. Null when the plugin
-    /// did not see it thrown.
     pub grenade_id: Option<i64>,
 }
 
@@ -4256,21 +2779,11 @@ impl PlayerBlind {
         &["type", "timestamp", "tick", "round", "round_time", "victim", "attacker", "duration", "friendly_fire", "grenade_id"];
 }
 
-/// Sent when a player connects after the match leaves warmup.
-/// `get_server_status` lists who is on the server during warmup.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PlayerConnect {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The player who connected.
     pub player: GrenadeDetonatePlayer,
-    /// Whether the plugin kicked the player because the SteamID is not on any roster.
     pub rejected: bool,
 }
 
@@ -4279,14 +2792,9 @@ impl PlayerConnect {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "player", "rejected"];
 }
 
-/// A weapon, by the engine's item definition index or, for an item without one, the engine's class
-/// name. Rejected when `id` is a number and `fallback` is not null.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Weapon {
-    /// The item definition index, a 16-bit unsigned integer. Null when the item has none.
     pub id: Option<i64>,
-    /// The engine class name of an item without an index. Null when `id` is set, or when the engine
-    /// named no weapon either.
     pub fallback: Option<String>,
 }
 
@@ -4295,69 +2803,28 @@ impl Weapon {
     pub const FIELDS: &'static [&'static str] = &["id", "fallback"];
 }
 
-/// Sent when a player dies. Rejected when the `assister` has the `steam_id` of the `victim` or the
-/// `attacker`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PlayerDeath {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
-    /// The player who died.
     pub victim: BombAbortDefusePlayer,
-    /// The player credited with the kill. Null when no player dealt it.
-    ///
-    /// For a grenade kill, the position is where the thrower was at the death. The
-    /// `grenade_throw` gives where they threw from.
     pub attacker: Option<PlayerBlindAttacker>,
-    /// The player credited with the assist. Null when there is none.
     pub assister: Option<GrenadeDetonatePlayer>,
-    /// The killing weapon.
     pub weapon: Weapon,
-    /// What caused the death.
     pub cause: DamageCause,
-    /// Whether the killing hit was to the head.
     pub headshot: bool,
-    /// Surfaces that the bullet went through. The bound is a margin, not a measured engine limit.
     pub penetrated: i64,
-    /// Whether the killing shot passed through smoke.
     pub thru_smoke: bool,
-    /// Whether the attacker fired a scoped weapon unscoped.
     pub no_scope: bool,
-    /// Whether the attacker was flashed.
     pub attacker_blind: bool,
-    /// Whether the attacker was airborne.
     pub attacker_in_air: bool,
-    /// Whether the assist came from a flashbang.
     pub flash_assist: bool,
-    /// Whether the attacker and the victim are on the same roster team, a team kill.
     pub friendly_fire: bool,
-    /// The player who last blinded the victim, through a `player_blind` still
-    /// running at the death. Null when the victim could see.
-    ///
-    /// `victim_blind_remaining` gives the seconds of that blind left. When the attacker is the
-    /// blinder, the kill is a self-flash kill. The consumer decides how much blind must remain for
-    /// that to count.
     pub victim_blind_by: Option<GrenadeDetonatePlayer>,
-    /// Seconds left of the blind from `victim_blind_by`. Zero when the victim could see.
     pub victim_blind_remaining: f64,
-    /// Dollars of equipment that the victim carried when the killing blow landed, the engine's
-    /// figure.
     pub victim_equipment_value: i64,
-    /// Grenades still in the victim's inventory when the killing blow landed. The C4 and the knife are
-    /// not grenades. Two flashbangs show as a `quantity` of 2, and `unit_value` is the price per
-    /// grenade.
-    ///
-    /// An empty array means that the victim held none. Null when the plugin could not read the
-    /// inventory from before the damage.
     pub victim_grenades_held: Option<Vec<InventoryItem>>,
 }
 
@@ -4389,20 +2856,11 @@ impl PlayerDeath {
     ];
 }
 
-/// Sent when a player leaves after the match leaves warmup.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PlayerDisconnect {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The player who left.
     pub player: GrenadeDetonatePlayer,
-    /// The engine's disconnect reason, up to `MAX_DISCONNECT_REASON_CHARS` characters. Rejected when it holds a NUL or a lone UTF-16 surrogate.
     pub reason: String,
 }
 
@@ -4411,64 +2869,23 @@ impl PlayerDisconnect {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "player", "reason"];
 }
 
-/// Sent when a player takes damage. Rejected when `health_before` is a number and `health_after` is
-/// above it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PlayerHurt {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
-    /// The player hit.
     pub victim: BombAbortDefusePlayer,
-    /// The player who dealt the damage. Null for world damage.
-    ///
-    /// For grenade damage, the position is where the thrower was at the hit. The
-    /// `grenade_throw` gives where they threw from.
     pub attacker: Option<PlayerBlindAttacker>,
-    /// What dealt the damage.
     pub weapon: Weapon,
-    /// What caused the damage.
     pub cause: DamageCause,
-    /// Health damage as the engine reports it, overkill included. `health_before` and `health_after`
-    /// give the health that the victim actually lost.
     pub dmg_health: i64,
-    /// The victim's health before the hit, as the engine reports it. Null when the plugin could not
-    /// read it.
     pub health_before: Option<i64>,
-    /// The victim's health after the hit, at most `health_before`.
     pub health_after: i64,
-    /// Armor damage.
     pub dmg_armor: i64,
-    /// The engine's hit group, `HitGroup_t` in the Source 2 SDK. The plugin sends the engine's invalid
-    /// group as `0`, and `9` is unused.
-    ///
-    /// - `0`: generic.
-    /// - `1`: head.
-    /// - `2`: chest.
-    /// - `3`: stomach.
-    /// - `4`: left arm.
-    /// - `5`: right arm.
-    /// - `6`: left leg.
-    /// - `7`: right leg.
-    /// - `8`: neck.
-    /// - `10`: gear, the backpack hitbox.
     pub hitgroup: i64,
-    /// Whether the attacker and the victim are on the same roster team.
     pub friendly_fire: bool,
-    /// Whether the grenade itself struck the player before it detonated. Such a hit counts as damage
-    /// and is stored as a hit, but not as utility damage, which matches the in-game scoreboard.
     pub projectile_impact: bool,
-    /// The grenade that dealt the damage, as its `grenade_throw` identifies it.
-    /// Null for anything else.
     pub grenade_id: Option<i64>,
 }
 
@@ -4495,16 +2912,11 @@ impl PlayerHurt {
     ];
 }
 
-/// What a player carries. A null inventory means that the plugin could not read the pawn.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PlayerInventory {
-    /// Weapons, grenades and other items held, up to 64.
     pub items: Vec<InventoryItem>,
-    /// Armor points, up to `MAX_HEALTH`, ten times the stock 100.
     pub armor: i64,
-    /// Whether the armor includes a helmet.
     pub helmet: bool,
-    /// Whether the player carries a defuse kit.
     pub defuse_kit: bool,
 }
 
@@ -4513,15 +2925,10 @@ impl PlayerInventory {
     pub const FIELDS: &'static [&'static str] = &["items", "armor", "helmet", "defuse_kit"];
 }
 
-/// The shots that a player fired with one weapon over a round. Rejected unless `shots` equals the
-/// number of `ticks`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct WeaponShots {
-    /// The weapon fired.
     pub weapon: Weapon,
-    /// Shots fired, which equals the number of `ticks`.
     pub shots: i64,
-    /// The server tick of each shot.
     pub ticks: Vec<f64>,
 }
 
@@ -4530,12 +2937,9 @@ impl WeaponShots {
     pub const FIELDS: &'static [&'static str] = &["weapon", "shots", "ticks"];
 }
 
-/// The shots that one player fired over a round.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PlayerShots {
-    /// The player.
     pub player: GrenadeDetonatePlayer,
-    /// Each weapon that the player fired, once each.
     pub weapons: Vec<WeaponShots>,
 }
 
@@ -4544,7 +2948,6 @@ impl PlayerShots {
     pub const FIELDS: &'static [&'static str] = &["player", "weapons"];
 }
 
-/// The severity of the line.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PluginLogLevel {
     #[serde(rename = "debug")]
@@ -4562,20 +2965,11 @@ impl PluginLogLevel {
     pub const ALL: &'static [Self] = &[Self::Debug, Self::Info, Self::Warn, Self::Error];
 }
 
-/// Sent when the plugin logs a line worth keeping with the match.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PluginLog {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The severity of the line.
     pub level: PluginLogLevel,
-    /// The log line, up to `MAX_LOG_MESSAGE_CHARS` characters. Rejected when it holds a NUL or a lone UTF-16 surrogate.
     pub message: String,
 }
 
@@ -4584,10 +2978,6 @@ impl PluginLog {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "level", "message"];
 }
 
-/// What the team chose.
-///
-/// - `stay`: keep the sides of the knife round.
-/// - `swap`: exchange the sides.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SideChoiceChoice {
     #[serde(rename = "stay")]
@@ -4601,25 +2991,12 @@ impl SideChoiceChoice {
     pub const ALL: &'static [Self] = &[Self::Stay, Self::Swap];
 }
 
-/// Sent when the knife round winners choose a side, or run out of time and stay.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SideChoice {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The team that chose.
     pub team: i64,
-    /// What the team chose.
-    ///
-    /// - `stay`: keep the sides of the knife round.
-    /// - `swap`: exchange the sides.
     pub choice: SideChoiceChoice,
-    /// The side of team 1 for the first half, after the choice.
     pub team1_side: PlayingSide,
 }
 
@@ -4628,21 +3005,13 @@ impl SideChoice {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "team", "choice", "team1_side"];
 }
 
-/// The players present when the round started, each once. An empty array is authoritative, so the
-/// round had no players. Rejected when two entries share a `player.steam_id`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoundFreezeEndPlayers {
-    /// The player sampled.
     pub player: GrenadeDetonatePlayer,
-    /// Whether the player was alive when sampled.
     pub alive: bool,
-    /// Dollars of equipment that the player carried, the engine's figure.
     pub equipment_value: i64,
-    /// Dollars in hand when sampled.
     pub cash: i64,
-    /// Dollars in hand at the start of the round.
     pub start_cash: i64,
-    /// Dollars spent this round by the time of the sample.
     pub cash_spent: i64,
 }
 
@@ -4651,23 +3020,14 @@ impl RoundFreezeEndPlayers {
     pub const FIELDS: &'static [&'static str] = &["player", "alive", "equipment_value", "cash", "start_cash", "cash_spent"];
 }
 
-/// The players as that round left them, with what each carried. Rejected when two entries share a
-/// `player.steam_id`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoundStartCarryoverPlayers {
-    /// The player sampled.
     pub player: GrenadeDetonatePlayer,
-    /// Whether the player was alive when sampled.
     pub alive: bool,
-    /// Dollars of equipment that the player carried, the engine's figure.
     pub equipment_value: i64,
-    /// Dollars in hand when sampled.
     pub cash: i64,
-    /// Dollars in hand at the start of the round.
     pub start_cash: i64,
-    /// Dollars spent this round by the time of the sample.
     pub cash_spent: i64,
-    /// What the player carried. Null when the plugin could not read the pawn.
     pub inventory: Option<PlayerInventory>,
 }
 
@@ -4676,16 +3036,10 @@ impl RoundStartCarryoverPlayers {
     pub const FIELDS: &'static [&'static str] = &["player", "alive", "equipment_value", "cash", "start_cash", "cash_spent", "inventory"];
 }
 
-/// The players of the previous round as that round left them, after exit kills and pickups. Null
-/// across an equipment reset.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoundStartCarryover {
-    /// The round after which the plugin took the snapshot.
     pub from_round: i64,
-    /// The server tick when the plugin took the snapshot.
     pub sampled_tick: f64,
-    /// The players as that round left them, with what each carried. Rejected when two entries share a
-    /// `player.steam_id`.
     pub players: Vec<RoundStartCarryoverPlayers>,
 }
 
@@ -4694,33 +3048,14 @@ impl RoundStartCarryover {
     pub const FIELDS: &'static [&'static str] = &["from_round", "sampled_tick", "players"];
 }
 
-/// Sent when a round begins.
-///
-/// The same round can begin again with no `round_end` between. The engine restarts
-/// a round that a team leaves before it is decided, as when every player on it disconnects or loses
-/// their connection. The later `round_start` replaces the earlier one, and the round is played
-/// from it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoundStart {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
-    /// Team 1's side this round.
     pub team1_side: PlayingSide,
-    /// The players present when the round started, each once. An empty array is authoritative, so the
-    /// round had no players. Rejected when two entries share a `player.steam_id`.
     pub players: Vec<RoundFreezeEndPlayers>,
-    /// The players of the previous round as that round left them, after exit kills and pickups. Null
-    /// across an equipment reset.
     pub carryover: Option<RoundStartCarryover>,
 }
 
@@ -4729,25 +3064,13 @@ impl RoundStart {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "round", "round_time", "team1_side", "players", "carryover"];
 }
 
-/// Sent when freeze time ends, as the authoritative list of the players who take part in the round
-/// after reconnects during freeze time.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoundFreezeEnd {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
-    /// Team 1's side this round.
     pub team1_side: PlayingSide,
-    /// Everyone who takes part in the round, each once. Rejected when two entries share a `player.steam_id`.
     pub players: Vec<RoundFreezeEndPlayers>,
 }
 
@@ -4756,21 +3079,13 @@ impl RoundFreezeEnd {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "round", "round_time", "team1_side", "players"];
 }
 
-/// The samples behind the team totals, each player once. Rejected when two entries share a
-/// `player.steam_id`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoundBuyEndPlayers {
-    /// The player read.
     pub player: GrenadeDetonatePlayer,
-    /// Dollars of equipment that the player carried.
     pub equipment_value: i64,
-    /// Dollars in hand.
     pub cash: i64,
-    /// Dollars in hand at the start of the round.
     pub start_cash: i64,
-    /// Dollars spent this round.
     pub cash_spent: i64,
-    /// The server tick when the plugin read the player.
     pub sampled_tick: f64,
 }
 
@@ -4779,36 +3094,14 @@ impl RoundBuyEndPlayers {
     pub const FIELDS: &'static [&'static str] = &["player", "equipment_value", "cash", "start_cash", "cash_spent", "sampled_tick"];
 }
 
-/// Sent when buy time closes, `mp_buytime` after freeze time ends, with the equipment value that
-/// each roster team carried, as the sum of the engine's figure for each pawn.
-///
-/// The plugin reads a player at the last buy-zone exit inside the window, or live at the close while
-/// the player is still in a buy zone. Snapshots at a death or disconnect keep a buy that was made
-/// before the window closes. An earlier buy-zone exit counts for a player who never returned.
-///
-/// Rejected unless `team1_equipment_value` and `team2_equipment_value` are each the sum of
-/// `equipment_value` over the `players` whose `player.team` is that team.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoundBuyEnd {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
-    /// The samples behind the team totals, each player once. Rejected when two entries share a
-    /// `player.steam_id`.
     pub players: Vec<RoundBuyEndPlayers>,
-    /// Dollars of equipment that team 1 carried, the sum of `equipment_value` over its `players`, so
-    /// the event states the economy of the round on its own.
     pub team1_equipment_value: i64,
-    /// Dollars of equipment that team 2 carried, summed like `team1_equipment_value`.
     pub team2_equipment_value: i64,
 }
 
@@ -4818,8 +3111,6 @@ impl RoundBuyEnd {
         &["type", "timestamp", "tick", "round", "round_time", "players", "team1_equipment_value", "team2_equipment_value"];
 }
 
-/// Why a round ended, as the engine names it. When the engine gives a reason that this list does not
-/// name, the plugin sends `unknown`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RoundEndReason {
     #[serde(rename = "unknown")]
@@ -4890,33 +3181,17 @@ impl RoundEndReason {
     ];
 }
 
-/// Sent when a round is decided. The last gameplay reports of the round may still follow, and
-/// `round_complete` closes it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoundEnd {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
-    /// The side that won the round.
     pub winner_side: PlayingSide,
-    /// The roster team that won the round.
     pub winner_team: i64,
-    /// Why the round ended.
     pub reason: RoundEndReason,
-    /// Team 1's score after this round.
     pub team1_score: i64,
-    /// Team 2's score after this round.
     pub team2_score: i64,
-    /// Seconds that the round lasted, from the end of freeze time to the end of the round.
     pub round_length: f64,
 }
 
@@ -4926,21 +3201,11 @@ impl RoundEnd {
         &["type", "timestamp", "tick", "round", "round_time", "winner_side", "winner_team", "reason", "team1_score", "team2_score", "round_length"];
 }
 
-/// Sent after every gameplay report of a scored round, its `round_shots`
-/// included, before the next round or the map end.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoundComplete {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
 }
 
@@ -4949,34 +3214,11 @@ impl RoundComplete {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "round", "round_time"];
 }
 
-/// Sent once for each round when it closes, at halftime, the next `round_start`
-/// or the `map_end`, with the shots that each player fired over the round.
-///
-/// A round that starts again with no `round_end`, as described on
-/// `round_start`, sends none for the attempt it abandoned. Neither does a round
-/// that a restore cut off, which the `match_restored` replaces.
-///
-/// `players` lists each player who fired, and is empty when nobody did. The plugin counts shots
-/// from the engine's `weapon_fire`, up to `MAX_ROUND_SHOTS` for each player, and counts no
-/// more. Knives and grenades are left out, because they fire no rounds. A throw arrives as
-/// `grenade_throw` instead. Hits are the `player_hurt`
-/// events of the same round, attacker and weapon.
-///
-/// Rejected when a player's shots add up to more than `MAX_ROUND_SHOTS`, or when a player or a
-/// weapon of a player is listed twice.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoundShots {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the shots were fired in.
     pub round: i64,
-    /// Each player who fired, once each.
     pub players: Vec<PlayerShots>,
 }
 
@@ -4985,24 +3227,13 @@ impl RoundShots {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "round", "players"];
 }
 
-/// Sent when the engine names the MVP of a round.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoundMvp {
-    /// Unix milliseconds on the server's wall clock.
     pub timestamp: i64,
-    /// The server tick when the event happened, as the engine's map tick plus its sub-tick fraction.
-    ///
-    /// The plugin sends events as they happen, so `seq` follows the same order.
-    /// `round_shots` is the exception, because the plugin sends it when the round
-    /// closes, and the `ticks` of each weapon place each shot.
     pub tick: f64,
-    /// The round that the event happened in, even when the event arrives later.
     pub round: i64,
-    /// Seconds since the round started.
     pub round_time: f64,
-    /// The MVP of the round.
     pub player: GrenadeDetonatePlayer,
-    /// The engine's MVP reason code, a small enum.
     pub reason: i64,
 }
 
@@ -5011,7 +3242,6 @@ impl RoundMvp {
     pub const FIELDS: &'static [&'static str] = &["type", "timestamp", "tick", "round", "round_time", "player", "reason"];
 }
 
-/// Any gameplay event.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum PluginToControllerMessage {
@@ -5116,28 +3346,13 @@ impl PluginToControllerMessage {
     ];
 }
 
-/// A live round as it started. It holds the `RestoreFile` of the round and where the round
-/// stands in the match, both read off the engine.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RestorePoint {
-    /// Team 1's side in that round. On a launch, the plugin seats players by it through warmup, before
-    /// the load.
     pub team1_side: PlayingSide,
-    /// The rules that the map was played under. A restore plays on under these rules instead of the
-    /// rules of its launch.
     pub rules: MatchRules,
-    /// The backup file as the engine wrote it, up to `MAX_BACKUP_FILE_CHARS` characters. The
-    /// file holds the money and equipment of every player, keyed by account, and only
-    /// `mp_backup_restore_load_file` reads it.
-    ///
-    /// The file is text with tabs and line breaks, so a file at the length cap stays within the frame
-    /// limits once JSON escapes it. Rejected when it holds a lone UTF-16 surrogate.
     pub file: String,
-    /// The one-based round that the backup starts. The file numbers rounds from zero, one lower.
     pub round: i64,
-    /// Team 1's score before that round.
     pub team1_score: i64,
-    /// Team 2's score before that round.
     pub team2_score: i64,
 }
 
@@ -5146,16 +3361,10 @@ impl RestorePoint {
     pub const FIELDS: &'static [&'static str] = &["team1_side", "rules", "file", "round", "team1_score", "team2_score"];
 }
 
-/// A slot's id and ports.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ServerSlot {
-    /// The slot's id, 1 to 32 letters, digits, `_` and `-`. It is unique on its node.
     pub id: String,
-    /// The game port, UDP. Every `port` and `tv_port` on a node is different, free on the host, and
-    /// not `EVENT_RELAY_PORT`, the port the agent listens on for plugins.
-    /// [Host networking](/how-it-works/#host-networking) explains why.
     pub port: i64,
-    /// The GOTV port, UDP, under the same rules as `port`.
     pub tv_port: i64,
 }
 
@@ -5164,30 +3373,13 @@ impl ServerSlot {
     pub const FIELDS: &'static [&'static str] = &["id", "port", "tv_port"];
 }
 
-/// A game server's state as its plugin reports it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ServerState {
-    /// The map the server is on, up to `MAP_NAME_MAX_CHARS` characters.
     pub map_name: String,
-    /// The loaded match and its team state. Null on a server without a match or after a refused
-    /// config.
     pub r#match: Option<GetServerStatusReplyMatch>,
-    /// Everyone connected, up to `MAX_SERVER_PLAYERS`.
     pub players: Vec<GetServerStatusReplyPlayers>,
-    /// Why the plugin could not read or use the match config it was launched with, up to
-    /// `CONFIG_ERROR_MAX_CHARS` characters. Null when the server has no match config or the
-    /// plugin accepted it.
     pub config_error: Option<String>,
-    /// Whether players can join. When `true`, the server is logged on to Steam and has loaded the map
-    /// that its launch asked for, the workshop map when it has one. It stays `true` once set.
-    ///
-    /// CS2 does not fall back to an anonymous logon when Steam refuses its token, so `true` also
-    /// indicates that Steam accepted the GSLT and that its last use can be updated.
     pub ready: bool,
-    /// The SteamID64 that Steam gave the server when it logged on with its GSLT. Each token keeps
-    /// one SteamID across logons, so a controller can look the server up in Steam's server list by
-    /// it. The plugin also adds the `allocation_id` without its dashes to `sv_tags`, which that list
-    /// shows. Null until `ready`.
     pub server_steam_id: Option<String>,
 }
 
@@ -5196,8 +3388,6 @@ impl ServerState {
     pub const FIELDS: &'static [&'static str] = &["map_name", "match", "players", "config_error", "ready", "server_steam_id"];
 }
 
-/// The `start_server` refusals the agent sends before reserving a slot.
-/// Nothing started, so another node may take the launch.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum StartRefusal {
     #[serde(rename = "no_free_slot")]

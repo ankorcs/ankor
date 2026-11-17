@@ -11,7 +11,7 @@ for its nodes. The [quick start](quickstart.md) walks through a first node.
 
 ## Node actions
 
-Manage nodes under **Settings** → **Nodes**. Each node has a menu, called node options below.
+Manage nodes under **Settings** → **Nodes**. Each node has a menu, called *node options* below.
 
 | Action                 | In [ankor.sh](https://ankor.sh)                                                                                          | Guide                                                         |
 |------------------------|--------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------|
@@ -41,6 +41,7 @@ When you add or edit a node, **Demo upload** sets its [config:demo_upload] targe
 - **Off** keeps demos on the node.
 
 **Settings** → **Nodes** lists the node's demos, and you can delete them there.
+[Demos](operations.md#demos) explains demo uploads on any controller.
 
 ## Your Steam Web API key
 

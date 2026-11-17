@@ -99,7 +99,7 @@ scripts/nodes.sh deploy root@<node> [root@<node> ...]
   `DOCKER_HOST=ssh://root@<node> scripts/nodes.sh deploy root@<node> [root@<other> ...]`.
 - To move a node onto a copied agent image, run `node-setup.sh --update --no-pull` on it.
 - Both copied images carry the version label. A node with `auto_update` on replaces them once
-  their [line](docs/requirements.md#images) has a newer release. If the registry already has the
+  their [line](docs/operations.md#images) has a newer release. If the registry already has the
   same version, the node replaces them with the registry's build on its next poll. To keep a copied
   build, turn `auto_update` off.
 
@@ -113,7 +113,7 @@ scripts/nodes.sh deploy root@<node> [root@<node> ...]
 Both are published to `ghcr.io/ankorcs`, tagged `latest` for the newest release, then `X`, `X.Y` and
 `X.Y.Z`. [image-publish.yml](.github/workflows/image-publish.yml) pushes `X.Y.Z` last, because the
 agent looks for a rebuild under it.
-[Images](docs/requirements.md#images) says what changes a major. Builds on SwiftlyS2's newest beta
+[Images](docs/operations.md#images) says what changes a major. Builds on SwiftlyS2's newest beta
 are tagged `beta` and `X.Y.Z-swiftlys2-A.B.C-beta.N`. [Workflows](.github/workflows/README.md)
 describes each release workflow.
 

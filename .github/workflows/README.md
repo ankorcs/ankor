@@ -1,38 +1,37 @@
 # Workflows
 
-Five workflows start runs. Pull requests and pushes to `develop` run [ci.yml](ci.yml), pushes to
-`master` run [release.yml](release.yml), and [rebuild.yml](rebuild.yml) refreshes released images
-every week. [swiftlys2.yml](swiftlys2.yml) opens a pull request when SwiftlyS2 has a newer release,
-and [cs2-beta.yml](cs2-beta.yml) builds the CS2 image on SwiftlyS2's newest beta. Every other
-workflow is reusable, and these five call it.
+Five workflows start runs. Pull requests run [ci.yml](ci.yml), pushes to `master` run
+[release.yml](release.yml), and [rebuild.yml](rebuild.yml) refreshes released images every week.
+[swiftlys2.yml](swiftlys2.yml) opens a pull request when SwiftlyS2 has a newer release, and
+[cs2-beta.yml](cs2-beta.yml) builds the CS2 image on SwiftlyS2's newest beta. Every other workflow
+is reusable, and these five call it.
 
-| Workflow                                 | Called by                                    | Runs                                                                                                                         |
-|------------------------------------------|----------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
-| [check-links.yml](check-links.yml)       | `ci.yml`, `release.yml`                      | The check of every relative link and anchor in the Markdown files.                                                           |
-| [check-protocol.yml](check-protocol.yml) | `ci.yml`, `release.yml`                      | The build, typecheck, lint and tests of `@ankorcs/protocol`.                                                                 |
-| [check-agent.yml](check-agent.yml)       | `ci.yml`, `release.yml`                      | The Rust agent's checks, its contract sync check and, with `image`, an image build.                                          |
-| [check-cs2.yml](check-cs2.yml)           | `ci.yml`, `release.yml`                      | The plugin's contract check, a build of its headless host and the plugin's tests, in a CS2 image build with `image`.          |
-| [check-docs.yml](check-docs.yml)         | `ci.yml`, `deploy-docs.yml`                  | The docs site build and, with `pages`, the upload of the site as a Pages artifact.                                           |
-| [deploy-docs.yml](deploy-docs.yml)       | `release.yml`, by hand                       | The docs site build through `check-docs.yml` and its deployment to Pages.                                                    |
-| [image-build.yml](image-build.yml)       | `release.yml`, `rebuild.yml`, `cs2-beta.yml` | The image builds, each kept as an OCI archive artifact of the run.                                                           |
-| [image-publish.yml](image-publish.yml)   | `release.yml`, `rebuild.yml`, `cs2-beta.yml` | The push of those archives to `ghcr.io/ankorcs` and, with `tag`, the git tags.                                               |
+| Workflow                                 | Called by                                    | Runs                                                                                                                 |
+|------------------------------------------|----------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| [check-links.yml](check-links.yml)       | `ci.yml`, `release.yml`                      | The check of every relative link and anchor in the Markdown files.                                                   |
+| [check-protocol.yml](check-protocol.yml) | `ci.yml`, `release.yml`                      | The build, typecheck, lint and tests of `@ankorcs/protocol`.                                                         |
+| [check-agent.yml](check-agent.yml)       | `ci.yml`, `release.yml`                      | The Rust agent's checks, its contract sync check and, with `image`, an image build.                                  |
+| [check-cs2.yml](check-cs2.yml)           | `ci.yml`, `release.yml`                      | The plugin's contract check, a build of its headless host and the plugin's tests, in a CS2 image build with `image`. |
+| [check-docs.yml](check-docs.yml)         | `ci.yml`, `deploy-docs.yml`                  | The docs site build and, with `pages`, the upload of the site as a Pages artifact.                                   |
+| [deploy-docs.yml](deploy-docs.yml)       | `release.yml`, by hand                       | The docs site build through `check-docs.yml` and its deployment to Pages.                                            |
+| [image-build.yml](image-build.yml)       | `release.yml`, `rebuild.yml`, `cs2-beta.yml` | The image builds, each kept as an OCI archive artifact of the run.                                                   |
+| [image-publish.yml](image-publish.yml)   | `release.yml`, `rebuild.yml`, `cs2-beta.yml` | The push of those archives to `ghcr.io/ankorcs` and, with `tag`, the git tags.                                       |
 
 [ci-changes.sh](../../scripts/ci-changes.sh) decides which parts a change touches, for `ci.yml` and
 `release.yml`. It holds the one list of the paths that each part reads.
 
 ## Pull requests
 
-`ci.yml` runs the link check on every pull request and every push to `develop`, and the checks of
-each part that the change touches. It builds no images, so `check-cs2.yml` runs the plugin's tests
-directly. `release.yml` builds the images when a pull request merges into `master`, and publishes
-nothing unless they build. The exception is the CS2 image on the SwiftlyS2 bump's pull request
-(branch `swiftlys2/…`), because `swiftlys2.yml` merges that pull request by itself once its checks
-pass. **All checks** passes when every check passed or had nothing to check, so it is the one check
-to wait for.
+`ci.yml` runs the link check on every pull request, and the checks of each part that the change
+touches. It builds no images, so `check-cs2.yml` runs the plugin's tests directly. `release.yml`
+builds the images when a pull request merges into `master`, and publishes nothing unless they build.
+The exception is the CS2 image on the SwiftlyS2 bump's pull request (branch `swiftlys2/…`), because
+`swiftlys2.yml` merges that pull request by itself once its checks pass. **All checks** passes when
+every check passed or had nothing to check, so it is the one check to wait for.
 
 ```mermaid
 flowchart LR
-  pr([Pull request or push to develop]) --> changes[Changes<br/>ci-changes.sh]
+  pr([Pull request]) --> changes[Changes<br/>ci-changes.sh]
   pr --> links[check-links.yml]
   changes -- protocol --> protocol[check-protocol.yml]
   changes -- agent --> agent["check-agent.yml<br/>checks"]
@@ -80,7 +79,7 @@ flowchart TD
 
 `rebuild.yml` runs every Monday and when run by hand. It rebuilds the newest release of each image from
 its tag, on freshly pulled base images, and pushes it under the same tags. Older releases keep
-their last build, as [Images](../../docs/requirements.md#images) explains. It runs no checks, because it builds released tags. Every image build must pass before any image is pushed.
+their last build, as [Images](../../docs/operations.md#images) explains. It runs no checks, because it builds released tags. Every image build must pass before any image is pushed.
 `rebuild.yml` and `release.yml` share a concurrency group, so they never push at the same time.
 
 ```mermaid

@@ -77,8 +77,10 @@ review the Rust that `scripts/protocol-sync.sh --update` generates and commit it
 - `codegen/generate.mjs` writes the Rust types, validators and constants from the protocol's zod
   schemas. The refinements zod cannot express as data are written by hand in `refine.rs` and listed
   in the generated `codegen/hooks.md`.
-- The generated code carries the contract's JSDoc. zod keeps no comments at runtime, so
-  `codegen/docs.mjs` reads them from the protocol's sources.
+- The generated Rust carries none of the contract's JSDoc, so a JSDoc change needs no regenerated
+  Rust. The type of an exported schema keeps its name, such as `StartServerReply`. Look the name
+  up in `@ankorcs/protocol` to see what it means. The
+  [protocol reference](https://docs.ankor.sh/reference/) renders most of that JSDoc.
 - `codegen/corpus.mjs` records zod's verdict on random samples and edge cases for every schema, and
   `cargo test` requires the same verdicts of the Rust validators. An edge case moves one value of a
   valid payload to just inside and just past its rule. `scripts/check.sh` writes the corpus, which

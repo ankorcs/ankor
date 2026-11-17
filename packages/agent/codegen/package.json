@@ -7,7 +7,6 @@
     "corpus": "node corpus.mjs"
   },
   "devDependencies": {
-    "randexp": "^0.5.3",
-    "typescript": "5.9.3"
+    "randexp": "^0.5.3"
   }
 }

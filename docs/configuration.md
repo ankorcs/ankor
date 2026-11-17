@@ -4,14 +4,23 @@ description: The node's agent.yml, which settings the controller can change, and
 slug: configuration
 ---
 
-A node's settings are in one file, `agent.yml`. The controller sets most of them. It writes the
-file during setup. Later it can change parts of the file over the socket, such as the images when
-it updates the agent or the plugin. You edit the rest, such as the memory cap, on the host.
+A node keeps its settings in one file, `agent.yml`. This page lists the keys of that file, the
+settings that your controller can change while the node is connected, and where the node keeps
+its files.
+
+Your controller sets most of the settings. During setup, the [setup script](setup-script.md)
+fetches `agent.yml` from the controller and writes it on the host. Later, the controller changes
+parts of the file over the agent's connection. For example, it changes the images when it updates
+the agent or the CS2 image, which carries Ankor's plugin. You edit the other keys, such as
+[config:official_images_only], on the host.
 
 ## `agent.yml`
 
 The file is `/srv/ankor/agent.yml`. Its schema is `AgentConfigSchema` in
-[agent-config.ts](../packages/protocol/src/agent-config.ts).
+[agent-config.ts](../packages/protocol/src/agent-config.ts). The agent reads the file when it
+starts.
+
+This `agent.yml` describes a node with two slots that [uploads its demos](protocol/demos.md):
 
 ```yaml
 token: 3f1c…
@@ -19,8 +28,8 @@ controller:
   host: cs.example.com
   tls: true
 pinned_ip: 203.0.113.7
-cs2_image: ghcr.io/ankorcs/ankor-cs2:0.9
-agent_image: ghcr.io/ankorcs/ankor-agent:0.9
+cs2_image: ghcr.io/ankorcs/ankor-cs2:0.10
+agent_image: ghcr.io/ankorcs/ankor-agent:0.10
 memory_mb: 1536
 demo_upload:
   url: https://demos.example.com/upload
@@ -41,41 +50,65 @@ slots:
 
 [table:agent-yml]
 
-- A nested key is required only when its parent is present.
-- The agent warns about keys it does not know and ignores them.
-- A file that fails validation stops the agent, and its log lists each invalid key.
-- A controller on a private address or `localhost`, including `127.0.0.1:<port>` on the node's
-  host, usually needs `tls: false` under `controller`. No certificate authority issues certificates for
-  those addresses.
+The agent reads the file by these rules:
+
+- A nested key is required only when its parent is present. For example, `demo_upload.url` is
+  required only when the file has a `demo_upload`.
+- If the file has a key that the agent does not know, the agent logs a warning and ignores the key.
+- If the file fails validation, the agent stops. The agent's log lists each invalid key.
+
+If your controller runs on a private address or on `localhost`, you usually need to set
+[config:controller.tls] to `false`. This includes `127.0.0.1:<port>` on the node's host. No
+certificate authority issues certificates for those addresses.
 
 ## Changing settings
 
-The controller can change `slots`, `pinned_ip`, `auto_update`, `controller`, `demo_upload` and
-`memory_mb` while the node is connected, with [agent:set_config].
+While the node is connected, your controller can change these keys with [agent:set_config]:
+[config:slots], [config:pinned_ip], [config:auto_update], [config:controller], [config:demo_upload]
+and [config:memory_mb]. A slot is occupied while it holds a server that is starting, running or
+stopping. The agent refuses some edits while slots are occupied, so that an edit does not break a
+server that is running:
 
-- The agent refuses an edit that would disturb an occupied slot. It also refuses any change to the
-  controller address while a slot is occupied. The
-  [`AgentErrorCode`](/reference/types/#schema-AgentErrorCode) in its reply names the case. Stop new
-  launches on the node in the controller, wait for the slots to go idle, then edit again.
+- The agent refuses an edit that would remove an occupied slot, change its ports or give its
+  server's token to another slot.
+- The agent refuses any change under `controller` while any slot is occupied.
+- When the agent refuses an edit, the [`AgentErrorCode`](/reference/types/#schema-AgentErrorCode) in
+  its reply names the case. In the controller, stop new launches on the node. When the slots are
+  idle, send the edit again.
 - Demo settings and changes to idle slots apply while other slots are occupied.
-- An offline node cannot receive a corrected address. Fix `controller.host` in the file and restart the
-  agent.
-- A slot's login token can be changed while the slot runs a server. The server keeps the token it
-  started with until it ends. Revoking that token at Steam drops the server, so
-  [replace a token](operations.md#replace-a-slots-token) once its slot is idle.
+- You can change the login token of a slot while the slot runs a server. The server keeps the
+  token that it started with until it shuts down. Revoking that token at Steam drops the server,
+  so [replace a token](operations.md#replace-a-slots-token) once its slot is idle.
+- If the node is offline, the controller cannot send it a corrected address. On the host, fix
+  [config:controller.host] in the file and restart the agent.
 
-Edit the other keys in the file on the host, then [restart the agent](operations.md#restart-the-agent).
+To change any other key, edit the file on the host, then
+[restart the agent](operations.md#restart-the-agent).
 
 ## File layout
 
-Everything a node keeps is under `/srv/ankor/` or in the Docker volume `ankor_cs2_data`.
+A node keeps all its files under `/srv/ankor/` on the host and in the Docker volume
+`ankor_cs2_data`. The volume holds the CS2 install. The agent mounts some of the files under
+`/srv/ankor/` into each game container, and keeps the others to itself.
 
 ### In the game container
 
-Node paths are relative to `/srv/ankor/`, and container paths to `/home/steam/cs2-dedicated/game/`.
-Each column is a tree. A row names its path relative to the row it is indented under. The rest of
-the install is the Docker volume `ankor_cs2_data`. Every server shares it read-only, and only a CS2
-update writes to it.
+Every server shares the CS2 install in `ankor_cs2_data` read-only. Only a CS2 install or update
+writes to the volume. The agent mounts the paths in this table over the install. They give each
+slot its writable directories and each launch its files.
+
+The table holds two trees, one in each path column. Paths **On the node** are relative to
+`/srv/ankor/`, and paths **In the game container** are relative to
+`/home/steam/cs2-dedicated/game/`. Each row names its path relative to the row that it is indented
+under. **From** names the source of the files:
+
+- **CS2 image**: the agent extracts the files from the CS2 image that the slot's server runs.
+- **Slot**: the slot keeps the files across its launches.
+- **Launch**: the files belong to one launch. The agent sets them up when the launch starts.
+- **Node cfgs** and **Node plugins**: you add the files on the host.
+- **Every slot**: all slots on the node share the files.
+
+**Access** says whether the server can write to the path.
 
 <div class="tree-table">
 
@@ -95,7 +128,7 @@ update writes to it.
 | <span class="branch">│  └─ </span>`dumps/`                                                                                                                                                                                                                                                       | Slot                                                                           | <span class="branch">│  └─ </span>`dumps/`                                                                                                                                     | <span class="read-write">Writable</span> |
 | <span class="branch">├─ </span>`cfg/`                                                                                                                                                                                                                                                            |                                                                                | <span class="branch">├─ </span>`cfg/`                                                                                                                                          |                                          |
 | <span class="branch">│  └─ </span><span class="tip" tabindex="0" data-tip="The launch&#39;s hostname, GOTV settings, match rules, cfgs and commands. The agent writes it for each launch.">`ankor_launch.cfg`</span>                                                                             | Launch                                                                         | <span class="branch">│  └─ </span>`ankor_launch.cfg`                                                                                                                           | <span class="read-only">Read-only</span> |
-| <span class="branch">└─ </span><span class="tip" tabindex="0" data-tip="The slot&#39;s match file and round backups, replaced at each launch.">`ankor/`</span>                                                                                                                                   | Slot                                                                           | <span class="branch">└─ </span>`ankor/`                                                                                                                                        | <span class="read-write">Writable</span> |
+| <span class="branch">└─ </span><span class="tip" tabindex="0" data-tip="The slot&#39;s match file and round backups. The agent empties backups/ when the next launch starts.">`ankor/`</span>                                                                                                    | Slot                                                                           | <span class="branch">└─ </span>`ankor/`                                                                                                                                        | <span class="read-write">Writable</span> |
 | <span class="branch">   ├─ </span><span class="tip" tabindex="0" data-tip="The match the plugin plays. The agent writes it for each launch with a match.">`match.json`</span>                                                                                                                    | Launch                                                                         | <span class="branch">   ├─ </span>`match.json`                                                                                                                                 | <span class="read-only">Read-only</span> |
 | <span class="branch">   ├─ </span><span class="tip" tabindex="0" data-tip="The round backup that a restore loads. The agent writes it for each launch with a restore.">`restore.txt`</span>                                                                                                      | Launch                                                                         | <span class="branch">   ├─ </span>`restore.txt`                                                                                                                                | <span class="read-only">Read-only</span> |
 | <span class="branch">   ├─ </span><span class="tip" tabindex="0" data-tip="The round backups the game writes during a match, one ankor_roundNN.txt per round. The plugin sends each one to the controller, a restore_round loads one, and the next launch empties the folder.">`backups/`</span> | Launch                                                                         | <span class="branch">   ├─ </span>`backups/`                                                                                                                                   | <span class="read-write">Writable</span> |
@@ -108,12 +141,16 @@ update writes to it.
 
 </div>
 
-A launch runs your cfgs from `cfg/` by naming them in `exec`. The protocol guide lists
-[when they run](protocol/index.md#when-the-cfgs-run), and their order among the game mode's cfg and
-Ankor's.
+A launch runs one of your cfgs from `cfg/` when its
+[`exec`](/reference/types/#schema-ServerLaunchConfig) lists `node/<name>`.
+[Add cfgs for servers](operations.md#add-cfgs-for-servers) has the steps. The protocol guide
+shows [when the cfgs run](protocol/index.md#when-the-cfgs-run), and their order among the game
+mode's cfg and Ankor's cfgs.
 
-<a href="https://swiftlys2.net/docs/development/configuration" target="_blank" rel="noopener">SwiftlyS2</a> gives a
-plugin its paths through these functions. They map to these directories on the node:
+A plugin gets its directories from
+<a href="https://swiftlys2.net/docs/development/configuration" target="_blank" rel="noopener">SwiftlyS2</a>
+through these functions. Each function returns a path in the game container, which maps to this
+directory on the node:
 
 <div class="tree-table">
 
@@ -125,11 +162,12 @@ plugin its paths through these functions. They map to these directories on the n
 
 </div>
 
-Data and logs stay across the slot's launches.
+Each slot has its own `data/` and `logs/` directories. The slot keeps them across its launches,
+so a plugin's data stays with the slot and is not shared with other slots.
 
 ### Only on the node
 
-No game container mounts these. Only the agent reads and writes them.
+No game container mounts these files. The agent reads and writes them.
 
 <div class="tree-table">
 

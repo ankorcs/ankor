@@ -719,21 +719,30 @@
     @apply caps-wide mt-4 text-sm text-text-500;
   }
 
+  /* The icon and the title share the first row; the text below them uses the card's full width. */
   .prose .part {
-    @apply surface relative py-4 pl-16 pr-5;
+    @apply surface grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 px-5 py-4;
+  }
+
+  .prose .part > * {
+    @apply col-span-full;
   }
 
   .prose .part > * + * {
     @apply mt-2;
   }
 
-  /* The card's icon leads its title, so the title stays in line with its text. */
   .prose .part > h3 {
-    @apply m-0 border-0 pl-0 text-lg;
+    @apply col-span-1 col-start-2 m-0 border-0 pl-0 text-lg;
+  }
+
+  /* A little room between the icon and title row and the text under it. */
+  .prose .part > h3 + * {
+    @apply mt-4;
   }
 
   .prose .part-icon {
-    @apply absolute left-4 top-4 grid size-9 place-items-center rounded-md border border-line-700 bg-bg-800 text-accent-300;
+    @apply col-span-1 col-start-1 grid size-9 place-items-center rounded-md border border-line-700 bg-bg-800 text-accent-300;
   }
 
   .prose .part-icon svg {
