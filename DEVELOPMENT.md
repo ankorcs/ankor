@@ -123,6 +123,9 @@ describes each release workflow.
   read. Its id goes in `BUMP_APP_ID` and its private key in `BUMP_APP_PRIVATE_KEY`.
 - Make `ankor-agent` and `ankor-cs2` public in the organization's package settings, so that nodes
   pull without logging in.
+- A new release of either image, and a new version of `@ankorcs/protocol` on npm, is posted to
+  Discord when the `DISCORD_WEBHOOK_URL` secret holds a channel's webhook URL. A rebuild or a beta
+  posts nothing, and without the secret nothing is posted.
 - `cs2-beta.yml` deletes old versions of `ankor-cs2`, which needs this repository's **Admin** role
   under **Manage Actions access** in the package's settings.
 

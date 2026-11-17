@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.1
+
+- `SteamWebApiKey` accepts an empty string itself, so `steam_web_api_key` is one type and
+  `null` instead of a union with `""`. It accepts the same values as before.
+
 ## 0.10.0
 
 - The plugin refuses a `restore_round` with `between_rounds` when it arrives between a round's

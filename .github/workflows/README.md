@@ -15,7 +15,7 @@ is reusable, and these five call it.
 | [check-docs.yml](check-docs.yml)         | `ci.yml`, `deploy-docs.yml`                  | The docs site build and, with `pages`, the upload of the site as a Pages artifact.                                   |
 | [deploy-docs.yml](deploy-docs.yml)       | `release.yml`, by hand                       | The docs site build through `check-docs.yml` and its deployment to Pages.                                            |
 | [image-build.yml](image-build.yml)       | `release.yml`, `rebuild.yml`, `cs2-beta.yml` | The image builds, each kept as an OCI archive artifact of the run.                                                   |
-| [image-publish.yml](image-publish.yml)   | `release.yml`, `rebuild.yml`, `cs2-beta.yml` | The push of those archives to `ghcr.io/ankorcs` and, with `tag`, the git tags.                                       |
+| [image-publish.yml](image-publish.yml)   | `release.yml`, `rebuild.yml`, `cs2-beta.yml` | The push of those archives to `ghcr.io/ankorcs` and, with `tag`, the git tags and the Discord post.                  |
 
 [ci-changes.sh](../../scripts/ci-changes.sh) decides which parts a change touches, for `ci.yml` and
 `release.yml`. It holds the one list of the paths that each part reads.
@@ -70,8 +70,8 @@ flowchart TD
   agent --> all
   cs2 --> all
   build --> all
-  all -- passed --> ghcr["image-publish.yml<br/>push to GHCR, tag agent-vX.Y.Z / cs2-vX.Y.Z"]
-  all -- passed --> npm[Publish to npm]
+  all -- passed --> ghcr["image-publish.yml<br/>push to GHCR, tag agent-vX.Y.Z / cs2-vX.Y.Z,<br/>post to Discord"]
+  all -- passed --> npm["Publish to npm,<br/>post to Discord"]
   build -. OCI archives .-> ghcr
 ```
 

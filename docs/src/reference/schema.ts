@@ -121,8 +121,28 @@ function isNull(schema: JsonSchema): boolean {
   return schema.type === 'null';
 }
 
-/** `X | null` as X, remembering the null. */
-export function unwrapNullable(schema: JsonSchema): { schema: JsonSchema; nullable: boolean } {
+/** Keys a wrapper may add beside the schema it wraps without changing what that schema is. */
+const WRAPPER_KEYS = new Set(['allOf', 'default', 'description']);
+
+/**
+ * A field that only wraps one schema, as `{ allOf: [X], default, description }`, as X with the
+ * wrapper's default and description. In draft-07, which AsyncAPI schemas follow, keys beside a
+ * `$ref` are ignored, so the generator wraps a reference that carries its own. A wrapper that adds
+ * anything else is left as it is.
+ */
+function unwrapAllOf(schema: JsonSchema): JsonSchema {
+  const { allOf, ...own } = schema;
+
+  if (allOf?.length !== 1 || Object.keys(schema).some((key) => !WRAPPER_KEYS.has(key))) {
+    return schema;
+  }
+
+  return { ...allOf[0], ...own };
+}
+
+/** `X | null` as X, remembering the null. A field that only wraps X is read as X as well. */
+export function unwrapNullable(wrapped: JsonSchema): { schema: JsonSchema; nullable: boolean } {
+  const schema = unwrapAllOf(wrapped);
   const options = schema.anyOf ?? schema.oneOf;
 
   if (options === undefined || !options.some(isNull)) {
@@ -133,6 +153,24 @@ export function unwrapNullable(schema: JsonSchema): { schema: JsonSchema; nullab
   const inner = present.length === 1 ? present[0]! : { anyOf: present };
 
   return { schema: { ...inner, description: schema.description ?? inner.description }, nullable: true };
+}
+
+/**
+ * The value a field takes when it is left out: its JSON, or `fields` for an object left out as `{}`,
+ * whose own fields then each take their default.
+ */
+export function defaultOf(schema: JsonSchema): { json: string } | 'fields' | undefined {
+  const value = schema.default;
+
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).length === 0) {
+    return 'fields';
+  }
+
+  return { json: JSON.stringify(value) };
 }
 
 /** The alternatives of a union that is more than `X | null`. */

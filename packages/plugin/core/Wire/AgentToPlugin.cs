@@ -42,15 +42,15 @@ public sealed class RestoreFile
 public sealed class MatchConfig
 {
     public required string? matchId { get; set; }
-    /// <summary>Send the gameplay events that the agent uploads; false when absent. The phase and score are reported either way.</summary>
+    /// <summary>Send the gameplay events that the agent uploads. The phase and score are reported either way.</summary>
     public bool sendStatistics { get; set; }
     public required Roster roster { get; set; }
     public required SidesMode sides { get; set; }
     public required int knifeDecisionSeconds { get; set; }
     public required ReadyMode readyMode { get; set; }
-    /// <summary>Under manual ready-up, wait for the rostered spectators' !ready too; false when absent.</summary>
+    /// <summary>Under manual ready-up, wait for the rostered spectators' !ready too.</summary>
     public bool spectatorsReadyUp { get; set; }
-    /// <summary>Under manual ready-up, let captains and rostered spectators !forceready; false when absent.</summary>
+    /// <summary>Under manual ready-up, let captains and rostered spectators !forceready.</summary>
     public bool allowForceReady { get; set; }
     /// <summary>Seconds both teams have to be ready before the map ends as <c>ready_timeout</c>; null waits indefinitely.</summary>
     public required int? readyTimeoutSeconds { get; set; }
@@ -59,7 +59,7 @@ public sealed class MatchConfig
     public required bool debugCapture { get; set; }
     /// <summary>The agent renders them into the launch cfg; a restore's replace them.</summary>
     public required MatchRules rules { get; set; }
-    /// <summary>The round to play on from; null, or absent, plays the map from its start.</summary>
+    /// <summary>The round to play on from; null plays the map from its start.</summary>
     public RestoreFile? restore { get; set; }
 
     /// <summary>The rules the match is played under: a restore's, or the launch's.</summary>

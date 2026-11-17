@@ -7,7 +7,7 @@ rust-version.workspace = true
 publish = false
 
 [dependencies]
-ankor-protocol = { version = "0.10.0", path = "../protocol" }
+ankor-protocol = { path = "../protocol" }
 async-trait = "0.1.92"
 base64 = "0.23.1"
 bytes = "1.12.1"

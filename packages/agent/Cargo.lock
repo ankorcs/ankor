@@ -98,7 +98,7 @@ dependencies = [
 
 [[package]]
 name = "ankor-protocol"
-version = "0.10.0"
+version = "0.0.0"
 dependencies = [
  "fancy-regex",
  "serde",

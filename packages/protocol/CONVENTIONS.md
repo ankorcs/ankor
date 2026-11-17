@@ -31,7 +31,8 @@ Shape:
 Defaults:
 
 - A field that the controller sends may have a `.default(…)` when most launches use one value, or
-  when absence plainly means off, none or no limit. Its docblock ends with "When absent, …".
+  when absence plainly means off, none or no limit. Its docblock does not restate the default: the
+  schema carries it, and the reference shows it beside the field.
 - A new field gets a default that keeps the previous behaviour, so controllers that do not send
   it yet work as before.
 - A schema that the plugin or the agent reports, such as `MatchRules` in `going_live`, has no

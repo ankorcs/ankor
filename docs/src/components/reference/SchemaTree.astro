@@ -6,7 +6,7 @@
  */
 import type { JsonSchema, Reference } from '../../reference/model.ts';
 import { refName } from '../../reference/model.ts';
-import { detailRules, discriminator, enumValues, listsValues, markdown, opens, typeLabel, unwrapNullable, variants } from '../../reference/schema.ts';
+import { defaultOf, detailRules, discriminator, enumValues, escapeHtml, listsValues, markdown, opens, typeLabel, unwrapNullable, variants } from '../../reference/schema.ts';
 
 interface Props {
   schema: JsonSchema;
@@ -27,6 +27,12 @@ const options = variants(inner);
 const resolve = (option: JsonSchema): JsonSchema => option.$ref === undefined ? option : schemas[refName(option.$ref)] ?? option;
 const key = options === undefined ? undefined : discriminator(options.map(resolve));
 const required = new Set(inner.required ?? []);
+const fallback = defaultOf(schema);
+/** Whether a field may be left out, and what it then takes: "optional, default 24". */
+const presence = field === undefined || field.required ? undefined : `optional${
+  fallback === undefined ? ''
+    : fallback === 'fields' ? ', each field takes its default'
+    : `, default <code class="default">${escapeHtml(fallback.json)}</code>`}`;
 
 /** Where a message a schema stands for is documented: its own payload, or the message an inline alternative's `type` names. */
 const messageHref = (option: JsonSchema): string | undefined => {
@@ -58,7 +64,7 @@ const copies = options !== undefined && options.every((option) => messageHref(op
         <summary>
           <code class="name">{field.name}</code>
           <span class="type toggle" set:html={typeLabel(schema, plain)} />
-          {!field.required && <span class="optional">optional</span>}
+          {presence !== undefined && <span class="optional" set:html={presence} />}
           {schema.description !== undefined && <span class="doc" set:html={markdown(schema.description)} />}
         </summary>
         <div class="body"><Astro.self schema={schema} reference={reference} seen={seen} /></div>
@@ -71,7 +77,7 @@ const copies = options !== undefined && options.every((option) => messageHref(op
         ? <span class="type"><a href={reference.hrefs.get(ref!)}><code>{reference.payloads.get(ref!)}</code></a></span>
         : <span class="type" set:html={typeLabel(schema, reference.hrefs)} />}
       {cycle && <span class="optional">contains itself; see above</span>}
-      {!field.required && <span class="optional">optional</span>}
+      {presence !== undefined && <span class="optional" set:html={presence} />}
       {schema.description !== undefined && <span class="doc" set:html={markdown(schema.description)} />}
     </li>
   )
@@ -244,6 +250,10 @@ const copies = options !== undefined && options.every((option) => messageHref(op
     color: var(--color-text-500);
   }
 
+  .optional :global(.default) {
+    color: var(--color-success);
+  }
+
   .doc {
     flex-basis: 100%;
     color: var(--color-text-300);
@@ -260,6 +270,22 @@ const copies = options !== undefined && options.every((option) => messageHref(op
 
   .doc :global(code) {
     color: var(--color-text-100);
+  }
+
+  /* As in prose: a link in a description reads as one. */
+  .doc :global(a) {
+    color: var(--color-accent-300);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in oklab, var(--color-accent-300) 50%, transparent);
+    text-underline-offset: 3px;
+  }
+
+  .doc :global(a:hover) {
+    text-decoration-color: var(--color-accent-300);
+  }
+
+  .doc :global(a code) {
+    color: inherit;
   }
 
   .body {

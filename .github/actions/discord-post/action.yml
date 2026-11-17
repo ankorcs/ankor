@@ -1,0 +1,26 @@
+name: Discord post
+description: >-
+  Posts a release announcement to a Discord channel's webhook, without mentions. Without a webhook
+  it posts nothing.
+inputs:
+  webhook:
+    description: The channel's webhook URL, from a secret. Empty posts nothing.
+    required: false
+    default: ''
+  content:
+    description: The message, in Discord's Markdown.
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        WEBHOOK: ${{ inputs.webhook }}
+        CONTENT: ${{ inputs.content }}
+      run: |
+        if [[ -z "$WEBHOOK" ]]; then
+          echo "DISCORD_WEBHOOK_URL is not set, so nothing is posted"
+          exit 0
+        fi
+        jq -n --arg content "$CONTENT" '{content: $content, allowed_mentions: {parse: []}}' |
+          curl -fsS -H 'Content-Type: application/json' --data @- "$WEBHOOK"
