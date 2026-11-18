@@ -202,8 +202,8 @@ Treat a server as stopped only once the node confirms the stop.
   [agent:start_server].
 - Rank nodes by their latest reports with `slotTakesLaunch` and `cs2Behind` from
   `@ankorcs/protocol/helpers`. The node still decides based on available slots, and may refuse.
-- The server is running once the reply to the start request or a [agent:slot_status] names its
-  slot, whichever comes first.
+- The launch has succeeded once the reply to the start request or a [agent:slot_status] names its
+  slot, whichever comes first. Players can join once that slot's `state` is `running`.
 - A [`StartRefusal`](/reference/types/#schema-StartRefusal) means no server started. If you have
   several nodes, retry the launch on the next one.
 - `allocation_in_use` answers a [agent:start_server] sent again with the same `allocation_id`. It

@@ -97,6 +97,14 @@ anchor; search works in the built site (`npm run docs:preview`). The build also 
   reference entry that lists them, so a new value cannot leave a stale list.
 - Show a request and its reply together as message cards (`message-cards`, `from-controller`,
   `from-agent`), as in step 7 of [A minimal controller](../protocol/minimal-controller.md).
+- Write a code example that uses `@ankorcs/protocol` as a file in [examples](../examples), and put
+  its tag, such as `[example:controller/stop]`, on a line of its own where the page shows it. The
+  page shows each part between `// #region example` and `// #endregion`; the rest of the file only
+  makes it compile. `npm run typecheck` type-checks the examples as their own TypeScript project
+  against the protocol package, and ESLint lints them, so an example that the contract no longer
+  allows fails the checks. Declare the controller's own functions, which the examples mark with a
+  "Your code" comment, in [your-code.d.ts](../examples/controller/your-code.d.ts). `npm run
+  docs:dev` does not re-render a page when only its example changes; restart it to see the edit.
 - Label trade-offs with the overview's **Pros** / **Cons** labels (`choice-label`).
 - Link to other guides instead of repeating their contents, and tell the reader what the linked
   page covers. "[Install a node] has the step." → "The operator sets up the host by following

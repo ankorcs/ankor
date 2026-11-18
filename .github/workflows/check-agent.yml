@@ -68,7 +68,7 @@ jobs:
           path: |
             packages/agent/crates/*/tests/*corpus.jsonl
             packages/agent/crates/protocol/tests/corpus.stamp
-          key: corpus-${{ hashFiles('packages/agent/codegen/corpus.mjs', 'packages/agent/codegen/generate.mjs', 'packages/agent/codegen/protocol.mjs', 'packages/agent/codegen/package-lock.json', 'packages/protocol/**', 'package-lock.json', 'tsconfig.base.json') }}
+          key: corpus-${{ hashFiles('packages/agent/codegen/corpus.mjs', 'packages/agent/codegen/generate.mjs', 'packages/agent/codegen/protocol.mjs', 'packages/agent/codegen/package-lock.json', 'packages/protocol/**', 'package-lock.json') }}
 
       - run: packages/agent/scripts/check.sh --docker
 

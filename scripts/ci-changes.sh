@@ -20,10 +20,10 @@ readonly EVERY='^\.github/workflows/(ci|release)\.yml$|^scripts/ci-changes\.sh$|
 # that reads @ankorcs/protocol lists packages/protocol/ and the root install.
 pattern() {
   case "$1" in
-    protocol) echo '^packages/protocol/|^package(-lock)?\.json$|^tsconfig(\.base)?\.json$|^eslint\.config\.ts$|^\.nvmrc$|^scripts/npm-readme\.mjs$|^scripts/markdown-links\.mjs$|^\.github/workflows/check-protocol\.yml$' ;;
-    agent) echo '^packages/agent/|^packages/protocol/|^package(-lock)?\.json$|^tsconfig\.base\.json$|^\.github/workflows/check-agent\.yml$' ;;
-    cs2) echo '^packages/plugin/|^packages/protocol/|^package(-lock)?\.json$|^tsconfig\.base\.json$|^\.nvmrc$|^scripts/plugin(\.sh|-contract\.mjs)$|^\.github/workflows/check-cs2\.yml$' ;;
-    docs) echo '^docs/|^packages/protocol/|^package(-lock)?\.json$|^tsconfig\.base\.json$|^eslint\.config\.ts$|^\.nvmrc$|^\.github/workflows/(check|deploy)-docs\.yml$' ;;
+    protocol) echo '^packages/protocol/|^package(-lock)?\.json$|^tsconfig\.json$|^eslint\.config\.ts$|^\.nvmrc$|^scripts/npm-readme\.mjs$|^scripts/markdown-links\.mjs$|^\.github/workflows/check-protocol\.yml$' ;;
+    agent) echo '^packages/agent/|^packages/protocol/|^package(-lock)?\.json$|^\.github/workflows/check-agent\.yml$' ;;
+    cs2) echo '^packages/plugin/|^packages/protocol/|^package(-lock)?\.json$|^\.nvmrc$|^scripts/plugin(\.sh|-contract\.mjs)$|^\.github/workflows/check-cs2\.yml$' ;;
+    docs) echo '^docs/|^packages/protocol/|^package(-lock)?\.json$|^eslint\.config\.ts$|^\.nvmrc$|^\.github/workflows/(check|deploy)-docs\.yml$' ;;
   esac
 }
 

@@ -1,7 +1,7 @@
 {
   // dist/ as a consumer's compiler reads it, after dist-links.ts rewrote its comments: the
   // JavaScript parses, and the declarations typecheck, declaration files included.
-  "extends": "../../tsconfig.base.json",
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
     "allowJs": true,

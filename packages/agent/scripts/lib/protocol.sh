@@ -4,11 +4,11 @@
 # its own, and exports ANKOR_PROTOCOL_DIR, which codegen reads (codegen/protocol.mjs). The mount is
 # read-only, so the repository's node_modules and dist stay as they are.
 
-# The checkout's packages/protocol and the root files its build reads: tracked and untracked files,
+# The checkout's packages/protocol and the root files its install reads: tracked and untracked files,
 # so an uncommitted contract change counts, without ignored ones such as node_modules and dist.
 protocol_files() {
   git -c safe.directory='*' -C /ankorcs ls-files -z -co --exclude-standard -- \
-    package.json package-lock.json tsconfig.base.json packages/protocol
+    package.json package-lock.json packages/protocol
 }
 
 # A hash of protocol_files' contents, which changes with any of them.
