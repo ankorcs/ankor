@@ -12,9 +12,10 @@ a node to a controller. The "operator" in this context is likely yourself.
 ## Talking to the agent
 
 The [protocol overview](index.md) describes how to accept a node's connection and exchange messages
-with its agent. In Node.js, the `@ankorcs/protocol` package holds the message schemas. Its session,
-`@ankorcs/protocol/session`, contains helper functions that run the exchange for you. They match
-each reply to its request, because a WebSocket has no request-response cycle like HTTP.
+with its agent. In Node.js, the `@ankorcs/protocol` package runs that exchange with a session,
+which matches each reply to its request, because a WebSocket has no request-response cycle like
+HTTP. [A Node.js example](index.md#a-nodejs-example) shows the package and the code that accepts
+a node.
 
 Agents may run a newer protocol version than your controller. [Versioning](versioning.md) lists
 what your controller must accept from them, and what it skips.
@@ -69,66 +70,10 @@ manually before running the script.
 
 The agent connects to the [config:controller.socket_path] with its token and its
 [protocol version](versioning.md). [Accept the upgrade](index.md#1-accept-the-connection) only when
-both check out, then answer its [agent:hello] with [agent:welcome]. With `@ankorcs/protocol` and the
-`ws` package, it would look like this:
-
-```ts
-import { createHash } from 'node:crypto';
-import { WebSocketServer } from 'ws';
-import { PROTOCOL_HEADER } from '@ankorcs/protocol';
-import { bearerNodeToken, isCompatibleProtocol, protocolVersionOf, upgradeRefusal } from '@ankorcs/protocol/helpers';
-import { createAgentSession } from '@ankorcs/protocol/session';
-
-const sockets = new WebSocketServer({ noServer: true });
-
-server.on('upgrade', (request, socket, head) => {
-  const token = bearerNodeToken(request.headers.authorization);
-  // Look up the node by the SHA-256 hash of the token that the node sent.
-  const node = token === null ? null : findNodeByTokenHash(createHash('sha256').update(token).digest('hex'));
-
-  if (node === null) {
-    // Unknown token; just reply 401 and close.
-    socket.end(upgradeRefusal(401));
-
-    return;
-  }
-
-  const protocol = request.headers[PROTOCOL_HEADER.toLowerCase()];
-
-  if (!isCompatibleProtocol(protocol)) {
-    // If this protocol version is incompatible, reply 426 and close.
-    socket.end(upgradeRefusal(426));
-
-    return;
-  }
-
-  // You can use the node's version header to determine which Ankor features it supports.
-  node.protocol = protocolVersionOf(protocol);
-  // Upgrade the connection to a WebSocket and run the session on it.
-  sockets.handleUpgrade(request, socket, head, (ws) => run(node, ws));
-});
-
-// When the connection is established, the node will always start by sending a hello.
-// You must reply to it promptly, or the node will disconnect.
-function run(node, ws) {
-  const session = createAgentSession({ send: (text) => ws.send(text) });
-
-  ws.on('message', (raw) => {
-    const frame = session.receive(raw);
-
-    // The session parses each message into a typed frame, so you can branch on its kind and type.
-    if (frame.kind === 'report' && frame.message.type === 'hello') {
-      saveHello(node, frame.message);
-      // A welcome carries no data; it acknowledges the node, and the node will then
-      // start reporting to your controller.
-      session.notify({ type: 'welcome' });
-    }
-
-    // Skip `unsupported`, a message from a newer agent.
-  });
-  ws.on('close', () => session.closed());
-}
-```
+both check out, then answer its [agent:hello] with [agent:welcome]. A welcome carries no data. It
+acknowledges the node, which then starts reporting to your controller.
+[A Node.js example](index.md#a-nodejs-example) has the code for this step, with `@ankorcs/protocol`
+and the `ws` package.
 
 ### 5. Add slots
 
@@ -149,17 +94,8 @@ array replaces the node's whole slot layout, so always send every slot the node 
 ```
 
 The reply carries the node's settings with the new slots. A [agent:slot_status] follows for each
-new slot. With the session, it would look like this:
-
-```ts
-const result = await node.request({ type: 'set_config', config: { slots } });
-
-if (result.status === 'ok') {
-  // Updated config returned in reply to set_config.
-  // Store those settings however you want on your controller's end.
-  saveSettings(result.data);
-}
-```
+new slot. [A Node.js example](index.md#a-nodejs-example) sends this request with the session and
+stores the reply.
 
 A controller can create the GSLTs with a user's Steam Web API key.
 [`IGameServersService`](https://partner.steamgames.com/doc/webapi/IGameServersService)
