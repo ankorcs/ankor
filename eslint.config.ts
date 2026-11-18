@@ -1,6 +1,6 @@
-// Flat config for every workspace. TypeScript fails the build on unused parameters
-// (tsconfig.base.json, `_` prefix exempt); ESLint reports unused locals, counting `{@link}` in JSDoc
-// as a use, and adds the recommended correctness rules, type-only imports and unused caught errors.
+// Flat config for every workspace. Each package's tsconfig fails the build on unused parameters
+// (`_` prefix exempt); ESLint reports unused locals, counting `{@link}` in JSDoc as a use, and adds
+// the recommended correctness rules, type-only imports and unused caught errors.
 import js from '@eslint/js';
 import stylistic from '@stylistic/eslint-plugin';
 import { defineConfig, globalIgnores } from 'eslint/config';

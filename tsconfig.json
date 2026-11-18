@@ -1,7 +1,19 @@
 {
   // Root-level TypeScript files only (the ESLint config); each workspace has its own tsconfig.
-  "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noUnusedParameters": true,
+    // ESLint reports unused locals instead, because it counts an import used only by a `{@link}`.
+    "noUnusedLocals": false,
+    "verbatimModuleSyntax": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
     "noEmit": true,
     "types": ["node"]
   },
