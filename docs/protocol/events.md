@@ -217,6 +217,12 @@ For each request:
    commit, for example because storage is down, answer `503`. The agent keeps the batch, backs off
    and tries again.
 
+### An example
+
+This handler takes the steps above in Node.js.
+
+[example:controller/events]
+
 ## Reading the events
 
 These rules apply when you build statistics from the stored events:

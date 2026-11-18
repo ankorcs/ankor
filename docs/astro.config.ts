@@ -4,6 +4,7 @@ import { defineConfig } from 'astro/config';
 import { createCssVariablesTheme } from 'shiki/core';
 import { configTags } from './src/markdown/configTags.ts';
 import { contractTags } from './src/markdown/contractTags.ts';
+import { exampleTags } from './src/markdown/exampleTags.ts';
 import { frameTags } from './src/markdown/frameTags.ts';
 import { glossaryTerms } from './src/markdown/glossaryTerms.ts';
 import { externalLinks, guideLinks } from './src/markdown/plugins.ts';
@@ -74,7 +75,7 @@ export default defineConfig({
   server: { host: true },
   markdown: {
     shikiConfig: { theme: codeTheme },
-    processor: satteri({ mdastPlugins: [contractTags, guideLinks, frameTags, configTags, glossaryTerms], hastPlugins: [externalLinks] }),
+    processor: satteri({ mdastPlugins: [exampleTags, contractTags, guideLinks, frameTags, configTags, glossaryTerms], hastPlugins: [externalLinks] }),
   },
   vite: {
     plugins: [tailwindcss(), watchReference()],

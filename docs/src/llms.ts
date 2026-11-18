@@ -16,6 +16,7 @@ import { flatLinks, NAV } from './nav.ts';
 import { reference } from './reference/data.ts';
 import { REFERENCE_BASE } from './reference/model.ts';
 import { BASE, sitePath } from './site.ts';
+import { EXAMPLE_TAG, exampleCode } from './markdown/exampleTags.ts';
 
 export type Guide = CollectionEntry<'docs'>;
 
@@ -61,6 +62,7 @@ export function guideMarkdown(guide: Guide): string {
   const file = path.resolve(DOCS_DIR, guide.filePath ?? '');
   let text = expandLimits((guide.body ?? '').replace(AGENT_YML_TAG, agentYmlTable(agentYml)), file);
 
+  text = text.replace(new RegExp(EXAMPLE_TAG.source, 'gm'), (_, name: string) => `\`\`\`ts\n${exampleCode(name)}\n\`\`\``);
   text = text.replace(/<figure[^>]*aria-label="([^"]*)"[^>]*>[\s\S]*?<\/figure>/g, (_, label: string) => `> Diagram: ${decode(label)}`);
   text = text.replace(/<span class="part-icon"[\s\S]*?<\/span>/g, '');
   text = text.replace(/<p class="choice-name">([\s\S]*?)<\/p>/g, (_, name: string) => `### ${inline(name)}`);
