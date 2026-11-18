@@ -313,12 +313,10 @@ state.
 ```json
 {
   "type": "slot_status",
-  "status": {
-    "slot_id": "s1",
-    "state": "running",
-    "allocation_id": "5b1e2c7a-8d4f-…",
-    …
-  }
+  "slot_id": "s1",
+  "state": "running",
+  "allocation_id": "5b1e2c7a-8d4f-…",
+  …
 }
 ```
 
@@ -646,10 +644,25 @@ npm install @ankorcs/protocol
   `bearerNodeToken` for the upgrade, `slotTakesLaunch` for ranking nodes and `withLogBatch` for
   applying a [agent:log_batch]. Each function's JSDoc documents it.
 
-This example does steps [1](#1-accept-the-connection) and [2](#2-welcome-the-node) with the `ws`
-package. It accepts the upgrade only when the node's [token](#node-tokens) and
-[protocol version](versioning.md) check out, runs one session per socket and answers the
-[agent:hello]:
+The example runs on Node.js 26 or newer and uses the `ws` package. Each tab is one step of this
+page:
+
+- **Accept a node** does steps [1](#1-accept-the-connection) and [2](#2-welcome-the-node). It
+  accepts the upgrade only when the node's [token](#node-tokens) and
+  [protocol version](versioning.md) check out, runs one session per socket and answers the
+  [agent:hello].
+- **Keep alive** does [step 4](#4-keep-the-connection-alive), inside `run`.
+- **Install CS2** does [step 5](#5-install-cs2), and **Launch a match** steps
+  [6](#6-launch-a-game) and [7](#7-get-the-result). Their reports arrive in `handleReport`.
+
+<div class="code-tabs" data-tabs>
+<div class="tablist" role="tablist">
+<button type="button" class="tab" role="tab" aria-selected="true" data-tab="0">Accept a node</button>
+<button type="button" class="tab" role="tab" aria-selected="false" data-tab="1">Keep alive</button>
+<button type="button" class="tab" role="tab" aria-selected="false" data-tab="2">Install CS2</button>
+<button type="button" class="tab" role="tab" aria-selected="false" data-tab="3">Launch a match</button>
+</div>
+<div class="tabpanel" role="tabpanel" data-panel="0">
 
 ```ts
 import { createHash } from 'node:crypto';
@@ -662,7 +675,7 @@ const sockets = new WebSocketServer({ noServer: true });
 
 server.on('upgrade', (request, socket, head) => {
   const token = bearerNodeToken(request.headers.authorization);
-  // Look the node up by the SHA-256 of the token it sent.
+  // Your code: return the stored node whose token hash is the SHA-256 of this token, or null.
   const node = token === null ? null : findNodeByTokenHash(createHash('sha256').update(token).digest('hex'));
 
   if (node === null) {
@@ -704,16 +717,21 @@ function run(node, ws) {
           }
 
           clearTimeout(helloTimer);
+          // Your code: store what the hello reports, such as the node's settings, slots, servers
+          // and CS2.
           saveHello(node, frame.message);
           session.notify({ type: 'welcome' });
           welcomed = true;
         } else {
+          // Your code: act on every other report, as the other tabs show.
           handleReport(node, frame.message);
         }
         break;
       case 'reply':
-        // The session has handed this reply to the `await session.request(…)` that sent the request.
+        // The session has handed this reply to the `await session.request(…)` that sent the
+        // request.
         // A reply that arrives after its request timed out has no one waiting for it.
+        // Your code: `log` is your logger.
         if (!frame.answered) {
           log.info(`node ${node.id} answered ${frame.message.request} after it timed out`);
         }
@@ -746,14 +764,173 @@ function run(node, ws) {
 const result = await node.session.request({ type: 'set_config', config: { slots } });
 
 if (result.status === 'ok') {
-  // The node's settings with the new slots, to store with the node.
+  // Your code: store the node's settings, which now list the new slots.
   saveSettings(node, result.data);
 }
 ```
 
-`server` is your HTTP server, and `findNodeByTokenHash`, `saveHello`, `handleReport`,
-`saveSettings` and `log` stand for your controller's own code. `handleReport` acts on the node's reports, which
-[Node sends information](#3-node-sends-information) describes.
+</div>
+<div class="tabpanel" role="tabpanel" data-panel="1" hidden>
+
+```ts
+import { AGENT_PING_TIMEOUT_MS } from '@ankorcs/protocol';
+
+// Inside run(node, ws). The agent pings now and then, and `ws` answers each ping with a pong by
+// itself. Close a socket whose agent has sent nothing for too long.
+let heardAt = Date.now();
+const heard = () => {
+  heardAt = Date.now();
+};
+
+ws.on('ping', heard);
+ws.on('message', heard);
+
+const silence = setInterval(() => {
+  if (Date.now() - heardAt > AGENT_PING_TIMEOUT_MS) {
+    // A silent agent's connection is usually gone, so drop it without a closing handshake.
+    ws.terminate();
+  }
+}, 5_000);
+
+ws.on('close', () => clearInterval(silence));
+```
+
+</div>
+<div class="tabpanel" role="tabpanel" data-panel="2" hidden>
+
+```ts
+// Once the node is welcomed. Its hello reports `cs2.build_id` as null until CS2 is installed.
+const result = await node.session.request({ type: 'update_cs2', mode: 'update' });
+
+if (result.status === 'ok') {
+  // The install runs on the node, and its reports name it by this id.
+  node.cs2UpdateId = result.data.update_id;
+}
+
+// In handleReport(node, report):
+switch (report.type) {
+  case 'cs2_update_progress':
+    // Percent done as steamcmd reports it, or null when it reports none, and its latest line.
+    // Your code: show the progress to whoever is watching, such as in your UI.
+    showProgress(node, report.update_id, report.percent, report.message);
+    break;
+  case 'node_status': {
+    // Every node_status carries the node's whole CS2 state, including its build and any update the
+    // node started by itself.
+    // Your code: store the node's CS2 state.
+    saveCs2(node, report.cs2);
+
+    const update = report.cs2.update;
+
+    // `cs2.update` keeps naming the last update to end, so act on its end only once.
+    if (update !== null && update.id === node.cs2UpdateId && update.outcome !== null) {
+      node.cs2UpdateId = null;
+      // The install has ended: `completed`, after which the node takes launches, or a failure
+      // that `detail` explains.
+      // Your code: tell whoever started the install how it ended.
+      installEnded(node, update.outcome, update.detail);
+    }
+    break;
+  }
+}
+```
+
+</div>
+<div class="tabpanel" role="tabpanel" data-panel="3" hidden>
+
+```ts
+import { randomUUIDv7 } from 'node:crypto';
+import { StartRefusal, type ServerLaunchConfigInput } from '@ankorcs/protocol';
+
+// Every launch gets a new allocation id, stored before the request goes out.
+const allocationId = randomUUIDv7();
+// Your code: record the launch of this allocation on this node, as not yet confirmed.
+saveLaunch(node, allocationId);
+
+const launch: ServerLaunchConfigInput = {
+  map_name: 'de_mirage',
+  max_players: 10,
+  idle_shutdown_seconds: 300,
+  exec: [],
+  commands: [],
+  match: {
+    roster: {
+      team1: {
+        name: 'Alpha',
+        players: [
+          '76561198000000001',
+          '76561198000000002',
+          '76561198000000003',
+          '76561198000000004',
+          '76561198000000005',
+        ],
+      },
+      team2: {
+        name: 'Bravo',
+        players: [
+          '76561198000000006',
+          '76561198000000007',
+          '76561198000000008',
+          '76561198000000009',
+          '76561198000000010',
+        ],
+      },
+      spectators: [],
+    },
+    sides: 'knife',
+    record_demo: true,
+    send_statistics: true,
+  },
+};
+
+const result = await node.session.request({ type: 'start_server', allocation_id: allocationId, launch });
+
+if (result.status === 'error' && StartRefusal.safeParse(result.error.code).success) {
+  // No server started, so the launch can go to another node.
+  // Your code: send the same allocation and launch to the next node that can take it.
+  launchElsewhere(allocationId, launch);
+} else if (result.status !== 'ok') {
+  // Any other error, a timeout or a closed socket may have left a server running.
+  // Your code: settle the launch on this node first, as Launches in A minimal controller explains:
+  // stop it there, or wait for the node's next hello, before you launch it anywhere else.
+  settleLaunch(node, allocationId, result);
+}
+
+// In handleReport(node, report):
+switch (report.type) {
+  case 'slot_status':
+    // A slot_status also comes for later changes to a running slot, such as its server's SteamID.
+    if (report.state === 'running' && report.allocation_id !== null) {
+      // CS2 is up. Players join the node's address on this slot's port.
+      // Your code: mark the launch running and hand players that address, once per launch.
+      markRunning(report.allocation_id, report.slot_id);
+    }
+    break;
+  case 'phase_change':
+    // `post_live` means the match is over.
+    // Your code: store the match's phase.
+    savePhase(report.allocation_id, report.phase);
+    break;
+  case 'score':
+    // The last score of a match is its final score.
+    // Your code: store the score.
+    saveScore(report.allocation_id, report.team1_score, report.team2_score);
+    break;
+  case 'server_exited':
+    // Your code: record that the server ended, and why. Its slot goes back to idle next.
+    endLaunch(report.allocation_id, report.reason);
+    break;
+}
+```
+
+</div>
+</div>
+
+`server` is your HTTP server. A comment starting "Your code" marks each function that the example
+calls without defining it, and says what it should do. `handleReport` acts on the node's reports,
+which [Node sends information](#3-node-sends-information) describes. A launch whose reply is an
+error other than a refusal, or never comes, may still have started a server, as
+[Launches](minimal-controller.md#launches) explains.
 
 - `request` adds the `id` and resolves with the reply's `data` or `error`, or with `timeout` or
   `closed` when no reply came. Without a reply the agent may still have done the work, and its

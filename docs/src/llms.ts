@@ -68,6 +68,19 @@ export function guideMarkdown(guide: Guide): string {
   text = text.replace(/<p class="(?:choice|parts|callout)-(?:label|title)[^"]*">([\s\S]*?)<\/p>/g, (_, label: string) => `**${inline(label)}**`);
   text = text.replace(/<p class="message-card-head">([\s\S]*?)<span class="message-card-direction">([\s\S]*?)<\/span><\/p>/g,
     (_, head: string, direction: string) => `**${inline(head)}** (${inline(direction)})`);
+  // Tabs show one panel at a time; in Markdown every panel follows the others under its tab's name.
+  let tabs: string[] = [];
+
+  text = text.replace(/<div class="tablist"[^>]*>([\s\S]*?)<\/div>|<div class="tabpanel"[^>]*data-panel="(\d+)"[^>]*>/g,
+    (_, list: string | undefined, panel: string | undefined) => {
+      if (list !== undefined) {
+        tabs = [...list.matchAll(/<button[^>]*>([\s\S]*?)<\/button>/g)].map((match) => inline(match[1] ?? ''));
+
+        return '';
+      }
+
+      return `**${tabs[Number(panel)] ?? ''}**`;
+    });
   text = text.replace(/<\/?(?:div|span|p)\b[^>]*>/g, '');
   text = inline(text);
   text = text.replace(FRAME_TAG, (_, frame: string) => `[\`${frame.slice(frame.indexOf(':') + 1)}\`](${reference.frames.get(frame)})`);
