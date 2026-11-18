@@ -345,48 +345,8 @@ const copies = options !== undefined && options.every((option) => messageHref(op
     margin: 0 0 0.4rem;
   }
 
-  .tablist {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-    border-bottom: 1px solid var(--color-line-700);
-  }
-
-  .tab {
-    display: flex;
-    gap: 0.5rem;
-    align-items: baseline;
-    margin-bottom: -1px;
-    padding: 0.35rem 0.75rem;
-    font-size: 0.8125rem;
-    color: var(--color-text-500);
-    background: none;
-    border: 1px solid transparent;
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
-    cursor: pointer;
-  }
-
-  .tab:hover {
-    color: var(--color-text-100);
-  }
-
-  .tab[aria-selected='true'] {
-    color: var(--color-text-100);
-    background: var(--color-bg-900);
-    border-color: var(--color-line-700);
-    border-bottom-color: var(--color-bg-900);
-  }
-
   .tab-name {
     color: var(--color-accent-300);
-  }
-
-  .tabpanel {
-    padding: 0.5rem 0.9rem 0.25rem;
-    background: var(--color-bg-900);
-    border: 1px solid var(--color-line-700);
-    border-top: none;
-    border-radius: 0 0 var(--radius-md) var(--radius-md);
   }
 
   .variant-head {
@@ -398,23 +358,3 @@ const copies = options !== undefined && options.every((option) => messageHref(op
     margin-bottom: 0.25rem;
   }
 </style>
-
-<script>
-  // A tab shows its own alternative; nested unions answer only to their own tabs.
-  document.addEventListener('click', (event) => {
-    const tab = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-tabs] > .tablist > [role="tab"]');
-    const union = tab?.closest<HTMLElement>('[data-tabs]');
-
-    if (tab === null || tab === undefined || union === null || union === undefined) {
-      return;
-    }
-
-    for (const other of union.querySelectorAll<HTMLButtonElement>(':scope > .tablist > [role="tab"]')) {
-      other.setAttribute('aria-selected', String(other === tab));
-    }
-
-    for (const panel of union.querySelectorAll<HTMLElement>(':scope > .tabpanel')) {
-      panel.hidden = panel.dataset['panel'] !== tab.dataset['tab'];
-    }
-  });
-</script>

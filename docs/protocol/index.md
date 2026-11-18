@@ -16,76 +16,9 @@ ports apart from the game ports that players join on. Your controller accepts th
 answers them.
 
 This page walks through your controller's tasks step by step.
-[A minimal controller](minimal-controller.md) takes one node from token to running server. The
-[protocol reference](/reference/) has every message, field and example.
-
-In Node.js, [`@ankorcs/protocol`](https://www.npmjs.com/package/@ankorcs/protocol) does the work:
-
-```sh
-npm install @ankorcs/protocol
-```
-
-- `@ankorcs/protocol/session` runs the request side for you. An agent session sends each request
-  under an id and parses every report. It resolves each request with the typed `data` or `error`
-  of its reply, or with a timeout or the socket's close. It works with any WebSocket server if you
-  hand it each frame and a function that writes one.
-- `@ankorcs/protocol` has the zod schema of every message and the constants. A controller can
-  also parse and build every message with these schemas directly.
-- `@ankorcs/protocol/helpers` holds the functions that both ends share. Among them are
-  `bearerNodeToken` for the upgrade, `slotTakesLaunch` for ranking nodes and `withLogBatch` for
-  applying a [agent:log_batch]. Each function's JSDoc documents it.
-
-Check the [protocol version](versioning.md) on the upgrade, then run one session per accepted
-socket:
-
-```ts
-import { PROTOCOL_HEADER } from '@ankorcs/protocol';
-import { isCompatibleProtocol, protocolVersionOf, upgradeRefusal } from '@ankorcs/protocol/helpers';
-import { createAgentSession } from '@ankorcs/protocol/session';
-
-server.on('upgrade', (request, socket, head) => {
-  const protocol = request.headers[PROTOCOL_HEADER.toLowerCase()];
-
-  // Check the node token as well, as step 1 describes.
-  if (!isCompatibleProtocol(protocol)) {
-    socket.end(upgradeRefusal(426));
-
-    return;
-  }
-
-  // The node's version, to offer it only the features it has.
-  const version = protocolVersionOf(protocol);
-  // … accept the socket.
-});
-
-const node = createAgentSession({ send: (text) => ws.send(text) });
-
-ws.on('message', (raw) => {
-  const frame = node.receive(raw);
-
-  if (frame.kind === 'report') {
-    handleReport(frame.message);
-  }
-});
-ws.on('close', () => node.closed());
-
-const result = await node.request({ type: 'reserve_slot', slot_id: 's1' });
-```
-
-- `request` adds the `id` and resolves with the reply's `data` or `error`, or with `timeout` or
-  `closed` when no reply came. Without a reply the agent may still have done the work, and its
-  reports say whether it did.
-- A request waits 30 seconds by default. A `stop_server` waits [limit:STOP_TIMEOUT_SECONDS]
-  seconds for the stop and [limit:STOP_REPLY_MARGIN_SECONDS] seconds more, because its reply comes
-  once the container has stopped. Set `timeoutMs` on the session or on one call,
-  or null for no deadline. A stop behind a launch of the same allocation waits for that launch's
-  reply first, so give such a stop a longer wait.
-- `receive` reads a frame as it arrived, and `receiveParsed` one your server already parsed from
-  JSON. Each returns a `report`, a `reply` with whether it answered an open request, `unsupported`
-  for a message from a newer agent, which you skip, or `invalid` with zod's `issues`.
-- `notify` sends the frames that get no reply, such as [agent:welcome] and the watches. The session
-  checks what it sends against the contract, so a request the contract refuses never reaches the
-  socket.
+[A minimal controller](minimal-controller.md) takes one node from token to running server, and
+[A Node.js example](#a-nodejs-example) at the end of this page shows the code that accepts a node.
+The [protocol reference](/reference/) has every message, field and example.
 
 ## What you need
 
@@ -232,8 +165,9 @@ A failed request:
 
 ## 1. Accept the connection
 
-The agent connects to [config:controller.socket_path] with an ordinary WebSocket upgrade. The example uses
-the default. Check `Authorization` and [`Ankor-Protocol`](#versions) before you accept.
+The agent connects to [config:controller.socket_path] with an ordinary WebSocket upgrade. The request
+below uses the default path. Check `Authorization` and [`Ankor-Protocol`](#versions) before you
+accept.
 
 <div class="message-cards">
 
@@ -307,14 +241,15 @@ or [times out](#4-keep-the-connection-alive). The agent keeps retrying. A host w
 dropped therefore reconnects once you close its old socket.
 
 When you close a socket, fail the requests still open on it. A session from
-`@ankorcs/protocol/session` does that on `closed()`.
+`@ankorcs/protocol/session` does that on `closed()`, as in [A Node.js example](#a-nodejs-example).
 
 ## 2. Welcome the node
 
 The agent's first message is [agent:hello]. It carries the node's configuration, its slots and
 their servers, its CS2 build and its demos. Save what it reports and answer [agent:welcome], also
-for a node on a [release line you do not support](#versions). Send no requests before that. A node with
-`unavailable` set stays connected but accepts no launches. The value of `unavailable` gives the
+for a node on a [release line you do not support](#versions). Send no requests before that. Answer
+within [limit-time:AGENT_WELCOME_TIMEOUT_MS], or the agent closes the socket and dials again. A node
+with `unavailable` set stays connected but accepts no launches. The value of `unavailable` gives the
 reason.
 
 <div class="message-cards">
@@ -355,6 +290,10 @@ If a hello fails its schema, answer [agent:hello_refused] with
 [close the socket](/reference/socket/#closing) with `hello_refused`. The agent logs the `detail`
 and stops dialling until it is restarted.
 
+Close a socket that sends no valid hello within [limit-time:AGENT_HELLO_TIMEOUT_MS] of the upgrade
+with `hello_timeout`, and one that sends a second hello with `duplicate_hello`. The agent redials
+after either.
+
 Accept every other hello, whatever its `agent.version`. An agent on a version that your controller
 does not support stays connected but receives no launches. You can still send it
 [agent:update_agent]. If you refused it at hello, it would stop dialling, and its host would have
@@ -374,12 +313,10 @@ state.
 ```json
 {
   "type": "slot_status",
-  "status": {
-    "slot_id": "s1",
-    "state": "running",
-    "allocation_id": "5b1e2c7a-8d4f-…",
-    …
-  }
+  "slot_id": "s1",
+  "state": "running",
+  "allocation_id": "5b1e2c7a-8d4f-…",
+  …
 }
 ```
 
@@ -688,3 +625,324 @@ asks, also uploads its gameplay events to [the events path](events.md). You buil
 them there. The last event of a map is [event:map_end]. Its
 [`reason`](/reference/types/#schema-MapEndReason) says why the map ended, and only a map that was
 played out names a winner.
+
+## A Node.js example
+
+In Node.js, [`@ankorcs/protocol`](https://www.npmjs.com/package/@ankorcs/protocol) does the work:
+
+```sh
+npm install @ankorcs/protocol
+```
+
+- `@ankorcs/protocol/session` runs the request side for you. An agent session sends each request
+  under an id and parses every report. It resolves each request with the typed `data` or `error`
+  of its reply, or with a timeout or the socket's close. It works with any WebSocket server if you
+  hand it each frame and a function that writes one.
+- `@ankorcs/protocol` has the zod schema of every message and the constants. A controller can
+  also parse and build every message with these schemas directly.
+- `@ankorcs/protocol/helpers` holds the functions that both ends share. Among them are
+  `bearerNodeToken` for the upgrade, `slotTakesLaunch` for ranking nodes and `withLogBatch` for
+  applying a [agent:log_batch]. Each function's JSDoc documents it.
+
+The example runs on Node.js 26 or newer and uses the `ws` package. Each tab is one step of this
+page:
+
+- **Accept a node** does steps [1](#1-accept-the-connection) and [2](#2-welcome-the-node). It
+  accepts the upgrade only when the node's [token](#node-tokens) and
+  [protocol version](versioning.md) check out, runs one session per socket and answers the
+  [agent:hello].
+- **Keep alive** does [step 4](#4-keep-the-connection-alive), inside `run`.
+- **Install CS2** does [step 5](#5-install-cs2), and **Launch a match** steps
+  [6](#6-launch-a-game) and [7](#7-get-the-result). Their reports arrive in `handleReport`.
+
+<div class="code-tabs" data-tabs>
+<div class="tablist" role="tablist">
+<button type="button" class="tab" role="tab" aria-selected="true" data-tab="0">Accept a node</button>
+<button type="button" class="tab" role="tab" aria-selected="false" data-tab="1">Keep alive</button>
+<button type="button" class="tab" role="tab" aria-selected="false" data-tab="2">Install CS2</button>
+<button type="button" class="tab" role="tab" aria-selected="false" data-tab="3">Launch a match</button>
+</div>
+<div class="tabpanel" role="tabpanel" data-panel="0">
+
+```ts
+import { createHash } from 'node:crypto';
+import { WebSocketServer } from 'ws';
+import { AGENT_HELLO_TIMEOUT_MS, PROTOCOL_HEADER } from '@ankorcs/protocol';
+import { bearerNodeToken, isCompatibleProtocol, protocolVersionOf, upgradeRefusal } from '@ankorcs/protocol/helpers';
+import { createAgentSession } from '@ankorcs/protocol/session';
+
+const sockets = new WebSocketServer({ noServer: true });
+
+server.on('upgrade', (request, socket, head) => {
+  const token = bearerNodeToken(request.headers.authorization);
+  // Your code: return the stored node whose token hash is the SHA-256 of this token, or null.
+  const node = token === null ? null : findNodeByTokenHash(createHash('sha256').update(token).digest('hex'));
+
+  if (node === null) {
+    socket.end(upgradeRefusal(401));
+
+    return;
+  }
+
+  const protocol = request.headers[PROTOCOL_HEADER.toLowerCase()];
+
+  if (!isCompatibleProtocol(protocol)) {
+    socket.end(upgradeRefusal(426));
+
+    return;
+  }
+
+  // The node's self-reported version, to offer it only the features it has.
+  node.protocol = protocolVersionOf(protocol);
+  sockets.handleUpgrade(request, socket, head, (ws) => run(node, ws));
+});
+
+function run(node, ws) {
+  const session = createAgentSession({ send: (text) => ws.send(text) });
+  let welcomed = false;
+  // A socket that sends no valid hello in time is closed, as step 2 describes.
+  const helloTimer = setTimeout(() => ws.close(1008, 'hello_timeout'), AGENT_HELLO_TIMEOUT_MS);
+
+  ws.on('message', (raw) => {
+    const frame = session.receive(raw);
+
+    switch (frame.kind) {
+      case 'report':
+        // Every connection starts with a hello. Answer it before the welcome deadline in step 2.
+        if (frame.message.type === 'hello') {
+          if (welcomed) {
+            // A second hello on the same socket breaks the protocol.
+            ws.close(1008, 'duplicate_hello');
+            break;
+          }
+
+          clearTimeout(helloTimer);
+          // Your code: store what the hello reports, such as the node's settings, slots, servers
+          // and CS2.
+          saveHello(node, frame.message);
+          session.notify({ type: 'welcome' });
+          welcomed = true;
+        } else {
+          // Your code: act on every other report, as the other tabs show.
+          handleReport(node, frame.message);
+        }
+        break;
+      case 'reply':
+        // The session has handed this reply to the `await session.request(…)` that sent the
+        // request.
+        // A reply that arrives after its request timed out has no one waiting for it.
+        // Your code: `log` is your logger.
+        if (!frame.answered) {
+          log.info(`node ${node.id} answered ${frame.message.request} after it timed out`);
+        }
+        break;
+      case 'unsupported':
+        // A message type from a newer agent, which this controller skips.
+        log.info(`node ${node.id} sent ${frame.type}, which this protocol version does not have`);
+        break;
+      case 'invalid':
+        log.warn(`node ${node.id} sent a frame that breaks the contract: ${frame.detail}`);
+
+        // Before the welcome, this is a hello that fails its schema. Refuse it as step 2 describes.
+        if (!welcomed) {
+          clearTimeout(helloTimer);
+          session.notify({ type: 'hello_refused', reason: 'invalid_hello', detail: frame.detail.slice(0, 512) });
+          ws.close(1008, 'hello_refused');
+        }
+        break;
+    }
+  });
+  ws.on('close', () => {
+    clearTimeout(helloTimer);
+    session.closed();
+  });
+
+  node.session = session;
+}
+
+// Anywhere else, once the node is welcomed. This sends the node its slots.
+const result = await node.session.request({ type: 'set_config', config: { slots } });
+
+if (result.status === 'ok') {
+  // Your code: store the node's settings, which now list the new slots.
+  saveSettings(node, result.data);
+}
+```
+
+</div>
+<div class="tabpanel" role="tabpanel" data-panel="1" hidden>
+
+```ts
+import { AGENT_PING_TIMEOUT_MS } from '@ankorcs/protocol';
+
+// Inside run(node, ws). The agent pings now and then, and `ws` answers each ping with a pong by
+// itself. Close a socket whose agent has sent nothing for too long.
+let heardAt = Date.now();
+const heard = () => {
+  heardAt = Date.now();
+};
+
+ws.on('ping', heard);
+ws.on('message', heard);
+
+const silence = setInterval(() => {
+  if (Date.now() - heardAt > AGENT_PING_TIMEOUT_MS) {
+    // A silent agent's connection is usually gone, so drop it without a closing handshake.
+    ws.terminate();
+  }
+}, 5_000);
+
+ws.on('close', () => clearInterval(silence));
+```
+
+</div>
+<div class="tabpanel" role="tabpanel" data-panel="2" hidden>
+
+```ts
+// Once the node is welcomed. Its hello reports `cs2.build_id` as null until CS2 is installed.
+const result = await node.session.request({ type: 'update_cs2', mode: 'update' });
+
+if (result.status === 'ok') {
+  // The install runs on the node, and its reports name it by this id.
+  node.cs2UpdateId = result.data.update_id;
+}
+
+// In handleReport(node, report):
+switch (report.type) {
+  case 'cs2_update_progress':
+    // Percent done as steamcmd reports it, or null when it reports none, and its latest line.
+    // Your code: show the progress to whoever is watching, such as in your UI.
+    showProgress(node, report.update_id, report.percent, report.message);
+    break;
+  case 'node_status': {
+    // Every node_status carries the node's whole CS2 state, including its build and any update the
+    // node started by itself.
+    // Your code: store the node's CS2 state.
+    saveCs2(node, report.cs2);
+
+    const update = report.cs2.update;
+
+    // `cs2.update` keeps naming the last update to end, so act on its end only once.
+    if (update !== null && update.id === node.cs2UpdateId && update.outcome !== null) {
+      node.cs2UpdateId = null;
+      // The install has ended: `completed`, after which the node takes launches, or a failure
+      // that `detail` explains.
+      // Your code: tell whoever started the install how it ended.
+      installEnded(node, update.outcome, update.detail);
+    }
+    break;
+  }
+}
+```
+
+</div>
+<div class="tabpanel" role="tabpanel" data-panel="3" hidden>
+
+```ts
+import { randomUUIDv7 } from 'node:crypto';
+import { StartRefusal, type ServerLaunchConfigInput } from '@ankorcs/protocol';
+
+// Every launch gets a new allocation id, stored before the request goes out.
+const allocationId = randomUUIDv7();
+// Your code: record the launch of this allocation on this node, as not yet confirmed.
+saveLaunch(node, allocationId);
+
+const launch: ServerLaunchConfigInput = {
+  map_name: 'de_mirage',
+  max_players: 10,
+  idle_shutdown_seconds: 300,
+  exec: [],
+  commands: [],
+  match: {
+    roster: {
+      team1: {
+        name: 'Alpha',
+        players: [
+          '76561198000000001',
+          '76561198000000002',
+          '76561198000000003',
+          '76561198000000004',
+          '76561198000000005',
+        ],
+      },
+      team2: {
+        name: 'Bravo',
+        players: [
+          '76561198000000006',
+          '76561198000000007',
+          '76561198000000008',
+          '76561198000000009',
+          '76561198000000010',
+        ],
+      },
+      spectators: [],
+    },
+    sides: 'knife',
+    record_demo: true,
+    send_statistics: true,
+  },
+};
+
+const result = await node.session.request({ type: 'start_server', allocation_id: allocationId, launch });
+
+if (result.status === 'error' && StartRefusal.safeParse(result.error.code).success) {
+  // No server started, so the launch can go to another node.
+  // Your code: send the same allocation and launch to the next node that can take it.
+  launchElsewhere(allocationId, launch);
+} else if (result.status !== 'ok') {
+  // Any other error, a timeout or a closed socket may have left a server running.
+  // Your code: settle the launch on this node first, as Launches in A minimal controller explains:
+  // stop it there, or wait for the node's next hello, before you launch it anywhere else.
+  settleLaunch(node, allocationId, result);
+}
+
+// In handleReport(node, report):
+switch (report.type) {
+  case 'slot_status':
+    // A slot_status also comes for later changes to a running slot, such as its server's SteamID.
+    if (report.state === 'running' && report.allocation_id !== null) {
+      // CS2 is up. Players join the node's address on this slot's port.
+      // Your code: mark the launch running and hand players that address, once per launch.
+      markRunning(report.allocation_id, report.slot_id);
+    }
+    break;
+  case 'phase_change':
+    // `post_live` means the match is over.
+    // Your code: store the match's phase.
+    savePhase(report.allocation_id, report.phase);
+    break;
+  case 'score':
+    // The last score of a match is its final score.
+    // Your code: store the score.
+    saveScore(report.allocation_id, report.team1_score, report.team2_score);
+    break;
+  case 'server_exited':
+    // Your code: record that the server ended, and why. Its slot goes back to idle next.
+    endLaunch(report.allocation_id, report.reason);
+    break;
+}
+```
+
+</div>
+</div>
+
+`server` is your HTTP server. A comment starting "Your code" marks each function that the example
+calls without defining it, and says what it should do. `handleReport` acts on the node's reports,
+which [Node sends information](#3-node-sends-information) describes. A launch whose reply is an
+error other than a refusal, or never comes, may still have started a server, as
+[Launches](minimal-controller.md#launches) explains.
+
+- `request` adds the `id` and resolves with the reply's `data` or `error`, or with `timeout` or
+  `closed` when no reply came. Without a reply the agent may still have done the work, and its
+  reports say whether it did.
+- A request waits 30 seconds by default. A `stop_server` waits [limit:STOP_TIMEOUT_SECONDS]
+  seconds for the stop and [limit:STOP_REPLY_MARGIN_SECONDS] seconds more, because its reply comes
+  once the container has stopped. Set `timeoutMs` on the session or on one call,
+  or null for no deadline. A stop behind a launch of the same allocation waits for that launch's
+  reply first, so give such a stop a longer wait.
+- `receive` reads a frame as it arrived, and `receiveParsed` one your server already parsed from
+  JSON. Each returns a `report`, a `reply` with whether it answered an open request, `unsupported`
+  for a message from a newer agent, which you skip, or `invalid` with zod's `issues`.
+- `notify` sends the frames that get no reply, such as [agent:welcome] and the watches. The session
+  checks what it sends against the contract, so a request the contract refuses never reaches the
+  socket.

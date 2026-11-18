@@ -199,6 +199,73 @@ const column = {
         tip.hidden = true;
       }, { passive: true });
 
+      // Tabs follow the WAI-ARIA tabs pattern. Each group links its tabs and panels by id, only the
+      // selected tab is a Tab stop, and the arrow keys, Home and End move between tabs. Nested
+      // groups, as in the reference's unions, answer only to their own tabs.
+      const tabsOf = (group: HTMLElement): HTMLButtonElement[] => [
+        ...group.querySelectorAll<HTMLButtonElement>(':scope > .tablist > [role="tab"]'),
+      ];
+
+      function selectTab(group: HTMLElement, tab: HTMLButtonElement): void {
+        for (const other of tabsOf(group)) {
+          other.setAttribute('aria-selected', String(other === tab));
+          other.tabIndex = other === tab ? 0 : -1;
+        }
+
+        for (const panel of group.querySelectorAll<HTMLElement>(':scope > .tabpanel')) {
+          panel.hidden = panel.dataset['panel'] !== tab.dataset['tab'];
+        }
+      }
+
+      for (const [number, group] of [...document.querySelectorAll<HTMLElement>('[data-tabs]')].entries()) {
+        for (const tab of tabsOf(group)) {
+          const panel = group.querySelector<HTMLElement>(`:scope > .tabpanel[data-panel="${tab.dataset['tab']}"]`);
+
+          tab.id = `tabs-${number}-tab-${tab.dataset['tab']}`;
+          tab.tabIndex = tab.getAttribute('aria-selected') === 'true' ? 0 : -1;
+
+          if (panel !== null) {
+            panel.id = `tabs-${number}-panel-${tab.dataset['tab']}`;
+            panel.tabIndex = 0;
+            panel.setAttribute('aria-labelledby', tab.id);
+            tab.setAttribute('aria-controls', panel.id);
+          }
+        }
+      }
+
+      document.addEventListener('click', (event) => {
+        const tab = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-tabs] > .tablist > [role="tab"]');
+        const group = tab?.closest<HTMLElement>('[data-tabs]');
+
+        if (tab !== null && tab !== undefined && group !== null && group !== undefined) {
+          selectTab(group, tab);
+        }
+      });
+
+      document.addEventListener('keydown', (event) => {
+        const tab = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-tabs] > .tablist > [role="tab"]');
+        const group = tab?.closest<HTMLElement>('[data-tabs]');
+
+        if (tab === null || tab === undefined || group === null || group === undefined) {
+          return;
+        }
+
+        const tabs = tabsOf(group);
+        const index = tabs.indexOf(tab);
+        const next = {
+          ArrowRight: tabs[(index + 1) % tabs.length],
+          ArrowLeft: tabs[(index - 1 + tabs.length) % tabs.length],
+          Home: tabs[0],
+          End: tabs[tabs.length - 1],
+        }[event.key];
+
+        if (next !== undefined) {
+          event.preventDefault();
+          selectTab(group, next);
+          next.focus();
+        }
+      });
+
       // The whole heading links to its section, for sharing; one that already holds a link keeps
       // that link and gets only the mark, as links cannot nest.
       for (const heading of document.querySelectorAll<HTMLElement>('.prose :is(h2, h3)[id]')) {
