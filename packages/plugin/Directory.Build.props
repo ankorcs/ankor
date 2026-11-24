@@ -7,7 +7,7 @@
   -->
   <PropertyGroup>
     <AnkorTargetFramework>net10.0</AnkorTargetFramework>
-    <AnkorVersion>0.10.1</AnkorVersion>
+    <AnkorVersion>0.10.2</AnkorVersion>
   </PropertyGroup>
 
   <PropertyGroup>
